@@ -1,0 +1,6 @@
+Before generating any code, you MUST read and comply with all guidance under:
+1) /.ai/
+2) /docs/
+
+Treat these directories as mandatory source-of-truth specifications.
+Do not generate implementation code until both directories are reviewed.
