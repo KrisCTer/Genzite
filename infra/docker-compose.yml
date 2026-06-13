@@ -1,4 +1,5 @@
 services:
+  # ======================== DATA LAYER ========================
   db:
     image: postgres:15-alpine
     container_name: genzite-db
@@ -31,35 +32,164 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  # ======================== MICROSERVICES ========================
+  gateway:
     build:
-      context: ../backend
+      context: ../apps/gateway
       dockerfile: Dockerfile.dev
-    container_name: genzite-backend
+    container_name: genzite-gateway
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: development
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=public"
+      PORT: 3000
+      IDENTITY_SERVICE_URL: http://identity:3001
+      SITE_SERVICE_URL: http://site:3002
+      DATA_SERVICE_URL: http://data:3003
+      MEDIA_SERVICE_URL: http://media:3004
+      NOTIFICATION_SERVICE_URL: http://notification:3005
+      AI_SERVICE_URL: http://ai:3006
+    depends_on:
+      - identity
+      - site
+      - data
+      - media
+      - notification
+      - ai
+    volumes:
+      - ../apps/gateway:/app
+      - /app/node_modules
+
+  identity:
+    build:
+      context: ../apps/identity-service
+      dockerfile: Dockerfile.dev
+    container_name: genzite-identity
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=identity"
       REDIS_HOST: cache
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-genzite-media-dev}
-      AWS_REGION: ${AWS_REGION:-ap-southeast-1}
     depends_on:
       db:
         condition: service_healthy
       cache:
         condition: service_healthy
     volumes:
-      - ../backend:/app
+      - ../apps/identity-service:/app
       - /app/node_modules
 
+  site:
+    build:
+      context: ../apps/site-service
+      dockerfile: Dockerfile.dev
+    container_name: genzite-site
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=site"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../apps/site-service:/app
+      - /app/node_modules
+
+  data:
+    build:
+      context: ../apps/data-service
+      dockerfile: Dockerfile.dev
+    container_name: genzite-data
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=data"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../apps/data-service:/app
+      - /app/node_modules
+
+  media:
+    build:
+      context: ../apps/media-service
+      dockerfile: Dockerfile.dev
+    container_name: genzite-media
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=media"
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-genzite-media-dev}
+      AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../apps/media-service:/app
+      - /app/node_modules
+
+  notification:
+    build:
+      context: ../apps/notification-service
+      dockerfile: Dockerfile.dev
+    container_name: genzite-notification
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=notification"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../apps/notification-service:/app
+      - /app/node_modules
+
+  ai:
+    build:
+      context: ../apps/ai-service
+      dockerfile: Dockerfile.dev
+    container_name: genzite-ai
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=ai"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    volumes:
+      - ../apps/ai-service:/app
+      - /app/node_modules
+
+  # ======================== FRONTEND ========================
   frontend:
     build:
-      context: ../frontend
+      context: ../apps/frontend
       dockerfile: Dockerfile.dev
     container_name: genzite-frontend
     restart: unless-stopped
@@ -68,9 +198,9 @@ services:
     environment:
       VITE_API_BASE_URL: http://localhost:3000/api/v1
     depends_on:
-      - backend
+      - gateway
     volumes:
-      - ../frontend:/app
+      - ../apps/frontend:/app
       - /app/node_modules
 
 volumes:

@@ -1,0 +1,22 @@
+{
+  "name": "genzite",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:gateway": "npm run start:dev --workspace=apps/gateway",
+    "dev:identity": "npm run start:dev --workspace=apps/identity-service",
+    "dev:site": "npm run start:dev --workspace=apps/site-service",
+    "dev:data": "npm run start:dev --workspace=apps/data-service",
+    "dev:media": "npm run start:dev --workspace=apps/media-service",
+    "dev:notification": "npm run start:dev --workspace=apps/notification-service",
+    "dev:ai": "npm run start:dev --workspace=apps/ai-service",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "build:types": "npm run build --workspace=packages/shared-types",
+    "build:all": "npm run build --workspaces --if-present",
+    "test:all": "npm run test --workspaces --if-present"
+  }
+}
