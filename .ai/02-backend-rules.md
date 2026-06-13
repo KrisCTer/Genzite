@@ -1,6 +1,6 @@
-# Backend Rules (NestJS Modular Monolith)
+# Backend Rules (NestJS Microservices)
 
-All backend code resides in `/backend` and follows strict NestJS + TypeScript Modular Monolith conventions.
+All backend code resides in `/apps/<service-name>/` and follows strict NestJS + TypeScript Microservices conventions.
 
 ## Tech Stack
 - **Runtime**: Node.js (LTS)

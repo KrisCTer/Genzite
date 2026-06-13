@@ -2,121 +2,143 @@
 
 ## Overview
 
-Genzite is an AI-Powered No-Code Business Application Builder & Dynamic CMS. The system follows a **Modular Monolith** architecture with strict domain boundaries.
+Genzite is an AI-Powered No-Code Business Application Builder & Dynamic CMS. The system follows a **Microservices** architecture with 7 independent NestJS services organized in a monorepo.
 
 ## System Topology
 
 ```mermaid
 graph TB
     subgraph "Client Layer"
-        FE_BUILDER["app-builder-canvas<br/>(React + Tailwind)"]
-        FE_CMS["app-cms-dashboard<br/>(React + Tailwind)"]
+        FE["React Frontend<br/>(apps/frontend)"]
     end
 
     subgraph "Edge / CDN"
-        R53["Amazon Route 53<br/>(DNS + Custom Domain)"]
-        CF["Amazon CloudFront<br/>(CDN)"]
+        R53["Amazon Route 53"]
+        CF["Amazon CloudFront"]
         S3_FE["Amazon S3<br/>(Frontend Hosting)"]
         S3_MEDIA["Amazon S3<br/>(Media Storage)"]
     end
 
-    subgraph "Load Balancing"
-        ALB["Application Load Balancer<br/>(SSL Termination)"]
+    subgraph "API Gateway"
+        GW["apps/gateway<br/>Port 3000"]
     end
 
-    subgraph "Compute - EC2 Auto Scaling"
-        BACKEND["NestJS Modular Monolith"]
+    subgraph "Core Services"
+        IDENTITY["apps/identity-service<br/>Port 3001"]
+        SITE["apps/site-service<br/>Port 3002"]
+        DATA["apps/data-service<br/>Port 3003"]
     end
 
-    subgraph "Backend Domains"
-        IDENTITY["identity"]
-        SITE["site"]
-        DATA["data"]
-        MEDIA["media"]
-        NOTIFICATION["notification"]
-        AI["ai"]
+    subgraph "Support Services"
+        MEDIA["apps/media-service<br/>Port 3004"]
+        NOTIFICATION["apps/notification-service<br/>Port 3005"]
+    end
+
+    subgraph "AI Services"
+        AI["apps/ai-service<br/>Port 3006"]
     end
 
     subgraph "Data Layer"
-        RDS["Amazon RDS PostgreSQL<br/>(Relational + JSONB)"]
-        REDIS["Amazon ElastiCache Redis<br/>(Session + Query Cache)"]
+        RDS["Amazon RDS PostgreSQL"]
+        REDIS["Amazon ElastiCache Redis"]
+        KAFKA["Kafka (Event Bus)"]
     end
 
     subgraph "External"
         GEMINI["Google Gemini API"]
     end
 
-    R53 --> CF
-    CF --> S3_FE
-    CF --> ALB
-    ALB --> BACKEND
-    BACKEND --- IDENTITY
-    BACKEND --- SITE
-    BACKEND --- DATA
-    BACKEND --- MEDIA
-    BACKEND --- NOTIFICATION
-    BACKEND --- AI
-    BACKEND --> RDS
-    BACKEND --> REDIS
+    R53 --> CF --> S3_FE
+    CF --> GW
+    FE -->|"REST API"| GW
+    FE -->|"Presigned URL Upload"| S3_MEDIA
+    GW --> IDENTITY
+    GW --> SITE
+    GW --> DATA
+    GW --> MEDIA
+    GW --> NOTIFICATION
+    GW --> AI
+    IDENTITY --> RDS
+    SITE --> RDS
+    DATA --> RDS
+    MEDIA --> RDS
+    MEDIA --> S3_MEDIA
+    NOTIFICATION --> RDS
+    AI --> RDS
     AI --> GEMINI
-    FE_BUILDER -->|"Presigned URL Upload"| S3_MEDIA
-    FE_CMS -->|"Presigned URL Upload"| S3_MEDIA
-    FE_BUILDER -->|"REST API"| ALB
-    FE_CMS -->|"REST API"| ALB
+    IDENTITY -.->|Event| KAFKA
+    SITE -.->|Event| KAFKA
+    DATA -.->|Event| KAFKA
+    NOTIFICATION -.->|Subscribe| KAFKA
+    AI -.->|Event| KAFKA
+    IDENTITY --> REDIS
+    AI --> REDIS
 ```
 
 ## Repository Structure
 
 ```
 genzite/
-├── .ai/                     # Mandatory AI agent rules & guardrails
-│   ├── 01-architecture.md
-│   ├── 02-backend-rules.md
-│   ├── 03-frontend-rules.md
-│   └── 04-qa-rules.md
-├── backend/                 # NestJS Modular Monolith
-│   └── src/
-│       ├── identity/        # Auth, JWT, RBAC
-│       ├── site/            # Site canvas, pages, widgets
-│       ├── data/            # Dynamic CMS collections & records (JSONB)
-│       ├── media/           # S3 Presigned URL generation
-│       ├── notification/    # Email, webhooks, push
-│       └── ai/              # Google Gemini integration
-├── frontend/                # React + Vite + TypeScript + Tailwind CSS
-│   └── src/
-│       ├── components/      # Reusable UI components
-│       ├── pages/           # Route-level views
-│       ├── hooks/           # Custom React hooks
-│       ├── context/         # Global state providers
-│       └── services/        # API client layer
-├── infra/                   # Docker Compose for local development
-├── docs/                    # Product spec, DB design, API contracts
-├── qa/                      # Functional API verification scripts
-└── .cursorrules             # AI agent entry-point directive
+├── .ai/                             # AI agent rules & guardrails
+├── apps/                            # All deployable applications
+│   ├── gateway/                     # API Gateway (port 3000)
+│   ├── identity-service/            # Auth, JWT, RBAC (port 3001)
+│   ├── site-service/                # Sites, Pages, Widgets (port 3002)
+│   ├── data-service/                # Dynamic CMS JSONB (port 3003)
+│   ├── media-service/               # S3 Presigned URLs (port 3004)
+│   ├── notification-service/        # Email, Push, In-App (port 3005)
+│   ├── ai-service/                  # Google Gemini (port 3006)
+│   └── frontend/                    # React + Vite + Tailwind CSS
+├── packages/                        # Shared libraries
+│   └── shared-types/                # DTOs, Events, Constants
+├── infra/                           # Docker Compose orchestration
+├── docs/                            # Product spec, DB design, API contracts
+└── package.json                     # Root workspace: ["apps/*", "packages/*"]
 ```
 
-## Modular Monolith Guardrails
+## Standard Service Structure
 
-### Domain Isolation
-Each backend domain (`identity`, `site`, `data`, `media`, `notification`, `ai`) is a self-contained NestJS Module. Domains must:
-- **Export only interfaces/abstractions**, not concrete services.
-- **Never inject concrete classes** from another domain.
-- **Communicate cross-domain** via NestJS EventEmitter (application events) or exported interfaces only.
+Each NestJS service under `apps/` follows this layout:
+
+```
+<service-name>/
+├── src/
+│   ├── <feature>/                   # Feature sub-modules
+│   │   ├── dto/                     # Request validation (class-validator)
+│   │   ├── <feature>.controller.ts
+│   │   └── <feature>.service.ts
+│   ├── entities/                    # Entity interfaces matching DB schema
+│   ├── interfaces/                  # Cross-service exported abstractions
+│   ├── events/                      # Kafka event producers
+│   ├── app.module.ts
+│   └── main.ts
+├── Dockerfile.dev
+├── nest-cli.json
+├── package.json
+└── tsconfig.json
+```
+
+## Architecture Rules
+
+### Service Independence
+- Each service has its own **database schema** (PostgreSQL schema isolation).
+- Services NEVER access each other's database directly.
+- Cross-service communication: **Kafka events** (async) or **API Gateway** (sync proxy).
 
 ### LLM Isolation
-The `ai` module handles Google Gemini API calls which may take 10–15 seconds. This module must be logically isolated so that long-running AI calls never block core CRUD operations in other domains.
+The `ai-service` handles Google Gemini API calls (10–15 seconds per request). Long-running tasks are processed via BullMQ workers to avoid blocking.
 
 ### Media Upload Path
-Media file uploads **bypass the backend entirely**. The `media` module only generates **Presigned URLs** for Amazon S3. The frontend uploads directly to S3 using those URLs, then notifies the backend of the completed upload via a metadata callback endpoint.
+Media uploads **bypass all backend services**. The `media-service` generates **Presigned URLs** for S3. Frontend uploads directly, then notifies the backend via metadata callback.
 
 ### Data Layer Split
 | Data Type | Storage Strategy |
 |---|---|
-| System config, Users, Roles, Permissions, Site metadata | Standard PostgreSQL relational tables |
-| User-generated CMS content, dynamic business objects, resume data | PostgreSQL `JSONB` columns |
+| System config, Users, Roles, Site metadata | Standard PostgreSQL relational tables |
+| User-generated CMS content, resumes, interviews | PostgreSQL `JSONB` columns |
 
-> **RULE**: NEVER create fixed SQL columns or migrations for dynamic user data fields. All dynamic content MUST use JSONB.
+> **RULE**: NEVER create fixed SQL columns for dynamic user data. All dynamic content MUST use JSONB.
 
 ## Design Philosophy
 
-The UI/UX aesthetic MUST be **cozy, user-friendly, and home-oriented**. Strictly reject harsh, technical, or traditional IT-dashboard designs. The platform should feel like a welcoming community tool, not a developer console.
+UI/UX aesthetic MUST be **cozy, user-friendly, and home-oriented**. Reject harsh, technical, or traditional IT-dashboard designs.
