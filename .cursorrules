@@ -1,0 +1,26 @@
+Before generating any code, you MUST read and comply with all guidance under:
+1) /.ai/
+2) /docs/
+
+Treat these directories as mandatory source-of-truth specifications.
+Do not generate implementation code until both directories are reviewed.
+
+# Genzite System Context
+
+Genzite is an AI-Powered No-Code Business Application Builder & Dynamic CMS.
+
+## Tech Stack
+- Backend: NestJS (TypeScript, Modular Monolith)
+- Frontend: React + Vite + TypeScript + Tailwind CSS v4
+- Database: PostgreSQL (Relational + JSONB) + Redis (Cache)
+- AI: Google Gemini API
+- Cloud: AWS (Route 53, CloudFront, S3, ALB, EC2, RDS, ElastiCache)
+
+## Critical Architecture Rules
+1. Backend is a strict Modular Monolith with domains: identity, site, data, media, notification, ai.
+2. Cross-domain concrete dependency injection is FORBIDDEN. Use interfaces or events.
+3. Dynamic user data MUST use PostgreSQL JSONB. NEVER create fixed columns for dynamic fields.
+4. Media uploads bypass the backend entirely (Presigned URL → S3 direct upload).
+5. The AI module must be isolated to avoid blocking core operations (Gemini calls take 10-15s).
+6. QA focuses 100% on functional backend API verification. UI testing is STRICTLY EXCLUDED.
+7. UI aesthetic must be cozy, user-friendly, and home-oriented. Reject harsh IT-dashboard designs.
