@@ -1,9 +1,15 @@
 Before generating any code, you MUST read and comply with all guidance under:
 1) /.ai/
 2) /docs/
+3) /.agents/
 
 Treat these directories as mandatory source-of-truth specifications.
-Do not generate implementation code until both directories are reviewed.
+Do not generate implementation code until all directories are reviewed.
+
+Priority order when rules conflict:
+1. /.ai/ (Genzite-specific rules — HIGHEST PRIORITY)
+2. /docs/ (Product specifications)
+3. /.agents/ (AG Kit generic framework — lowest priority)
 
 # Genzite System Context
 
