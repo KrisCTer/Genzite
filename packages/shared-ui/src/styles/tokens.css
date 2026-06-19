@@ -1,0 +1,77 @@
+/* ================================================
+   GENZITE — COZY DESIGN TOKENS
+   Human-crafted, warm, home-oriented palette.
+   No glassmorphism. No neon gradients. No AI look.
+   ================================================ */
+
+/* Light-mode-first warm palette */
+:root {
+  /* Primary — Teal (used sparingly, CTA only) */
+  --gz-primary-50: #f0fdfa;
+  --gz-primary-100: #ccfbf1;
+  --gz-primary-200: #99f6e4;
+  --gz-primary-300: #5eead4;
+  --gz-primary-400: #2dd4bf;
+  --gz-primary-500: #14b8a6;
+  --gz-primary-600: #0d9488;
+  --gz-primary-700: #0f766e;
+  --gz-primary-800: #115e59;
+  --gz-primary-900: #134e4a;
+
+  /* Accent — Amber (highlights, badges, warmth) */
+  --gz-accent-50: #fffbeb;
+  --gz-accent-100: #fef3c7;
+  --gz-accent-200: #fde68a;
+  --gz-accent-300: #fcd34d;
+  --gz-accent-400: #fbbf24;
+  --gz-accent-500: #f59e0b;
+  --gz-accent-600: #d97706;
+  --gz-accent-700: #b45309;
+  --gz-accent-800: #92400e;
+  --gz-accent-900: #78350f;
+
+  /* Surface — Warm stone neutrals */
+  --gz-surface: #fafaf8;
+  --gz-surface-raised: #ffffff;
+  --gz-surface-sunken: #f5f5f3;
+  --gz-surface-overlay: rgba(28, 25, 23, 0.4);
+
+  /* Text */
+  --gz-text: #292524;
+  --gz-text-secondary: #78716c;
+  --gz-text-muted: #a8a29e;
+  --gz-text-inverse: #fafaf9;
+
+  /* Borders */
+  --gz-border: #e7e5e4;
+  --gz-border-strong: #d6d3d1;
+  --gz-border-focus: #0d9488;
+
+  /* Semantic — Status */
+  --gz-danger-50: #fff1f2;
+  --gz-danger-500: #f43f5e;
+  --gz-danger-600: #e11d48;
+  --gz-success-50: #ecfdf5;
+  --gz-success-500: #10b981;
+  --gz-success-600: #059669;
+  --gz-info-50: #eff6ff;
+  --gz-info-500: #3b82f6;
+
+  /* Radius — Gentle, not over-rounded */
+  --gz-radius-sm: 6px;
+  --gz-radius-md: 8px;
+  --gz-radius-lg: 12px;
+  --gz-radius-xl: 16px;
+  --gz-radius-full: 9999px;
+
+  /* Shadows — Warm, subtle, no glow */
+  --gz-shadow-xs: 0 1px 2px rgba(120, 113, 108, 0.06);
+  --gz-shadow-sm: 0 1px 3px rgba(120, 113, 108, 0.08), 0 1px 2px rgba(120, 113, 108, 0.04);
+  --gz-shadow-md: 0 4px 6px rgba(120, 113, 108, 0.07), 0 2px 4px rgba(120, 113, 108, 0.04);
+  --gz-shadow-lg: 0 10px 15px rgba(120, 113, 108, 0.06), 0 4px 6px rgba(120, 113, 108, 0.04);
+
+  /* Animation — Subtle, functional */
+  --gz-transition-fast: 100ms ease;
+  --gz-transition-base: 150ms ease;
+  --gz-transition-slow: 250ms ease;
+}

@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme {
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary-50: var(--gz-primary-50);
+  --color-primary-100: var(--gz-primary-100);
+  --color-primary-200: var(--gz-primary-200);
+  --color-primary-300: var(--gz-primary-300);
+  --color-primary-400: var(--gz-primary-400);
+  --color-primary-500: var(--gz-primary-500);
+  --color-primary-600: var(--gz-primary-600);
+  --color-primary-700: var(--gz-primary-700);
+  --color-primary-800: var(--gz-primary-800);
+  --color-primary-900: var(--gz-primary-900);
+
+  --color-accent-50: var(--gz-accent-50);
+  --color-accent-100: var(--gz-accent-100);
+  --color-accent-200: var(--gz-accent-200);
+  --color-accent-300: var(--gz-accent-300);
+  --color-accent-400: var(--gz-accent-400);
+  --color-accent-500: var(--gz-accent-500);
+  --color-accent-600: var(--gz-accent-600);
+  --color-accent-700: var(--gz-accent-700);
+  --color-accent-800: var(--gz-accent-800);
+  --color-accent-900: var(--gz-accent-900);
+
+  --color-surface: var(--gz-surface);
+  --color-surface-raised: var(--gz-surface-raised);
+  --color-surface-sunken: var(--gz-surface-sunken);
+
+  --radius-sm: var(--gz-radius-sm);
+  --radius-md: var(--gz-radius-md);
+  --radius-lg: var(--gz-radius-lg);
+  --radius-xl: var(--gz-radius-xl);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--gz-surface);
+  color: var(--gz-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
