@@ -7,6 +7,8 @@
     "packages/*"
   ],
   "scripts": {
+    "build:ui": "npm run build --workspace=packages/shared-ui",
+    "dev:ui": "npm run dev --workspace=packages/shared-ui",
     "dev:gateway": "npm run start:dev --workspace=apps/gateway",
     "dev:identity": "npm run start:dev --workspace=apps/identity-service",
     "dev:site": "npm run start:dev --workspace=apps/site-service",
