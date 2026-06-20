@@ -1,29 +1,29 @@
 # Genzite – Microservices Architecture Design
 
-> **Trạng thái**: Kiến trúc Microservices đã được triển khai. Tất cả services nằm trong `apps/`.
+> **Status**: Microservices architecture is implemented. All services are located in `apps/`.
 
 ---
 
-## 1. Nguyên tắc chia Microservice
+## 1. Microservice Principles
 
-### Chia theo Domain (Domain-Driven Design)
-Mỗi service đại diện cho **một nghiệp vụ kinh doanh độc lập**, có thể:
-- Phát triển, triển khai, và mở rộng **độc lập** với các service khác.
-- Sở hữu **database riêng** (Database-per-Service pattern).
-- Giao tiếp với service khác **chỉ qua API hoặc Event** (không bao giờ truy cập trực tiếp DB của nhau).
+### Domain-Driven Design (DDD)
+Each service represents **an independent business domain**, and can be:
+- Developed, deployed, and scaled **independently** from other services.
+- Owner of its **own database** (Database-per-Service pattern).
+- Communicating with other services **only via API or Events** (never accessing each other's DB directly).
 
-### Quy tắc vàng khi tách service
-| Quy tắc | Giải thích |
+### Golden Rules for Service Splitting
+| Rule | Explanation |
 |---|---|
-| **Một service = Một domain nghiệp vụ** | Không gộp 2 nghiệp vụ khác nhau vào 1 service |
-| **Không chia sẻ Database** | Mỗi service có PostgreSQL schema hoặc instance riêng |
-| **Giao tiếp bất đồng bộ ưu tiên** | Dùng Kafka Event thay vì HTTP call đồng bộ khi có thể |
-| **Mỗi service triển khai độc lập** | Service A cập nhật không ảnh hưởng Service B |
-| **Shared Library cho code dùng chung** | DTO types, utils, constants đặt trong package dùng chung |
+| **One service = One business domain** | Do not merge 2 different business domains into 1 service |
+| **No Shared Database** | Each service has its own PostgreSQL schema or instance |
+| **Asynchronous communication preferred** | Use Kafka Events instead of synchronous HTTP calls when possible |
+| **Independent deployments** | Updating Service A does not affect Service B |
+| **Shared Library for common code** | DTO types, utils, constants are placed in shared packages |
 
 ---
 
-## 2. Bản đồ Microservices của Genzite
+## 2. Genzite Microservices Map
 
 ```mermaid
 graph TB
@@ -85,80 +85,80 @@ graph TB
 
 ---
 
-## 3. Chi tiết từng Service
+## 3. Service Details
 
 ### 3.1 Identity Service (Port 3001)
-| Thuộc tính | Giá trị |
+| Attribute | Value |
 |---|---|
-| **Trách nhiệm** | Đăng ký, đăng nhập, JWT, RBAC, quản lý User/Role/Permission |
+| **Responsibility** | Registration, Login, JWT, RBAC, User/Role/Permission management |
 | **Database** | `identity_db` (users, roles, permissions, user_roles, role_permissions) |
-| **Events phát ra** | `UserRegistered`, `UserUpdated`, `RoleAssigned` |
-| **Đặc biệt** | Là service duy nhất phát hành JWT. Các service khác chỉ **xác thực** (verify) JWT |
+| **Emitted Events** | `UserRegistered`, `UserUpdated`, `RoleAssigned` |
+| **Special Note** | The only service that issues JWTs. Other services only **verify** JWTs |
 
 ### 3.2 Site Service (Port 3002)
-| Thuộc tính | Giá trị |
+| Attribute | Value |
 |---|---|
-| **Trách nhiệm** | Quản lý Sites, Pages, Widgets (Canvas Builder) |
+| **Responsibility** | Sites, Pages, Widgets management (Canvas Builder) |
 | **Database** | `site_db` (sites, pages, widgets) |
-| **Events phát ra** | `SiteCreated`, `PageUpdated`, `WidgetConfigChanged` |
-| **Phụ thuộc** | Cần verify JWT từ Identity Service (qua Gateway hoặc shared secret) |
+| **Emitted Events** | `SiteCreated`, `PageUpdated`, `WidgetConfigChanged` |
+| **Dependencies** | Needs to verify JWT from Identity Service (via Gateway or shared secret) |
 
 ### 3.3 Data Service (Port 3003)
-| Thuộc tính | Giá trị |
+| Attribute | Value |
 |---|---|
-| **Trách nhiệm** | Dynamic CMS – quản lý Collections & Records (JSONB) |
+| **Responsibility** | Dynamic CMS – Collections & Records management (JSONB) |
 | **Database** | `data_db` (cms_collections, cms_records) |
-| **Events phát ra** | `CollectionCreated`, `RecordCreated`, `RecordUpdated` |
-| **Đặc biệt** | Toàn bộ dữ liệu động lưu trong JSONB. Không tạo migration cho user data |
+| **Emitted Events** | `CollectionCreated`, `RecordCreated`, `RecordUpdated` |
+| **Special Note** | All dynamic data is stored in JSONB. No migrations created for user data |
 
 ### 3.4 Media Service (Port 3004)
-| Thuộc tính | Giá trị |
+| Attribute | Value |
 |---|---|
-| **Trách nhiệm** | Sinh Presigned URL cho S3, đăng ký metadata sau upload |
+| **Responsibility** | Generate Presigned URLs for S3, register metadata after upload |
 | **Database** | `media_db` (medias) |
-| **Events phát ra** | `MediaUploaded`, `MediaDeleted` |
-| **Đặc biệt** | Không bao giờ nhận file binary. Chỉ tạo URL và lưu metadata |
+| **Emitted Events** | `MediaUploaded`, `MediaDeleted` |
+| **Special Note** | Never receives binary files. Only generates URLs and saves metadata |
 
 ### 3.5 Notification Service (Port 3005)
-| Thuộc tính | Giá trị |
+| Attribute | Value |
 |---|---|
-| **Trách nhiệm** | Gửi Email, Push Notification, In-App Notification |
+| **Responsibility** | Send Email, Push Notification, In-App Notification |
 | **Database** | `notification_db` (notifications, notification_templates) |
-| **Events lắng nghe** | `UserRegistered` → gửi Welcome Email, `ResumeAnalyzed` → gửi kết quả, `InterviewCompleted` → gửi báo cáo |
-| **Đặc biệt** | Chỉ **lắng nghe** event từ Kafka, gần như không phát ra event. Là consumer thuần túy |
+| **Listens To** | `UserRegistered` → send Welcome Email, `ResumeAnalyzed` → send results, `InterviewCompleted` → send report |
+| **Special Note** | Only **listens** to Kafka events, rarely emits events. Purely a consumer |
 
 ### 3.6 AI Service (Port 3006)
-| Thuộc tính | Giá trị |
+| Attribute | Value |
 |---|---|
-| **Trách nhiệm** | Tất cả tương tác với Google Gemini: sinh site, sinh CMS, phân tích CV, Mock Interview, Career Coaching |
+| **Responsibility** | All Google Gemini interactions: site gen, CMS gen, CV analysis, Mock Interview, Career Coaching |
 | **Database** | `ai_db` (resumes, interview_sessions) |
-| **Events phát ra** | `SiteGenerated`, `CmsGenerated`, `ResumeAnalyzed`, `InterviewCompleted` |
-| **Đặc biệt** | Có thêm **AI Worker** chạy riêng để xử lý bất đồng bộ các tác vụ nặng qua BullMQ/Redis Queue |
+| **Emitted Events** | `SiteGenerated`, `CmsGenerated`, `ResumeAnalyzed`, `InterviewCompleted` |
+| **Special Note** | Has a dedicated **AI Worker** to asynchronously process heavy tasks via BullMQ/Redis Queue |
 
 ---
 
-## 4. Giao tiếp giữa các Service
+## 4. Inter-Service Communication
 
-### Đồng bộ (Synchronous) – Qua API Gateway
-Dùng cho các request mà Frontend cần kết quả ngay lập tức:
+### Synchronous – Via API Gateway
+Used for requests where the Frontend needs an immediate response:
 ```
-Frontend → API Gateway → Identity Service (login, lấy profile)
+Frontend → API Gateway → Identity Service (login, fetch profile)
 Frontend → API Gateway → Site Service (CRUD pages)
 Frontend → API Gateway → Data Service (CRUD records)
 ```
 
-### Bất đồng bộ (Asynchronous) – Qua Kafka Events
-Dùng cho các tác vụ không cần trả kết quả ngay:
+### Asynchronous – Via Kafka Events
+Used for tasks that don't need immediate responses:
 ```
 AI Service  ──publish──▶  Kafka Topic: "resume.analyzed"
                                 │
                     ┌───────────┼───────────┐
                     ▼                       ▼
             Notification Service     Data Service
-            (gửi email kết quả)    (cập nhật ATS score)
+            (send email result)    (update ATS score)
 ```
 
-### Bảng Kafka Topics
+### Kafka Topics Table
 
 | Topic | Producer | Consumer(s) |
 |---|---|---|
@@ -173,17 +173,17 @@ AI Service  ──publish──▶  Kafka Topic: "resume.analyzed"
 
 ---
 
-## 5. Cấu trúc thư mục Monorepo tối ưu cho Microservices
+## 5. Monorepo Directory Structure Optimized for Microservices
 
 ```
 genzite/
 │
-├── .ai/                              # AI agent rules (giữ nguyên)
-├── .cursorrules                      # Agent directive (giữ nguyên)
-├── docs/                             # Tài liệu chung toàn dự án
+├── .ai/                              # AI agent rules (kept intact)
+├── .cursorrules                      # Agent directive (kept intact)
+├── docs/                             # Global project documentation
 │
 ├── packages/                         # ========= SHARED LIBRARIES =========
-│   ├── shared-types/                 # TypeScript types/interfaces dùng chung
+│   ├── shared-types/                 # Shared TypeScript types/interfaces
 │   │   ├── src/
 │   │   │   ├── dto/                  # Shared DTOs (UserDto, SiteDto, etc.)
 │   │   │   ├── events/              # Kafka event payload types
@@ -195,14 +195,14 @@ genzite/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   ├── shared-utils/                 # Helper functions dùng chung
+│   ├── shared-utils/                 # Shared Helper functions
 │   │   ├── src/
 │   │   │   ├── jwt.util.ts          # JWT verify helper
 │   │   │   ├── pagination.util.ts
 │   │   │   └── validation.util.ts
 │   │   └── package.json
 │   │
-│   └── shared-prisma/                # Prisma client wrapper (nếu chia schema)
+│   └── shared-prisma/                # Prisma client wrapper (if splitting schemas)
 │       ├── src/
 │       └── package.json
 │
@@ -255,7 +255,7 @@ genzite/
 
 ## 6. Monorepo Workspace Configuration
 
-File `package.json` ở gốc sử dụng **npm workspaces**:
+The root `package.json` file uses **npm workspaces**:
 
 ```json
 {
@@ -280,19 +280,19 @@ File `package.json` ở gốc sử dụng **npm workspaces**:
 
 ---
 
-## 7. Trạng thái hiện tại
+## 7. Current Status
 
-Kiến trúc Microservices đã được triển khai đầy đủ:
-- ✅ 7 services + 1 frontend trong `apps/`
-- ✅ Shared types package trong `packages/`
-- ✅ Docker Compose orchestration trong `infra/`
-- ❌ Logic nghiệp vụ chưa implement (tất cả đang là placeholder/TODO)
-- ❌ Prisma schema chưa tạo
-- ❌ JWT Auth chưa tích hợp
-- ❌ Gemini API chưa kết nối
-- ❌ Kafka/Redis chưa setup
+The Microservices architecture is fully scaffolded:
+- ✅ 7 services + 1 frontend in `apps/`
+- ✅ Shared types package in `packages/`
+- ✅ Docker Compose orchestration in `infra/`
+- ❌ Business logic not implemented yet (all placeholders/TODOs)
+- ❌ Prisma schema not created yet
+- ❌ JWT Auth not integrated yet
+- ❌ Gemini API not connected yet
+- ❌ Kafka/Redis not set up yet
 
-### Thứ tự implement đề xuất
+### Proposed Implementation Order
 1. **Identity Service** — JWT auth, password hashing, RBAC
 2. **Site Service** — CRUD Sites/Pages/Widgets, Prisma
 3. **Data Service** — Dynamic CMS JSONB collections/records

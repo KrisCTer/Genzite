@@ -118,6 +118,9 @@ Each NestJS service under `apps/` follows this layout:
 └── tsconfig.json
 ```
 
+## Global Language Rule
+> **MANDATORY**: ALL source code, comments, documentation, and commit messages MUST be written strictly in **English**. Do not use Vietnamese or any other language in the codebase unless specifically required for localization files.
+
 ## Architecture Rules
 
 ### Service Independence

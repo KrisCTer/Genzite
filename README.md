@@ -31,16 +31,16 @@ genzite/
 ├── packages/                    # Shared libraries
 │   ├── shared-types/            # DTOs, Kafka Events, Constants
 │   ├── shared-utils/            # JWT, Pagination, Validation helpers
-│   └── shared-ui/               # React components dùng chung
-├── infra/                       # Docker Compose + .env chung
-│   ├── .env.example             # Template config cho team
+│   └── shared-ui/               # Shared React components
+├── infra/                       # Docker Compose + shared .env
+│   ├── .env.example             # Template config for the team
 │   └── docker-compose.yml       # PostgreSQL, Redis, Kafka, services
 ├── scripts/
-│   └── dev.mjs                  # Dev CLI — chạy services với shared .env
+│   └── dev.mjs                  # Dev CLI — run services with shared .env
 ├── docs/                        # Product spec, DB design, API contracts
-├── DEVELOPMENT.md               # 📖 Hướng dẫn chạy dự án
+├── DEVELOPMENT.md               # 📖 Project development guide
 ├── package.json                 # Root workspace: ["apps/*", "packages/*"]
-└── README.md                    # Tổng quan dự án
+└── README.md                    # Project overview
 ```
 
 ## Architecture Principles
@@ -59,34 +59,34 @@ Any AI agent **MUST** read all files under `/.ai/` and `/docs/` before proposing
 
 ## Development Setup
 
-> 📖 **Hướng dẫn đầy đủ**: Xem [DEVELOPMENT.md](./DEVELOPMENT.md) để biết chi tiết từng bước.
+> 📖 **Full Guide**: See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed step-by-step instructions.
 
-### Quick Start (5 phút)
+### Quick Start (5 minutes)
 
 ```bash
-# 1. Cài đặt
+# 1. Install dependencies
 npm install
 npm run build:packages
 
-# 2. Config
+# 2. Configuration
 cp infra/.env.example infra/.env
 
-# 3. Bật Database + Redis + Kafka
+# 3. Start Database + Redis + Kafka
 cd infra && docker compose up -d db cache zookeeper kafka && cd ..
 
-# 4. Tạo tables
+# 4. Create tables
 npm run prisma:migrate
 
-# 5. Chạy Backend (mỗi lệnh 1 terminal)
+# 5. Run Backend (1 terminal per command)
 npm run dev:gateway     # port 3000
 npm run dev:site        # port 3002
 npm run dev:data        # port 3003
 
-# 6. Chạy Frontend
+# 6. Run Frontend
 npm run dev:frontend    # http://localhost:5173
 ```
 
-> **💡 Lưu ý**: Identity Service chưa cần chạy — Gateway tự bypass auth với mock user (ADMIN).
+> **💡 Note**: Identity Service does not need to run initially — Gateway automatically bypasses auth with a mock user (ADMIN).
 
 ### Access Points
 
@@ -105,4 +105,4 @@ npm run dev:frontend    # http://localhost:5173
 
 ### Environment Variables
 
-Dự án dùng **1 file `.env` chung** tại `infra/.env`. Xem [DEVELOPMENT.md](./DEVELOPMENT.md#3-cấu-hình-environment) để biết chi tiết.
+The project uses a **single shared `.env` file** at `infra/.env`. See [DEVELOPMENT.md](./DEVELOPMENT.md#3-environment-configuration) for details.
