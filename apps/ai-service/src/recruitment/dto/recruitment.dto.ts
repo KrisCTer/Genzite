@@ -2,24 +2,24 @@ import { IsString, IsUUID, IsIn } from 'class-validator';
 
 export class AnalyzeCvDto {
   @IsUUID()
-  resumeId: string;
+  resumeId!: string;
 
   @IsString()
-  jobDescription: string;
+  jobDescription!: string;
 }
 
 export class StartInterviewDto {
   @IsUUID()
-  resumeId: string;
+  resumeId!: string;
 
   @IsString()
-  jobDescription: string;
+  jobDescription!: string;
 
   @IsIn(['TECHNICAL', 'BEHAVIORAL', 'MIXED'])
-  sessionType: 'TECHNICAL' | 'BEHAVIORAL' | 'MIXED';
+  sessionType!: 'TECHNICAL' | 'BEHAVIORAL' | 'MIXED';
 }
 
 export class InterviewChatDto {
   @IsString()
-  message: string;
+  message!: string;
 }

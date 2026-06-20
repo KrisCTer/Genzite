@@ -2,14 +2,14 @@ import { IsString, IsInt } from 'class-validator';
 
 export class ConfirmUploadDto {
   @IsString()
-  s3Key: string;
+  s3Key!: string;
 
   @IsString()
-  filename: string;
+  filename!: string;
 
   @IsString()
-  mimeType: string;
+  mimeType!: string;
 
   @IsInt()
-  sizeBytes: number;
+  sizeBytes!: number;
 }

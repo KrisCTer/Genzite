@@ -2,11 +2,11 @@ import { IsString, IsObject, IsUUID } from 'class-validator';
 
 export class CreateCollectionDto {
   @IsUUID()
-  siteId: string;
+  siteId!: string;
 
   @IsString()
-  name: string;
+  name!: string;
 
   @IsObject()
-  schemaDefinition: Record<string, unknown>;
+  schemaDefinition!: Record<string, unknown>;
 }

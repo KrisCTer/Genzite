@@ -45,7 +45,12 @@ export class ProxyController {
         method: req.method,
         headers: {
           'Content-Type': 'application/json',
+          // Forward auth headers
           ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+          // Forward user identity (from JWT or mock user)
+          ...(req.headers['x-user-id'] ? { 'x-user-id': req.headers['x-user-id'] as string } : {}),
+          ...(req.headers['x-user-email'] ? { 'x-user-email': req.headers['x-user-email'] as string } : {}),
+          ...(req.headers['x-user-roles'] ? { 'x-user-roles': req.headers['x-user-roles'] as string } : {}),
         },
         ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: JSON.stringify(req.body) } : {}),
       });

@@ -3,18 +3,19 @@ import { Type } from 'class-transformer';
 
 export class WidgetItemDto {
   @IsString()
-  type: string;
+  type!: string;
 
   @IsObject()
-  contentConfig: Record<string, unknown>;
+  contentConfig!: Record<string, unknown>;
 
   @IsInt()
-  sortOrder: number;
+  sortOrder!: number;
 }
 
 export class UpdateWidgetsDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => WidgetItemDto)
-  widgets: WidgetItemDto[];
+  widgets!: WidgetItemDto[];
 }
+
