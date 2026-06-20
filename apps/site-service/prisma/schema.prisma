@@ -1,0 +1,76 @@
+// ============================================================
+// Genzite Site Service — Prisma Schema
+// PostgreSQL schema isolation: "site"
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["site"]
+}
+
+// ======================== SITE ========================
+
+model Site {
+  id          String   @id @default(uuid())
+  name        String
+  subdomain   String   @unique
+  description String?
+  ownerId     String   @map("owner_id")
+  settings    Json     @default("{}")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  pages Page[]
+
+  @@index([ownerId])
+  @@index([isPublished])
+  @@map("sites")
+  @@schema("site")
+}
+
+// ======================== PAGE ========================
+
+model Page {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  siteId String @map("site_id")
+
+  widgets Widget[]
+
+  @@unique([siteId, slug])
+  @@index([siteId, sortOrder])
+  @@map("pages")
+  @@schema("site")
+}
+
+// ======================== WIDGET ========================
+
+model Widget {
+  id            String   @id @default(uuid())
+  type          String
+  contentConfig Json     @default("{}") @map("content_config")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId String @map("page_id")
+
+  @@index([pageId, sortOrder])
+  @@map("widgets")
+  @@schema("site")
+}

@@ -1,0 +1,57 @@
+// ============================================================
+// Genzite Data Service — Prisma Schema
+// PostgreSQL schema isolation: "data"
+// Dynamic CMS: all user content stored as JSONB
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["data"]
+}
+
+// ==================== CMS COLLECTION ====================
+// Defines the "shape" of a collection (like a table definition).
+// schemaDefinition is JSONB — holds field names, types, validations.
+
+model CmsCollection {
+  id               String   @id @default(uuid())
+  siteId           String   @map("site_id")
+  name             String
+  slug             String
+  description      String?
+  schemaDefinition Json     @default("{}") @map("schema_definition")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  records CmsRecord[]
+
+  @@unique([siteId, slug])
+  @@index([siteId])
+  @@map("cms_collections")
+  @@schema("data")
+}
+
+// ==================== CMS RECORD ====================
+// Stores the actual user-generated content as JSONB.
+// NEVER create fixed SQL columns for dynamic user data fields.
+
+model CmsRecord {
+  id           String   @id @default(uuid())
+  data         Json     @default("{}")
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  collection   CmsCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String        @map("collection_id")
+
+  @@index([collectionId])
+  @@index([createdBy])
+  @@map("cms_records")
+  @@schema("data")
+}

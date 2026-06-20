@@ -1,0 +1,113 @@
+// ============================================================
+// Genzite AI Service — Prisma Schema
+// PostgreSQL schema isolation: "ai"
+// Resume/Interview data uses JSONB per architecture rules
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["ai"]
+}
+
+// ======================== RESUME ========================
+// parsedProfile and atsScores are JSONB — dynamic AI-extracted data.
+// NEVER create fixed SQL columns for AI output fields.
+
+model Resume {
+  id            String   @id @default(uuid())
+  ownerId       String   @map("owner_id")
+  title         String?
+  rawText       String?  @map("raw_text")
+  s3Key         String?  @map("s3_key")
+  parsedProfile Json?    @map("parsed_profile")
+  atsScores     Json?    @map("ats_scores")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  interviews InterviewSession[]
+
+  @@index([ownerId])
+  @@map("resumes")
+  @@schema("ai")
+}
+
+// =================== INTERVIEW SESSION ===================
+// dialogueHistory and evaluation are JSONB — dynamic AI conversation data.
+
+enum SessionType {
+  TECHNICAL
+  BEHAVIORAL
+  MIXED
+
+  @@schema("ai")
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+
+  @@schema("ai")
+}
+
+model InterviewSession {
+  id              String        @id @default(uuid())
+  jobDescription  String        @map("job_description")
+  sessionType     SessionType   @map("session_type")
+  dialogueHistory Json          @default("[]") @map("dialogue_history")
+  evaluation      Json?
+  status          SessionStatus @default(IN_PROGRESS)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  resumeId String @map("resume_id")
+
+  @@index([resumeId])
+  @@index([status])
+  @@map("interview_sessions")
+  @@schema("ai")
+}
+
+// ===================== AI TASK LOG =====================
+// Tracks all AI generation jobs for auditing and retry logic.
+
+enum AiTaskType {
+  SITE_GENERATION
+  CMS_GENERATION
+  CV_ANALYSIS
+  INTERVIEW
+
+  @@schema("ai")
+}
+
+enum AiTaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@schema("ai")
+}
+
+model AiTaskLog {
+  id        String       @id @default(uuid())
+  userId    String       @map("user_id")
+  taskType  AiTaskType   @map("task_type")
+  status    AiTaskStatus @default(PENDING)
+  input     Json         @default("{}")
+  output    Json?
+  error     String?
+  startedAt DateTime?    @map("started_at")
+  endedAt   DateTime?    @map("ended_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([taskType, status])
+  @@map("ai_task_logs")
+  @@schema("ai")
+}
