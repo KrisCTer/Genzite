@@ -2,8 +2,8 @@ import { IsString, IsUUID } from 'class-validator';
 
 export class GenerateCmsDto {
   @IsUUID()
-  siteId: string;
+  siteId!: string;
 
   @IsString()
-  prompt: string;
+  prompt!: string;
 }

@@ -2,8 +2,8 @@ import { IsString } from 'class-validator';
 
 export class PresignedUrlRequestDto {
   @IsString()
-  filename: string;
+  filename!: string;
 
   @IsString()
-  mimeType: string;
+  mimeType!: string;
 }
