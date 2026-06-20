@@ -32,6 +32,49 @@ services:
       timeout: 5s
       retries: 5
 
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: genzite-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: genzite-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # ======================== MICROSERVICES ========================
   gateway:
     build:
@@ -43,6 +86,8 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
+      AUTH_BYPASS: "true"  # Set to "false" when identity-service is ready
+      # JWT_SECRET: ${JWT_SECRET:-}  # Uncomment when identity-service is ready
       IDENTITY_SERVICE_URL: http://identity:3001
       SITE_SERVICE_URL: http://site:3002
       DATA_SERVICE_URL: http://data:3003
@@ -50,7 +95,6 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification:3005
       AI_SERVICE_URL: http://ai:3006
     depends_on:
-      - identity
       - site
       - data
       - media
@@ -74,10 +118,13 @@ services:
       REDIS_HOST: cache
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
         condition: service_healthy
       cache:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     volumes:
       - ../apps/identity-service:/app
@@ -96,8 +143,11 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=site"
       REDIS_HOST: cache
       REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     volumes:
       - ../apps/site-service:/app
@@ -116,8 +166,11 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=data"
       REDIS_HOST: cache
       REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     volumes:
       - ../apps/data-service:/app
@@ -136,8 +189,11 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=media"
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-genzite-media-dev}
       AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     volumes:
       - ../apps/media-service:/app
@@ -156,8 +212,11 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=notification"
       REDIS_HOST: cache
       REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     volumes:
       - ../apps/notification-service:/app
@@ -177,10 +236,13 @@ services:
       REDIS_HOST: cache
       REDIS_PORT: 6379
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
         condition: service_healthy
       cache:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     volumes:
       - ../apps/ai-service:/app
@@ -206,3 +268,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  zookeeper_data:
+  kafka_data:

@@ -19,8 +19,6 @@ Genzite is an AI No-Code platform that enables users to create and operate fully
 
 ```
 genzite/
-├── .ai/                         # AI agent rules & architectural guardrails
-├── .cursorrules                 # Agent entry-point directive
 ├── apps/                        # All deployable applications
 │   ├── gateway/                 # API Gateway (port 3000)
 │   ├── identity-service/        # Auth, JWT, RBAC (port 3001)
@@ -31,10 +29,18 @@ genzite/
 │   ├── ai-service/              # Google Gemini (port 3006)
 │   └── frontend/                # React + Vite + Tailwind CSS
 ├── packages/                    # Shared libraries
-│   └── shared-types/            # DTOs, Events, Constants
-├── infra/                       # Docker Compose (PostgreSQL, Redis)
+│   ├── shared-types/            # DTOs, Kafka Events, Constants
+│   ├── shared-utils/            # JWT, Pagination, Validation helpers
+│   └── shared-ui/               # React components dùng chung
+├── infra/                       # Docker Compose + .env chung
+│   ├── .env.example             # Template config cho team
+│   └── docker-compose.yml       # PostgreSQL, Redis, Kafka, services
+├── scripts/
+│   └── dev.mjs                  # Dev CLI — chạy services với shared .env
 ├── docs/                        # Product spec, DB design, API contracts
-└── package.json                 # Root workspace: ["apps/*", "packages/*"]
+├── DEVELOPMENT.md               # 📖 Hướng dẫn chạy dự án
+├── package.json                 # Root workspace: ["apps/*", "packages/*"]
+└── README.md                    # Tổng quan dự án
 ```
 
 ## Architecture Principles
@@ -53,24 +59,41 @@ Any AI agent **MUST** read all files under `/.ai/` and `/docs/` before proposing
 
 ## Development Setup
 
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 22+ (for local development without Docker)
+> 📖 **Hướng dẫn đầy đủ**: Xem [DEVELOPMENT.md](./DEVELOPMENT.md) để biết chi tiết từng bước.
 
-### Start Development Environment
+### Quick Start (5 phút)
 
 ```bash
-# Start all services (PostgreSQL, Redis, Gateway, 6 Services, Frontend)
-docker compose -f infra/docker-compose.yml up --build
+# 1. Cài đặt
+npm install
+npm run build:packages
+
+# 2. Config
+cp infra/.env.example infra/.env
+
+# 3. Bật Database + Redis + Kafka
+cd infra && docker compose up -d db cache zookeeper kafka && cd ..
+
+# 4. Tạo tables
+npm run prisma:migrate
+
+# 5. Chạy Backend (mỗi lệnh 1 terminal)
+npm run dev:gateway     # port 3000
+npm run dev:site        # port 3002
+npm run dev:data        # port 3003
+
+# 6. Chạy Frontend
+npm run dev:frontend    # http://localhost:5173
 ```
+
+> **💡 Lưu ý**: Identity Service chưa cần chạy — Gateway tự bypass auth với mock user (ADMIN).
 
 ### Access Points
 
 | Service | URL |
 |---|---|
-| API Gateway | `http://localhost:3000/api/v1` |
 | Frontend | `http://localhost:5173` |
-| Identity Service | `http://localhost:3001` |
+| API Gateway | `http://localhost:3000/api/v1` |
 | Site Service | `http://localhost:3002` |
 | Data Service | `http://localhost:3003` |
 | Media Service | `http://localhost:3004` |
@@ -78,16 +101,8 @@ docker compose -f infra/docker-compose.yml up --build
 | AI Service | `http://localhost:3006` |
 | PostgreSQL | `localhost:5432` |
 | Redis | `localhost:6379` |
+| Kafka | `localhost:29092` |
 
 ### Environment Variables
 
-Copy and configure:
-```bash
-cp infra/.env.example infra/.env
-```
-
-Required variables:
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
-- `JWT_SECRET`
-- `GEMINI_API_KEY`
-- `AWS_S3_BUCKET`, `AWS_REGION`
+Dự án dùng **1 file `.env` chung** tại `infra/.env`. Xem [DEVELOPMENT.md](./DEVELOPMENT.md#3-cấu-hình-environment) để biết chi tiết.
