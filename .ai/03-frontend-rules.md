@@ -72,6 +72,12 @@ frontend/src/
 - Keep components under 150 lines. Split into sub-components when exceeded.
 - Colocate component-specific types and hooks within the component directory.
 
+## Icon Standards
+- Use ONLY the `lucide-react` library for all icons.
+- DO NOT use arbitrary SVG files, other icon libraries, or emojis as icons.
+- Import icons explicitly: `import { IconName } from 'lucide-react';`
+
+
 ## Media Upload Rules
 - File uploads go **directly to S3** using Presigned URLs obtained from the `media` API.
 - The frontend NEVER sends file binary to the NestJS backend.
