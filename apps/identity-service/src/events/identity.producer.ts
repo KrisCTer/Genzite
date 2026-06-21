@@ -1,19 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { KafkaProducerService } from '@genzite/kafka';
+import { KAFKA_TOPICS } from '@genzite/shared-types';
 
 @Injectable()
 export class IdentityProducer {
+  constructor(private readonly kafka: KafkaProducerService) {}
+
   async emitUserRegistered(payload: { userId: string; email: string; name: string }) {
-    // TODO: Publish to Kafka topic 'user.registered'
-    console.log('[Identity] Event emitted: user.registered', payload);
+    await this.kafka.emit(KAFKA_TOPICS.USER_REGISTERED, payload);
   }
 
   async emitUserUpdated(payload: { userId: string; changes: Record<string, unknown> }) {
-    // TODO: Publish to Kafka topic 'user.updated'
-    console.log('[Identity] Event emitted: user.updated', payload);
+    await this.kafka.emit(KAFKA_TOPICS.USER_UPDATED, payload);
   }
 
   async emitRoleAssigned(payload: { userId: string; roleName: string }) {
-    // TODO: Publish to Kafka topic 'role.assigned'
-    console.log('[Identity] Event emitted: role.assigned', payload);
+    await this.kafka.emit(KAFKA_TOPICS.ROLE_ASSIGNED, payload);
   }
 }

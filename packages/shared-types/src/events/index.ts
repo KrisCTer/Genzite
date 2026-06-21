@@ -144,3 +144,11 @@ export const KAFKA_TOPICS = {
   INTERVIEW_COMPLETED: 'interview.completed',
   AUDIT_LOG: 'audit.log',
 } as const;
+
+export type KafkaTopicName = typeof KAFKA_TOPICS[keyof typeof KAFKA_TOPICS];
+
+export const KAFKA_CONSUMER_GROUPS = {
+  NOTIFICATION: 'notification-service-group',
+  AI: 'ai-service-group',
+  DATA: 'data-service-group',
+} as const;
