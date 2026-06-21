@@ -114,6 +114,7 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
+      SERVICE_NAME: identity-service
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=identity"
       REDIS_HOST: cache
       REDIS_PORT: 6379
@@ -140,6 +141,7 @@ services:
       - "3002:3002"
     environment:
       PORT: 3002
+      SERVICE_NAME: site-service
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=site"
       REDIS_HOST: cache
       REDIS_PORT: 6379
@@ -209,10 +211,12 @@ services:
       - "3005:3005"
     environment:
       PORT: 3005
+      SERVICE_NAME: notification-service
       DATABASE_URL: "postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}?schema=notification"
       REDIS_HOST: cache
       REDIS_PORT: 6379
       KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: notification-service-group
     depends_on:
       db:
         condition: service_healthy
