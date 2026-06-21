@@ -39,7 +39,8 @@ genzite/
 │   └── dev.mjs                  # Dev CLI — run services with shared .env
 ├── docs/                        # Product spec, DB design, API contracts
 ├── DEVELOPMENT.md               # 📖 Project development guide
-├── package.json                 # Root workspace: ["apps/*", "packages/*"]
+├── pnpm-workspace.yaml          # Root workspace: apps/* and packages/*
+├── package.json                 # Root scripts and global dependencies
 └── README.md                    # Project overview
 ```
 
@@ -65,8 +66,8 @@ Any AI agent **MUST** read all files under `/.ai/` and `/docs/` before proposing
 
 ```bash
 # 1. Install dependencies
-npm install
-npm run build:packages
+pnpm install
+pnpm run build:packages
 
 # 2. Configuration
 cp infra/.env.example infra/.env
@@ -75,15 +76,15 @@ cp infra/.env.example infra/.env
 cd infra && docker compose up -d db cache zookeeper kafka && cd ..
 
 # 4. Create tables
-npm run prisma:migrate
+pnpm run prisma:migrate
 
 # 5. Run Backend (1 terminal per command)
-npm run dev:gateway     # port 3000
-npm run dev:site        # port 3002
-npm run dev:data        # port 3003
+pnpm run dev:gateway     # port 3000
+pnpm run dev:site        # port 3002
+pnpm run dev:data        # port 3003
 
 # 6. Run Frontend
-npm run dev:frontend    # http://localhost:5173
+pnpm run dev:frontend    # http://localhost:5173
 ```
 
 > **💡 Note**: Identity Service does not need to run initially — Gateway automatically bypasses auth with a mock user (ADMIN).

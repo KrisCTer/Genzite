@@ -255,7 +255,7 @@ genzite/
 
 ## 6. Monorepo Workspace Configuration
 
-The root `package.json` file uses **npm workspaces**:
+The root `package.json` file uses **pnpm workspaces** via `pnpm-workspace.yaml`:
 
 ```json
 {
@@ -266,14 +266,14 @@ The root `package.json` file uses **npm workspaces**:
     "packages/*"
   ],
   "scripts": {
-    "dev:gateway": "npm run start:dev --workspace=apps/gateway",
-    "dev:identity": "npm run start:dev --workspace=apps/identity-service",
-    "dev:site": "npm run start:dev --workspace=apps/site-service",
-    "dev:data": "npm run start:dev --workspace=apps/data-service",
-    "dev:media": "npm run start:dev --workspace=apps/media-service",
-    "dev:notification": "npm run start:dev --workspace=apps/notification-service",
-    "dev:ai": "npm run start:dev --workspace=apps/ai-service",
-    "dev:frontend": "npm run dev --workspace=apps/frontend"
+    "dev:gateway": "node scripts/dev.mjs start:dev --service gateway",
+    "dev:identity": "node scripts/dev.mjs start:dev --service identity-service",
+    "dev:site": "node scripts/dev.mjs start:dev --service site-service",
+    "dev:data": "node scripts/dev.mjs start:dev --service data-service",
+    "dev:media": "node scripts/dev.mjs start:dev --service media-service",
+    "dev:notification": "node scripts/dev.mjs start:dev --service notification-service",
+    "dev:ai": "node scripts/dev.mjs start:dev --service ai-service",
+    "dev:frontend": "pnpm --filter ./apps/frontend run dev"
   }
 }
 ```
@@ -284,13 +284,13 @@ The root `package.json` file uses **npm workspaces**:
 
 The Microservices architecture is fully scaffolded:
 - ✅ 7 services + 1 frontend in `apps/`
-- ✅ Shared types package in `packages/`
+- ✅ Shared types package and shared kafka module in `packages/`
 - ✅ Docker Compose orchestration in `infra/`
-- ❌ Business logic not implemented yet (all placeholders/TODOs)
-- ❌ Prisma schema not created yet
-- ❌ JWT Auth not integrated yet
-- ❌ Gemini API not connected yet
-- ❌ Kafka/Redis not set up yet
+- ✅ Prisma schemas created and managed per service via `dev.mjs`
+- ✅ Gemini API and DeepSeek API connected in `ai-service`
+- ✅ Kafka event bus configured and producers/consumers connected across services
+- ❌ JWT Auth not fully integrated across all services yet
+- ❌ Gateway Redis rate limiting pending
 
 ### Proposed Implementation Order
 1. **Identity Service** — JWT auth, password hashing, RBAC

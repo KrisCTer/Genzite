@@ -42,13 +42,13 @@ git clone <repo-url> Genzite
 cd Genzite
 
 # Install dependencies for the entire monorepo (run once)
-npm install
+pnpm install
 
 # Build shared packages (MANDATORY — services depend on them)
-npm run build:packages
+pnpm run build:packages
 ```
 
-> **📝 Note**: The project uses [npm workspaces](https://docs.npmjs.com/cli/using-npm/workspaces). Running `npm install` at the root will install dependencies for ALL apps and packages simultaneously.
+> **📝 Note**: The project uses [pnpm workspaces](https://pnpm.io/workspaces). Running `pnpm install` at the root will install dependencies for ALL apps and packages simultaneously.
 
 ---
 
@@ -154,7 +154,7 @@ docker compose down -v       # Stop AND REMOVE all data (reset DB)
 cd ..  # or cd Genzite
 
 # Migrate ALL 6 services
-npm run prisma:migrate
+pnpm run prisma:migrate
 ```
 
 Prisma will ask for a migration name for each service → enter: `init` (or a descriptive name).
@@ -162,21 +162,21 @@ Prisma will ask for a migration name for each service → enter: `init` (or a de
 ### Migrate Individual Services
 
 ```bash
-npm run prisma:migrate:site
-npm run prisma:migrate:data
-npm run prisma:migrate:media
-npm run prisma:migrate:notification
-npm run prisma:migrate:ai
-npm run prisma:migrate:identity
+pnpm run prisma:migrate:site
+pnpm run prisma:migrate:data
+pnpm run prisma:migrate:media
+pnpm run prisma:migrate:notification
+pnpm run prisma:migrate:ai
+pnpm run prisma:migrate:identity
 ```
 
 ### When to run again?
 
 | Situation | Command |
 |------------|------|
-| Modified `schema.prisma` file | `npm run prisma:migrate` |
-| Pulled new code with migrations | `npm run prisma:migrate` |
-| Just need to generate client (no new migration) | `npm run prisma:generate` |
+| Modified `schema.prisma` file | `pnpm run prisma:migrate` |
+| Pulled new code with migrations | `pnpm run prisma:migrate` |
+| Just need to generate client (no new migration) | `pnpm run prisma:generate` |
 
 ---
 
@@ -188,22 +188,22 @@ Open a **separate terminal** for each command (or use split terminals in VS Code
 
 ```bash
 # Terminal 1 — API Gateway (port 3000)
-npm run dev:gateway
+pnpm run dev:gateway
 
 # Terminal 2 — Site Service (port 3002)
-npm run dev:site
+pnpm run dev:site
 
 # Terminal 3 — Data Service (port 3003)
-npm run dev:data
+pnpm run dev:data
 
 # Terminal 4 — Media Service (port 3004)
-npm run dev:media
+pnpm run dev:media
 
 # Terminal 5 — Notification Service (port 3005)
-npm run dev:notification
+pnpm run dev:notification
 
 # Terminal 6 — AI Service (port 3006)
-npm run dev:ai
+pnpm run dev:ai
 ```
 
 > **💡 You don't need to run them all at once!** If you are only working on site-service, just run `dev:gateway` + `dev:site`.
@@ -233,7 +233,7 @@ Starts **everything**: DB + Redis + Kafka + 7 backend services + Frontend.
 
 ```bash
 # Separate terminal
-npm run dev:frontend
+pnpm run dev:frontend
 ```
 
 Open browser: **http://localhost:5173**
@@ -310,8 +310,8 @@ Each service uses its own PostgreSQL schema (within the same database):
 ### Initial Setup
 
 ```bash
-npm install                   # Install dependencies
-npm run build:packages        # Build shared packages
+pnpm install                   # Install dependencies
+pnpm run build:packages        # Build shared packages
 cp infra/.env.example infra/.env  # Create config file
 ```
 
@@ -329,21 +329,21 @@ docker compose down -v                           # Stop + delete data
 ### Prisma (Database)
 
 ```bash
-npm run prisma:migrate              # Migrate all services
-npm run prisma:migrate:site         # Migrate site-service only
-npm run prisma:generate             # Generate all Prisma Clients
+pnpm run prisma:migrate              # Migrate all services
+pnpm run prisma:migrate:site         # Migrate site-service only
+pnpm run prisma:generate             # Generate all Prisma Clients
 ```
 
 ### Run Services
 
 ```bash
-npm run dev:gateway                 # Gateway (:3000)
-npm run dev:site                    # Site Service (:3002)
-npm run dev:data                    # Data Service (:3003)
-npm run dev:media                   # Media Service (:3004)
-npm run dev:notification            # Notification (:3005)
-npm run dev:ai                      # AI Service (:3006)
-npm run dev:frontend                # Frontend (:5173)
+pnpm run dev:gateway                 # Gateway (:3000)
+pnpm run dev:site                    # Site Service (:3002)
+pnpm run dev:data                    # Data Service (:3003)
+pnpm run dev:media                   # Media Service (:3004)
+pnpm run dev:notification            # Notification (:3005)
+pnpm run dev:ai                      # AI Service (:3006)
+pnpm run dev:frontend                # Frontend (:5173)
 ```
 
 ### Dev CLI (Advanced)
@@ -357,20 +357,20 @@ node scripts/dev.mjs start:dev -s data-service             # Run 1 service
 ### Build & Test
 
 ```bash
-npm run build:all                   # Build all workspaces
-npm run test:all                    # Test all workspaces
+pnpm run build:all                   # Build all workspaces
+pnpm run test:all                    # Test all workspaces
 ```
 
 ---
 
 ## 10. Troubleshooting
 
-### ❌ `npm install` fails
+### ❌ `pnpm install` fails
 
 ```bash
 # Delete node_modules and lock file, reinstall
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 ### ❌ Docker containers are not healthy
@@ -397,14 +397,14 @@ cd infra
 docker compose down -v
 docker compose up -d db cache zookeeper kafka
 # Wait 10 seconds
-npm run prisma:migrate
+pnpm run prisma:migrate
 ```
 
 ### ❌ "Cannot find module @genzite/shared-types"
 
 ```bash
 # Rebuild shared packages
-npm run build:packages
+pnpm run build:packages
 ```
 
 ### ❌ Port is already in use

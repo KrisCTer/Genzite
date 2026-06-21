@@ -93,7 +93,8 @@ genzite/
 │   └── shared-types/                # DTOs, Events, Constants
 ├── infra/                           # Docker Compose orchestration
 ├── docs/                            # Product spec, DB design, API contracts
-└── package.json                     # Root workspace: ["apps/*", "packages/*"]
+├── pnpm-workspace.yaml              # Root workspace: apps/* and packages/*
+└── package.json                     # Root scripts and global dependencies
 ```
 
 ## Standard Service Structure
