@@ -86,6 +86,7 @@ JWT_SECRET=dev-jwt-secret-change-in-production-please
 
 # AI (add key if you need to test AI features)
 GEMINI_API_KEY=your-google-gemini-api-key
+DEEPSEEK_API_KEY=your-deepseek-api-key
 
 # AWS S3 (add if you need to test uploads)
 AWS_S3_BUCKET=genzite-media-dev
