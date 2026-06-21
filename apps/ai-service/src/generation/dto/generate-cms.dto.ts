@@ -1,4 +1,4 @@
-import { IsString, IsUUID } from 'class-validator';
+import { IsString, IsUUID, IsOptional } from 'class-validator';
 
 export class GenerateCmsDto {
   @IsUUID()
@@ -6,4 +6,8 @@ export class GenerateCmsDto {
 
   @IsString()
   prompt!: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }

@@ -1,0 +1,31 @@
+### Common config
+@baseUrl = http://localhost:3006/api/v1/ai
+
+### 1. Generate Site
+POST {{baseUrl}}/generate-site
+Content-Type: application/json
+x-user-id: user-123
+
+{
+  "prompt": "Tạo một landing page cho công ty phần mềm Genzite với phong cách tối giản, có header, hero banner và pricing table.",
+  "model": "gemini-2.5-flash"
+}
+
+### 2. Generate CMS Schema
+POST {{baseUrl}}/generate-cms
+Content-Type: application/json
+x-user-id: user-123
+
+{
+  "siteId": "site-123",
+  "prompt": "Tôi cần quản lý một hệ thống bán quần áo. Cần các bảng về sản phẩm, danh mục, kích thước, và người dùng."
+}
+
+### 3. Analyze CV (replace resumeId with a real DB ID)
+POST {{baseUrl}}/recruitment/analyze-cv
+Content-Type: application/json
+
+{
+  "resumeId": "REPLACE-WITH-REAL-RESUME-ID",
+  "jobDescription": "Fullstack Developer yêu cầu 3 năm kinh nghiệm với ReactJS và NestJS."
+}

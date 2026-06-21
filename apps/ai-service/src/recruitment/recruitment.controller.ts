@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Headers } from '@nestjs/common';
 import { CvAnalyzerService } from './cv-analyzer.service.js';
 import { MockInterviewService } from './mock-interview.service.js';
 import { CareerCoachService } from './career-coach.service.js';
+import { AnalyzeCvDto, StartInterviewDto, InterviewChatDto } from './dto/recruitment.dto.js';
 
 @Controller('ai')
 export class RecruitmentController {
@@ -12,18 +13,27 @@ export class RecruitmentController {
   ) {}
 
   @Post('analyze-cv')
-  async analyzeCv(@Body() body: { resumeId: string; jobDescription: string }) {
-    return this.cvAnalyzer.analyze(body.resumeId, body.jobDescription);
+  async analyzeCv(
+    @Body() dto: AnalyzeCvDto,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.cvAnalyzer.analyze(dto.resumeId, dto.jobDescription, userId, dto.model);
   }
 
   @Post('mock-interview/start')
-  async startInterview(@Body() body: { resumeId: string; jobDescription: string; sessionType: string }) {
-    return this.mockInterview.startSession(body);
+  async startInterview(
+    @Body() dto: StartInterviewDto,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.mockInterview.startSession(dto, userId);
   }
 
   @Post('mock-interview/:sessionId/chat')
-  async chat(@Param('sessionId') sessionId: string, @Body() body: { message: string }) {
-    return this.mockInterview.chat(sessionId, body.message);
+  async chat(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: InterviewChatDto,
+  ) {
+    return this.mockInterview.chat(sessionId, dto.message);
   }
 
   @Post('mock-interview/:sessionId/end')
@@ -32,7 +42,10 @@ export class RecruitmentController {
   }
 
   @Get('career-coaching/:resumeId')
-  async getCareerRoadmap(@Param('resumeId') resumeId: string) {
-    return this.careerCoach.generateRoadmap(resumeId);
+  async getCareerRoadmap(
+    @Param('resumeId') resumeId: string,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.careerCoach.generateRoadmap(resumeId, userId);
   }
 }

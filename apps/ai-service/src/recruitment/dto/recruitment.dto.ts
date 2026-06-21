@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsIn } from 'class-validator';
+import { IsString, IsUUID, IsIn, IsOptional } from 'class-validator';
 
 export class AnalyzeCvDto {
   @IsUUID()
@@ -6,6 +6,10 @@ export class AnalyzeCvDto {
 
   @IsString()
   jobDescription!: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }
 
 export class StartInterviewDto {
@@ -17,6 +21,10 @@ export class StartInterviewDto {
 
   @IsIn(['TECHNICAL', 'BEHAVIORAL', 'MIXED'])
   sessionType!: 'TECHNICAL' | 'BEHAVIORAL' | 'MIXED';
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }
 
 export class InterviewChatDto {

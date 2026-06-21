@@ -30,13 +30,24 @@ const SCHEMA_MAP = {
   'ai-service': 'ai',
 };
 
+// Service name → default port mapping
+const PORT_MAP = {
+  'gateway': 3000,
+  'identity-service': 3001,
+  'site-service': 3002,
+  'data-service': 3003,
+  'media-service': 3004,
+  'notification-service': 3005,
+  'ai-service': 3006,
+};
+
 // --all only runs on DB services (skip gateway)
 const ALL_SERVICES = Object.keys(SCHEMA_MAP).filter((s) => SCHEMA_MAP[s] !== null);
 
 // ─── Parse .env file ───────────────────────────────────────────────
 function loadEnvFile(filePath) {
   if (!existsSync(filePath)) {
-    console.error(`❌ .env file not found: ${filePath}`);
+    console.error(`[ERROR] .env file not found: ${filePath}`);
     process.exit(1);
   }
   const env = {};
@@ -55,7 +66,7 @@ function loadEnvFile(filePath) {
 // ─── Build DATABASE_URL for a specific service ─────────────────────
 function buildDatabaseUrl(env, serviceName) {
   if (!(serviceName in SCHEMA_MAP)) {
-    console.error(`❌ Unknown service: ${serviceName}`);
+    console.error(`[ERROR] Unknown service: ${serviceName}`);
     console.error(`   Available: ${Object.keys(SCHEMA_MAP).join(', ')}`);
     process.exit(1);
   }
@@ -96,7 +107,7 @@ function parseArgs(argv) {
 function runInService(serviceName, command, sharedEnv) {
   const serviceDir = join(ROOT, 'apps', serviceName);
   if (!existsSync(serviceDir)) {
-    console.error(`❌ Service directory not found: ${serviceDir}`);
+    console.error(`[ERROR] Service directory not found: ${serviceDir}`);
     return false;
   }
 
@@ -106,17 +117,17 @@ function runInService(serviceName, command, sharedEnv) {
   let fullCommand;
   if (command.startsWith('prisma')) {
     if (!databaseUrl) {
-      console.log(`\n⏭️  [${serviceName}] Skipped (no database)`);
+      console.log(`\n[SKIP] [${serviceName}] Skipped (no database)`);
       return true;
     }
     fullCommand = `npx ${command}`;
   } else {
-    fullCommand = `npm run ${command}`;
+    fullCommand = `pnpm run ${command}`;
   }
 
-  console.log(`\n🚀 [${serviceName}] Running: ${fullCommand}`);
-  console.log(`   📁 Dir: ${serviceDir}`);
-  if (databaseUrl) console.log(`   🔗 Schema: ${SCHEMA_MAP[serviceName]}`);
+  console.log(`\n[START] [${serviceName}] Running: ${fullCommand}`);
+  console.log(`   [DIR] Dir: ${serviceDir}`);
+  if (databaseUrl) console.log(`   [SCHEMA] Schema: ${SCHEMA_MAP[serviceName]}`);
 
   try {
     execSync(fullCommand, {
@@ -126,12 +137,14 @@ function runInService(serviceName, command, sharedEnv) {
         ...process.env,
         ...sharedEnv,
         ...(databaseUrl ? { DATABASE_URL: databaseUrl } : {}),
+        PORT: String(PORT_MAP[serviceName] || 3000),
+        SERVICE_NAME: serviceName,
       },
     });
-    console.log(`✅ [${serviceName}] Done!`);
+    console.log(`[SUCCESS] [${serviceName}] Done!`);
     return true;
   } catch {
-    console.error(`❌ [${serviceName}] Failed!`);
+    console.error(`[ERROR] [${serviceName}] Failed!`);
     return false;
   }
 }
@@ -162,14 +175,14 @@ if (!command) {
 }
 
 if (!service && !runAll) {
-  console.error('❌ Specify --service <name> or --all');
+  console.error('[ERROR] Specify --service <name> or --all');
   process.exit(1);
 }
 
 // Load shared .env
 const envPath = join(ROOT, 'infra', '.env');
 const sharedEnv = loadEnvFile(envPath);
-console.log(`📦 Loaded shared env from: ${envPath}`);
+console.log(`[INFO] Loaded shared env from: ${envPath}`);
 
 // Run
 const services = runAll ? ALL_SERVICES : [service];
@@ -181,8 +194,8 @@ for (const svc of services) {
 
 if (runAll) {
   console.log(`\n${'═'.repeat(50)}`);
-  console.log(`✅ ${services.length - failed}/${services.length} services succeeded`);
-  if (failed) console.log(`❌ ${failed} failed`);
+  console.log(`[SUCCESS] ${services.length - failed}/${services.length} services succeeded`);
+  if (failed) console.log(`[ERROR] ${failed} failed`);
 }
 
 process.exit(failed > 0 ? 1 : 0);
