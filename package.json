@@ -7,16 +7,15 @@
     "packages/*"
   ],
   "scripts": {
-    "build:ui": "npm run build --workspace=packages/shared-ui",
-    "build:types": "npm run build --workspace=packages/shared-types",
-    "build:utils": "npm run build --workspace=packages/shared-utils",
-    "build:kafka": "npm run build --workspace=packages/kafka",
-    "build:packages": "npm run build:types && npm run build:utils && npm run build:kafka",
-    "dev:ui": "npm run dev --workspace=packages/shared-ui",
-    "dev:frontend": "npm run dev --workspace=apps/frontend",
-    "build:all": "npm run build --workspaces --if-present",
-    "test:all": "npm run test --workspaces --if-present",
-
+    "build:ui": "pnpm --filter ./packages/shared-ui run build",
+    "build:types": "pnpm --filter ./packages/shared-types run build",
+    "build:utils": "pnpm --filter ./packages/shared-utils run build",
+    "build:kafka": "pnpm --filter ./packages/kafka run build",
+    "build:packages": "pnpm run build:types && pnpm run build:utils && pnpm run build:kafka",
+    "dev:ui": "pnpm --filter ./packages/shared-ui run dev",
+    "dev:frontend": "pnpm --filter ./apps/frontend run dev",
+    "build:all": "pnpm -r run build",
+    "test:all": "pnpm -r run test",
     "dev:gateway": "node scripts/dev.mjs start:dev --service gateway",
     "dev:site": "node scripts/dev.mjs start:dev --service site-service",
     "dev:data": "node scripts/dev.mjs start:dev --service data-service",
@@ -24,7 +23,6 @@
     "dev:notification": "node scripts/dev.mjs start:dev --service notification-service",
     "dev:ai": "node scripts/dev.mjs start:dev --service ai-service",
     "dev:identity": "node scripts/dev.mjs start:dev --service identity-service",
-
     "prisma:migrate": "node scripts/dev.mjs prisma migrate dev --all",
     "prisma:generate": "node scripts/dev.mjs prisma generate --all",
     "prisma:migrate:site": "node scripts/dev.mjs prisma migrate dev --service site-service",
@@ -33,5 +31,13 @@
     "prisma:migrate:notification": "node scripts/dev.mjs prisma migrate dev --service notification-service",
     "prisma:migrate:ai": "node scripts/dev.mjs prisma migrate dev --service ai-service",
     "prisma:migrate:identity": "node scripts/dev.mjs prisma migrate dev --service identity-service"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "unrs-resolver"
+    ]
   }
 }

@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
@@ -7,7 +7,9 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors();
-  await app.listen(process.env.PORT ?? 3006);
-  console.log(`[AI Service] Running on port ${process.env.PORT ?? 3006}`);
+
+  const port = process.env.PORT ?? 3006;
+  await app.listen(port);
+  new Logger('Bootstrap').log(`AI Service running on port ${port}`);
 }
 bootstrap();

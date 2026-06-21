@@ -1,6 +1,8 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Headers } from '@nestjs/common';
 import { SiteGeneratorService } from './site-generator.service.js';
 import { CmsGeneratorService } from './cms-generator.service.js';
+import { GenerateSiteDto } from './dto/generate-site.dto.js';
+import { GenerateCmsDto } from './dto/generate-cms.dto.js';
 
 @Controller('ai')
 export class GenerationController {
@@ -10,12 +12,18 @@ export class GenerationController {
   ) {}
 
   @Post('generate-site')
-  async generateSite(@Body() body: { prompt: string }) {
-    return this.siteGenerator.generate(body.prompt);
+  async generateSite(
+    @Body() dto: GenerateSiteDto,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.siteGenerator.generate(dto.prompt, userId, dto.model);
   }
 
   @Post('generate-cms')
-  async generateCms(@Body() body: { siteId: string; prompt: string }) {
-    return this.cmsGenerator.generate(body.siteId, body.prompt);
+  async generateCms(
+    @Body() dto: GenerateCmsDto,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.cmsGenerator.generate(dto.siteId, dto.prompt, userId, dto.model);
   }
 }
