@@ -1,0 +1,152 @@
+@baseUrl = http://localhost:3003/api/v1
+@userId = user-123
+@siteId = 123e4567-e89b-12d3-a456-426614174000
+@timestamp = {{$timestamp}}
+
+### =========================================
+### COLLECTIONS API
+### =========================================
+
+### 1. Create a Collection (unique name per run)
+# @name createCollection
+POST {{baseUrl}}/cms/collections
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "siteId": "{{siteId}}",
+  "name": "Products-{{timestamp}}",
+  "schemaDefinition": {
+    "properties": {
+      "title": { "type": "string", "required": true },
+      "price": { "type": "number", "required": true },
+      "inStock": { "type": "boolean" },
+      "releaseDate": { "type": "date" }
+    }
+  }
+}
+
+### Extract Collection ID from Response
+@collectionId = {{createCollection.response.body.id}}
+
+### 2. List Collections by Site ID
+GET {{baseUrl}}/cms/collections?siteId={{siteId}}
+
+### 3. Get Collection Details
+GET {{baseUrl}}/cms/collections/{{collectionId}}
+
+### 4. Update Collection (unique name per run)
+PUT {{baseUrl}}/cms/collections/{{collectionId}}
+Content-Type: application/json
+
+{
+  "name": "Featured-Products-{{timestamp}}",
+  "schemaDefinition": {
+    "properties": {
+      "title": { "type": "string", "required": true },
+      "price": { "type": "number", "required": true },
+      "inStock": { "type": "boolean" },
+      "releaseDate": { "type": "date" },
+      "brand": { "type": "string" }
+    }
+  }
+}
+
+### =========================================
+### RECORDS API
+### =========================================
+
+### 5. Create a Record (Success)
+# @name createRecord
+POST {{baseUrl}}/cms/collections/{{collectionId}}/records
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "data": {
+    "title": "MacBook Pro M3 - {{timestamp}}",
+    "price": 2500,
+    "inStock": true,
+    "brand": "Apple"
+  }
+}
+
+### Extract Record ID from Response
+@recordId = {{createRecord.response.body.id}}
+
+### 6. Create a Record (Validation Error Example)
+# Missing "price" (required) and wrong type for "inStock"
+POST {{baseUrl}}/cms/collections/{{collectionId}}/records
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "data": {
+    "title": "Invalid Product",
+    "inStock": "yes"
+  }
+}
+
+### 7. List Records (Pagination)
+GET {{baseUrl}}/cms/collections/{{collectionId}}/records?page=1&limit=10&sort=createdAt&order=desc
+
+### 8. Get Record Details
+GET {{baseUrl}}/cms/records/{{recordId}}
+
+### 9. Update Record (Partial Merge)
+PUT {{baseUrl}}/cms/records/{{recordId}}
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "data": {
+    "price": 2300,
+    "inStock": false
+  }
+}
+
+### 10. Advanced Search (JSONB Filters)
+GET {{baseUrl}}/cms/collections/{{collectionId}}/records/search?filter[title_contains]=MacBook&filter[brand]=Apple
+
+### =========================================
+### ERROR CASES (Validate Fixes)
+### =========================================
+
+### 11. Missing x-user-id header (should return 400)
+POST {{baseUrl}}/cms/collections
+Content-Type: application/json
+
+{
+  "siteId": "{{siteId}}",
+  "name": "No-User-Test-{{timestamp}}",
+  "schemaDefinition": {
+    "properties": {
+      "name": { "type": "string" }
+    }
+  }
+}
+
+### 12. Missing siteId query param (should return 400)
+GET {{baseUrl}}/cms/collections
+
+### 13. Create record without x-user-id header (should return 400)
+POST {{baseUrl}}/cms/collections/{{collectionId}}/records
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "No user test",
+    "price": 100
+  }
+}
+
+### =========================================
+### CLEANUP
+### =========================================
+
+### 14. Delete Record
+DELETE {{baseUrl}}/cms/records/{{recordId}}
+
+### 15. Delete Collection
+# This will cascade delete any remaining records
+DELETE {{baseUrl}}/cms/collections/{{collectionId}}
