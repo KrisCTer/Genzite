@@ -28,7 +28,7 @@ updated: 2026-06-16
 2. Cross-service: Kafka events (async) or API Gateway (sync)
 3. Dynamic data → JSONB columns. NEVER fixed SQL columns for user data
 4. Media → S3 Presigned URLs. Backend NEVER receives file binaries
-5. AI (Gemini API) → Isolated in ai-service with BullMQ workers
+5. AI (Gemini API) → Isolated in ai-service via a Multi-Agent system (Chat, Plan, UI) with MCP integration + BullMQ workers
 6. UI → Cozy, warm, home-oriented. REJECT harsh IT dashboards
 7. QA → Backend API testing only. NO UI testing
 

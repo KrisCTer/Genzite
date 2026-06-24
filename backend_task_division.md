@@ -275,13 +275,14 @@ graph TD
 | 6.2 | **BullMQ Setup** | **IN:** Redis connection · **OUT:** Queue `ai-tasks` + Worker processor + Job types enum (`GENERATE_SITE`, `GENERATE_CMS`, `ANALYZE_CV`, `GENERATE_QUESTIONS`) · **VERIFY:** Thêm job vào queue → worker nhận và xử lý → job status chuyển `completed` |
 | 6.3 | **Gemini Client Wrapper** | **IN:** `@google/generative-ai` SDK · **OUT:** `GeminiService` singleton wrap SDK, retry logic (3 lần, exponential backoff), rate limiting, structured output parsing · **VERIFY:** Gọi Gemini trả kết quả; timeout → retry; 3 lần fail → throw error rõ ràng |
 
-### Phase B: AI Site & CMS Generation
+### Phase B: AI Site Generation & Agents (MCP Integrated)
 
 | # | Task | INPUT → OUTPUT → VERIFY |
 |---|------|------------------------|
-| 6.4 | **POST `/api/v1/ai/generate-site`** 🔒 | **IN:** `{ prompt }` (ví dụ: "Tạo website bán hoa") · **OUT:** Tạo BullMQ job → Gemini sinh structure `{ site: { name, subdomain }, pages: [{ title, slug, widgets: [{ type, contentConfig }] }] }` → Trả `{ jobId, status: 'processing' }` · **VERIFY:** Prompt tiếng Việt → trả JSON hợp lệ với pages và widgets; prompt tiếng Anh → cũng hoạt động |
-| 6.5 | **POST `/api/v1/ai/generate-cms`** 🔒 | **IN:** `{ siteId, prompt }` (ví dụ: "Cần catalog sản phẩm có tên, giá, mô tả, ảnh") · **OUT:** Gemini sinh `{ collections: [{ name, schemaDefinition: { properties: {...} } }] }` · **VERIFY:** Schema sinh ra hợp lệ, có thể dùng trực tiếp cho Data Service |
-| 6.6 | **GET `/api/v1/ai/jobs/:jobId`** 🔒 | **IN:** jobId · **OUT:** `{ status: 'processing' | 'completed' | 'failed', result?: {...} }` · **VERIFY:** Poll endpoint → status chuyển từ processing → completed; result chứa data |
+| 6.4 | **POST `/api/v1/ai/generate-site`** & **`generate-cms`** 🔒 | **IN:** `{ prompt }` · **OUT:** Tạo BullMQ job → Gemini sinh JSON structure (site/pages/widgets/schema) → Trả `{ jobId, status: 'processing' }` · **VERIFY:** Job xử lý ngầm, kết quả có thể lấy qua poll |
+| 6.5 | **POST `/api/v1/ai/agent/chat`** 🔒 | **IN:** `{ message }` · **OUT:** Tạo BullMQ job `AGENT_TASKS` → Gemini phân tích và gọi Function Calling (e.g., Build Site, Gen CMS) → Trả `{ jobId }` · **VERIFY:** Job xử lý ngầm, kết quả lưu vào `AiTaskLog` |
+| 6.6 | **POST `/api/v1/ai/agent/plan`** 🔒 | **IN:** `{ goal }` · **OUT:** Tạo BullMQ job `AGENT_TASKS` → Gemini lên kế hoạch multi-step và thực thi dần → Trả `{ jobId }` · **VERIFY:** Các step chạy tuần tự, nếu lỗi tự động retry hoặc re-plan |
+| 6.7 | **POST `/api/v1/ai/agent/ui`** 🔒 | **IN:** `{ prompt }` · **OUT:** Tạo BullMQ job → Gemini UI Agent sinh React/TSX components chuẩn UX/UI → Trả `{ jobId }` · **VERIFY:** Component sinh ra có Tailwind CSS, 8pt grid, 60-30-10 colors |
 
 ### Phase C: AI Resume & CV Analysis
 

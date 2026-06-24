@@ -59,61 +59,82 @@ export class MockInterviewService {
       throw new NotFoundException(`Resume not found: ${dto.resumeId}`);
     }
 
-    const resumeText = resume.rawText ?? JSON.stringify(resume.parsedProfile ?? {});
-
-    const systemPrompt = MOCK_INTERVIEW_SYSTEM.replace('{{SESSION_TYPE}}', dto.sessionType);
-    const firstQuestionPrompt = MOCK_INTERVIEW_FIRST_QUESTION_PROMPT
-      .replace('{{RESUME}}', resumeText)
-      .replace('{{JD}}', dto.jobDescription);
-
-    const firstQuestion = await this.ai.generateJson<InterviewQuestion>(
-      firstQuestionPrompt,
-      {
-        model: dto.model as any,
-        systemInstruction: systemPrompt,
-        temperature: 0.7,
-        maxOutputTokens: 1024,
-      },
-    );
-
-    const dialogueHistory = [
-      {
-        role: 'interviewer',
-        content: firstQuestion.question,
-        questionNumber: firstQuestion.questionNumber,
-        difficulty: firstQuestion.difficulty,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-
-    const session = await this.prisma.interviewSession.create({
-      data: {
-        resumeId: dto.resumeId,
-        jobDescription: dto.jobDescription,
-        sessionType: dto.sessionType,
-        dialogueHistory: dialogueHistory as object[],
-        status: 'IN_PROGRESS',
-      },
-    });
-
-    await this.prisma.aiTaskLog.create({
+    const taskLog = await this.prisma.aiTaskLog.create({
       data: {
         userId: userId ?? resume.ownerId,
         taskType: 'INTERVIEW',
-        input: { sessionId: session.id, sessionType: dto.sessionType } as object,
+        input: { action: 'startSession', ...dto } as object,
         startedAt: new Date(),
       },
     });
 
-    this.logger.log(`Interview started: session=${session.id}, type=${dto.sessionType}`);
+    try {
+      const resumeText = resume.rawText ?? JSON.stringify(resume.parsedProfile ?? {});
 
-    return {
-      sessionId: session.id,
-      firstQuestion: firstQuestion.question,
-      questionNumber: firstQuestion.questionNumber,
-      totalQuestions: firstQuestion.totalQuestions,
-      difficulty: firstQuestion.difficulty,
-    };
+      const systemPrompt = MOCK_INTERVIEW_SYSTEM.replace('{{SESSION_TYPE}}', dto.sessionType);
+      const firstQuestionPrompt = MOCK_INTERVIEW_FIRST_QUESTION_PROMPT
+        .replace('{{RESUME}}', resumeText)
+        .replace('{{JD}}', dto.jobDescription);
+
+      const firstQuestion = await this.ai.generateJson<InterviewQuestion>(
+        firstQuestionPrompt,
+        {
+          model: dto.model as any,
+          systemInstruction: systemPrompt,
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        },
+      );
+
+      const dialogueHistory = [
+        {
+          role: 'interviewer',
+          content: firstQuestion.question,
+          questionNumber: firstQuestion.questionNumber,
+          difficulty: firstQuestion.difficulty,
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
+      const session = await this.prisma.interviewSession.create({
+        data: {
+          resumeId: dto.resumeId,
+          jobDescription: dto.jobDescription,
+          sessionType: dto.sessionType,
+          dialogueHistory: dialogueHistory as object[],
+          status: 'IN_PROGRESS',
+        },
+      });
+
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'COMPLETED',
+          output: { sessionId: session.id, firstQuestion } as object,
+          endedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Interview started: session=${session.id}, type=${dto.sessionType}`);
+
+      return {
+        sessionId: session.id,
+        firstQuestion: firstQuestion.question,
+        questionNumber: firstQuestion.questionNumber,
+        totalQuestions: firstQuestion.totalQuestions,
+        difficulty: firstQuestion.difficulty,
+      };
+    } catch (error) {
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          endedAt: new Date(),
+        },
+      });
+      throw error;
+    }
   }
 
   async chat(sessionId: string, message: string) {
@@ -126,57 +147,85 @@ export class MockInterviewService {
     }
 
     const resume = await this.prisma.resume.findUnique({ where: { id: session.resumeId } });
-    const resumeText = resume?.rawText ?? '';
-
-    const history = (session.dialogueHistory as Array<Record<string, unknown>>) ?? [];
-
-    const chatHistory = history.map((entry) => ({
-      role: entry.role === 'interviewer' ? ('model' as const) : ('user' as const),
-      content: String(entry.content),
-    }));
-
-    const systemPrompt = MOCK_INTERVIEW_SYSTEM.replace('{{SESSION_TYPE}}', session.sessionType);
-    const responsePrompt = MOCK_INTERVIEW_RESPONSE_PROMPT.replace('{{ANSWER}}', message);
-
-    const feedback = await this.ai.chatJson<InterviewFeedback>(
-      systemPrompt,
-      chatHistory,
-      responsePrompt,
-      { temperature: 0.6, maxOutputTokens: 1024 },
-    );
-
-    history.push(
-      {
-        role: 'candidate',
-        content: message,
-        timestamp: new Date().toISOString(),
+    
+    const taskLog = await this.prisma.aiTaskLog.create({
+      data: {
+        userId: resume?.ownerId ?? 'anonymous',
+        taskType: 'INTERVIEW',
+        input: { action: 'chat', sessionId, message } as object,
+        startedAt: new Date(),
       },
-      {
-        role: 'interviewer',
-        content: feedback.nextQuestion ?? feedback.feedback,
-        feedback: feedback.feedback,
-        score: feedback.score,
-        questionNumber: feedback.questionNumber,
-        difficulty: feedback.difficulty,
-        timestamp: new Date().toISOString(),
-      },
-    );
-
-    await this.prisma.interviewSession.update({
-      where: { id: sessionId },
-      data: { dialogueHistory: history as object[] },
     });
 
-    this.logger.debug(`Interview chat: session=${sessionId}, score=${feedback.score}, complete=${feedback.isComplete}`);
+    try {
+      const history = (session.dialogueHistory as Array<Record<string, unknown>>) ?? [];
+      const chatHistory = history.map((entry) => ({
+        role: entry.role === 'interviewer' ? ('model' as const) : ('user' as const),
+        content: String(entry.content),
+      }));
 
-    return {
-      feedback: feedback.feedback,
-      score: feedback.score,
-      nextQuestion: feedback.nextQuestion,
-      questionNumber: feedback.questionNumber,
-      difficulty: feedback.difficulty,
-      isComplete: feedback.isComplete,
-    };
+      const systemPrompt = MOCK_INTERVIEW_SYSTEM.replace('{{SESSION_TYPE}}', session.sessionType);
+      const responsePrompt = MOCK_INTERVIEW_RESPONSE_PROMPT.replace('{{ANSWER}}', message);
+
+      const feedback = await this.ai.chatJson<InterviewFeedback>(
+        systemPrompt,
+        chatHistory,
+        responsePrompt,
+        { temperature: 0.6, maxOutputTokens: 1024 },
+      );
+
+      history.push(
+        {
+          role: 'candidate',
+          content: message,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          role: 'interviewer',
+          content: feedback.nextQuestion ?? feedback.feedback,
+          feedback: feedback.feedback,
+          score: feedback.score,
+          questionNumber: feedback.questionNumber,
+          difficulty: feedback.difficulty,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      await this.prisma.interviewSession.update({
+        where: { id: sessionId },
+        data: { dialogueHistory: history as object[] },
+      });
+
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'COMPLETED',
+          output: feedback as object,
+          endedAt: new Date(),
+        },
+      });
+
+      this.logger.debug(`Interview chat: session=${sessionId}, score=${feedback.score}, complete=${feedback.isComplete}`);
+
+      return {
+        feedback: feedback.feedback,
+        score: feedback.score,
+        nextQuestion: feedback.nextQuestion,
+        questionNumber: feedback.questionNumber,
+        difficulty: feedback.difficulty,
+        isComplete: feedback.isComplete,
+      };
+    } catch (error) {
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          endedAt: new Date(),
+        },
+      });
+      throw error;
+    }
   }
 
   async endSession(sessionId: string) {
@@ -185,32 +234,63 @@ export class MockInterviewService {
       throw new NotFoundException(`Interview session not found: ${sessionId}`);
     }
 
-    const history = (session.dialogueHistory as Array<Record<string, unknown>>) ?? [];
+    const resume = await this.prisma.resume.findUnique({ where: { id: session.resumeId } });
 
-    const chatHistory = history.map((entry) => ({
-      role: entry.role === 'interviewer' ? ('model' as const) : ('user' as const),
-      content: String(entry.content),
-    }));
-
-    const systemPrompt = MOCK_INTERVIEW_SYSTEM.replace('{{SESSION_TYPE}}', session.sessionType);
-
-    const evaluation = await this.ai.chatJson<InterviewEvaluation>(
-      systemPrompt,
-      chatHistory,
-      MOCK_INTERVIEW_EVALUATION_PROMPT,
-      { temperature: 0.3, maxOutputTokens: 2048 },
-    );
-
-    await this.prisma.interviewSession.update({
-      where: { id: sessionId },
+    const taskLog = await this.prisma.aiTaskLog.create({
       data: {
-        evaluation: evaluation as object,
-        status: 'COMPLETED',
+        userId: resume?.ownerId ?? 'anonymous',
+        taskType: 'INTERVIEW',
+        input: { action: 'endSession', sessionId } as object,
+        startedAt: new Date(),
       },
     });
 
-    this.logger.log(`Interview ended: session=${sessionId}, score=${evaluation.overallScore}`);
+    try {
+      const history = (session.dialogueHistory as Array<Record<string, unknown>>) ?? [];
+      const chatHistory = history.map((entry) => ({
+        role: entry.role === 'interviewer' ? ('model' as const) : ('user' as const),
+        content: String(entry.content),
+      }));
 
-    return evaluation;
+      const systemPrompt = MOCK_INTERVIEW_SYSTEM.replace('{{SESSION_TYPE}}', session.sessionType);
+
+      const evaluation = await this.ai.chatJson<InterviewEvaluation>(
+        systemPrompt,
+        chatHistory,
+        MOCK_INTERVIEW_EVALUATION_PROMPT,
+        { temperature: 0.3, maxOutputTokens: 2048 },
+      );
+
+      await this.prisma.interviewSession.update({
+        where: { id: sessionId },
+        data: {
+          evaluation: evaluation as object,
+          status: 'COMPLETED',
+        },
+      });
+
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'COMPLETED',
+          output: evaluation as object,
+          endedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Interview ended: session=${sessionId}, score=${evaluation.overallScore}`);
+
+      return evaluation;
+    } catch (error) {
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          endedAt: new Date(),
+        },
+      });
+      throw error;
+    }
   }
 }

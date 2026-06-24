@@ -130,10 +130,10 @@ graph TB
 ### 3.6 AI Service (Port 3006)
 | Attribute | Value |
 |---|---|
-| **Responsibility** | All Google Gemini interactions: site gen, CMS gen, CV analysis, Mock Interview, Career Coaching |
+| **Responsibility** | All Google Gemini interactions. Features a Multi-Agent system (Chat, Planner, UI Designer), Pipeline Engine, and Model Context Protocol (MCP) Server/Client integration. |
 | **Database** | `ai_db` (resumes, interview_sessions) |
 | **Emitted Events** | `SiteGenerated`, `CmsGenerated`, `ResumeAnalyzed`, `InterviewCompleted` |
-| **Special Note** | Has a dedicated **AI Worker** to asynchronously process heavy tasks via BullMQ/Redis Queue |
+| **Special Note** | Has a dedicated **AI Worker** (BullMQ/Redis Queue) for async execution. Uses MCP Client to auto-connect to external servers (like `codebase-memory`, `stitch`) to augment capabilities. |
 
 ---
 
@@ -238,7 +238,7 @@ genzite/
 │   │   └── src/{in-app/, email/, push/, consumers/, entities/}
 │   │
 │   ├── ai-service/                   # Gemini AI (port 3006)
-│   │   └── src/{generation/, recruitment/, gemini/, workers/, entities/, events/}
+│   │   └── src/{agent/, mcp/, pipeline/, generation/, recruitment/, gemini/, workers/, events/}
 │   │
 │   └── frontend/                     # React + Vite + Tailwind CSS
 │       └── src/{App.tsx, index.css, main.tsx, assets/}

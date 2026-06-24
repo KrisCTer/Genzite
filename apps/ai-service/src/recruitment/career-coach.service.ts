@@ -40,7 +40,7 @@ export class CareerCoachService {
     const taskLog = await this.prisma.aiTaskLog.create({
       data: {
         userId: userId ?? resume.ownerId,
-        taskType: 'CV_ANALYSIS',
+        taskType: 'CAREER_COACHING',
         input: { resumeId, action: 'career-coaching' } as object,
         startedAt: new Date(),
       },

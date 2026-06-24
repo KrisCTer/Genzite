@@ -138,6 +138,15 @@ export interface SiteGeneratedEvent extends BaseEvent {
   };
 }
 
+export interface CmsGeneratedEvent extends BaseEvent {
+  type: 'cms.generated';
+  payload: {
+    siteId: string;
+    prompt: string;
+    ownerId: string;
+  };
+}
+
 export interface ResumeAnalyzedEvent extends BaseEvent {
   type: "resume.analyzed";
   payload: {
@@ -172,6 +181,7 @@ export type GenziteEvent =
   | RecordDeletedEvent
   | MediaUploadedEvent
   | SiteGeneratedEvent
+  | CmsGeneratedEvent
   | ResumeAnalyzedEvent
   | InterviewCompletedEvent
   | WidgetConfigChangedEvent;
@@ -192,6 +202,7 @@ export const KAFKA_TOPICS = {
   RECORD_DELETED: 'record.deleted',
   MEDIA_UPLOADED: 'media.uploaded',
   SITE_GENERATED: 'site.generated',
+  CMS_GENERATED: 'cms.generated',
   RESUME_ANALYZED: 'resume.analyzed',
   INTERVIEW_COMPLETED: 'interview.completed',
   AUDIT_LOG: 'audit.log',
