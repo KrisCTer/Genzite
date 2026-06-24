@@ -74,6 +74,40 @@ export interface RecordCreatedEvent extends BaseEvent {
   };
 }
 
+export interface RecordUpdatedEvent extends BaseEvent {
+  type: 'record.updated';
+  payload: {
+    recordId: string;
+    collectionId: string;
+    updatedBy: string;
+  };
+}
+
+export interface RecordDeletedEvent extends BaseEvent {
+  type: 'record.deleted';
+  payload: {
+    recordId: string;
+    collectionId: string;
+  };
+}
+
+export interface CollectionUpdatedEvent extends BaseEvent {
+  type: 'collection.updated';
+  payload: {
+    collectionId: string;
+    siteId: string;
+    name: string;
+  };
+}
+
+export interface CollectionDeletedEvent extends BaseEvent {
+  type: 'collection.deleted';
+  payload: {
+    collectionId: string;
+    siteId: string;
+  };
+}
+
 // --- Media Events ---
 export interface MediaUploadedEvent extends BaseEvent {
   type: 'media.uploaded';
@@ -123,7 +157,11 @@ export type GenziteEvent =
   | SiteCreatedEvent
   | PageUpdatedEvent
   | CollectionCreatedEvent
+  | CollectionUpdatedEvent
+  | CollectionDeletedEvent
   | RecordCreatedEvent
+  | RecordUpdatedEvent
+  | RecordDeletedEvent
   | MediaUploadedEvent
   | SiteGeneratedEvent
   | ResumeAnalyzedEvent
@@ -137,7 +175,11 @@ export const KAFKA_TOPICS = {
   SITE_CREATED: 'site.created',
   PAGE_UPDATED: 'page.updated',
   COLLECTION_CREATED: 'collection.created',
+  COLLECTION_UPDATED: 'collection.updated',
+  COLLECTION_DELETED: 'collection.deleted',
   RECORD_CREATED: 'record.created',
+  RECORD_UPDATED: 'record.updated',
+  RECORD_DELETED: 'record.deleted',
   MEDIA_UPLOADED: 'media.uploaded',
   SITE_GENERATED: 'site.generated',
   RESUME_ANALYZED: 'resume.analyzed',
