@@ -30,7 +30,13 @@
     "prisma:migrate:media": "node scripts/dev.mjs prisma migrate dev --service media-service",
     "prisma:migrate:notification": "node scripts/dev.mjs prisma migrate dev --service notification-service",
     "prisma:migrate:ai": "node scripts/dev.mjs prisma migrate dev --service ai-service",
-    "prisma:migrate:identity": "node scripts/dev.mjs prisma migrate dev --service identity-service"
+    "prisma:migrate:identity": "node scripts/dev.mjs prisma migrate dev --service identity-service",
+    "prisma:studio:site": "node scripts/dev.mjs prisma studio --service site-service",
+    "prisma:studio:data": "node scripts/dev.mjs prisma studio --service data-service",
+    "prisma:studio:media": "node scripts/dev.mjs prisma studio --service media-service",
+    "prisma:studio:notification": "node scripts/dev.mjs prisma studio --service notification-service",
+    "prisma:studio:ai": "node scripts/dev.mjs prisma studio --service ai-service",
+    "prisma:studio:identity": "node scripts/dev.mjs prisma studio --service identity-service"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
