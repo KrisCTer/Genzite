@@ -11,7 +11,7 @@ export interface BaseEvent {
 
 // --- Identity Events ---
 export interface UserRegisteredEvent extends BaseEvent {
-  type: 'user.registered';
+  type: "user.registered";
   payload: {
     userId: string;
     email: string;
@@ -20,7 +20,7 @@ export interface UserRegisteredEvent extends BaseEvent {
 }
 
 export interface UserUpdatedEvent extends BaseEvent {
-  type: 'user.updated';
+  type: "user.updated";
   payload: {
     userId: string;
     changes: Record<string, unknown>;
@@ -28,7 +28,7 @@ export interface UserUpdatedEvent extends BaseEvent {
 }
 
 export interface RoleAssignedEvent extends BaseEvent {
-  type: 'role.assigned';
+  type: "role.assigned";
   payload: {
     userId: string;
     roleName: string;
@@ -37,7 +37,7 @@ export interface RoleAssignedEvent extends BaseEvent {
 
 // --- Site Events ---
 export interface SiteCreatedEvent extends BaseEvent {
-  type: 'site.created';
+  type: "site.created";
   payload: {
     siteId: string;
     name: string;
@@ -47,17 +47,25 @@ export interface SiteCreatedEvent extends BaseEvent {
 }
 
 export interface PageUpdatedEvent extends BaseEvent {
-  type: 'page.updated';
+  type: "page.updated";
   payload: {
     pageId: string;
     siteId: string;
     title: string;
   };
 }
-
+// --- Widget Events ---
+export interface WidgetConfigChangedEvent extends BaseEvent {
+  type: "widget.config-changed";
+  payload: {
+    pageId: string;
+    siteId: string;
+    widgetCount: number;
+  };
+}
 // --- Data (CMS) Events ---
 export interface CollectionCreatedEvent extends BaseEvent {
-  type: 'collection.created';
+  type: "collection.created";
   payload: {
     collectionId: string;
     siteId: string;
@@ -66,7 +74,7 @@ export interface CollectionCreatedEvent extends BaseEvent {
 }
 
 export interface RecordCreatedEvent extends BaseEvent {
-  type: 'record.created';
+  type: "record.created";
   payload: {
     recordId: string;
     collectionId: string;
@@ -74,9 +82,43 @@ export interface RecordCreatedEvent extends BaseEvent {
   };
 }
 
+export interface RecordUpdatedEvent extends BaseEvent {
+  type: 'record.updated';
+  payload: {
+    recordId: string;
+    collectionId: string;
+    updatedBy: string;
+  };
+}
+
+export interface RecordDeletedEvent extends BaseEvent {
+  type: 'record.deleted';
+  payload: {
+    recordId: string;
+    collectionId: string;
+  };
+}
+
+export interface CollectionUpdatedEvent extends BaseEvent {
+  type: 'collection.updated';
+  payload: {
+    collectionId: string;
+    siteId: string;
+    name: string;
+  };
+}
+
+export interface CollectionDeletedEvent extends BaseEvent {
+  type: 'collection.deleted';
+  payload: {
+    collectionId: string;
+    siteId: string;
+  };
+}
+
 // --- Media Events ---
 export interface MediaUploadedEvent extends BaseEvent {
-  type: 'media.uploaded';
+  type: "media.uploaded";
   payload: {
     mediaId: string;
     s3Key: string;
@@ -88,7 +130,7 @@ export interface MediaUploadedEvent extends BaseEvent {
 
 // --- AI Events ---
 export interface SiteGeneratedEvent extends BaseEvent {
-  type: 'site.generated';
+  type: "site.generated";
   payload: {
     siteId: string;
     prompt: string;
@@ -106,7 +148,7 @@ export interface CmsGeneratedEvent extends BaseEvent {
 }
 
 export interface ResumeAnalyzedEvent extends BaseEvent {
-  type: 'resume.analyzed';
+  type: "resume.analyzed";
   payload: {
     resumeId: string;
     ownerId: string;
@@ -115,7 +157,7 @@ export interface ResumeAnalyzedEvent extends BaseEvent {
 }
 
 export interface InterviewCompletedEvent extends BaseEvent {
-  type: 'interview.completed';
+  type: "interview.completed";
   payload: {
     sessionId: string;
     resumeId: string;
@@ -132,12 +174,17 @@ export type GenziteEvent =
   | SiteCreatedEvent
   | PageUpdatedEvent
   | CollectionCreatedEvent
+  | CollectionUpdatedEvent
+  | CollectionDeletedEvent
   | RecordCreatedEvent
+  | RecordUpdatedEvent
+  | RecordDeletedEvent
   | MediaUploadedEvent
   | SiteGeneratedEvent
   | CmsGeneratedEvent
   | ResumeAnalyzedEvent
-  | InterviewCompletedEvent;
+  | InterviewCompletedEvent
+  | WidgetConfigChangedEvent;
 
 // --- Kafka Topic Names ---
 export const KAFKA_TOPICS = {
@@ -146,8 +193,13 @@ export const KAFKA_TOPICS = {
   ROLE_ASSIGNED: 'role.assigned',
   SITE_CREATED: 'site.created',
   PAGE_UPDATED: 'page.updated',
+  WIDGET_CONFIG_CHANGED: 'widget.config-changed',
   COLLECTION_CREATED: 'collection.created',
+  COLLECTION_UPDATED: 'collection.updated',
+  COLLECTION_DELETED: 'collection.deleted',
   RECORD_CREATED: 'record.created',
+  RECORD_UPDATED: 'record.updated',
+  RECORD_DELETED: 'record.deleted',
   MEDIA_UPLOADED: 'media.uploaded',
   SITE_GENERATED: 'site.generated',
   CMS_GENERATED: 'cms.generated',
@@ -156,10 +208,10 @@ export const KAFKA_TOPICS = {
   AUDIT_LOG: 'audit.log',
 } as const;
 
-export type KafkaTopicName = typeof KAFKA_TOPICS[keyof typeof KAFKA_TOPICS];
+export type KafkaTopicName = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
 
 export const KAFKA_CONSUMER_GROUPS = {
-  NOTIFICATION: 'notification-service-group',
-  AI: 'ai-service-group',
-  DATA: 'data-service-group',
+  NOTIFICATION: "notification-service-group",
+  AI: "ai-service-group",
+  DATA: "data-service-group",
 } as const;

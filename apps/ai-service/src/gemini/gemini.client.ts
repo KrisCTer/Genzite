@@ -233,12 +233,4 @@ export class GeminiClient {
     modelName?: GeminiModelName,
   ): GenerativeModel {
     const name = modelName ?? this.defaultModel;
-    const geminiTools: GeminiTool[] = [{ functionDeclarations: tools }];
-
-    return this.genAI.getGenerativeModel({
-      model: name,
-      ...(systemInstruction ? { systemInstruction } : {}),
-      tools: geminiTools,
-    });
-  }
-}
+    const geminiTools: GeminiTool[] = [{ functionDeclarations:

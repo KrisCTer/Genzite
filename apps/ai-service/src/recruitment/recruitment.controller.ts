@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Headers, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Param, Headers, HttpCode, HttpStatus } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { AI_QUEUES } from '../workers/queue.constants.js';
