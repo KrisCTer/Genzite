@@ -10,30 +10,9 @@ import {
 } from "@nestjs/common";
 import { PagesService } from "./pages.service.js";
 
-@Controller("sites/:siteId/pages")
-export class PagesController {
+@Controller("sites/pages")
+export class PagesManagementController {
   constructor(private readonly pagesService: PagesService) {}
-
-  @Get()
-  async findAll(
-    @Param("siteId") siteId: string,
-    @Headers("x-user-id") userId: string,
-  ) {
-    return this.pagesService.findBySiteId(siteId, userId);
-  }
-
-  @Post()
-  async create(
-    @Param("siteId") siteId: string,
-    @Body()
-    body: {
-      title: string;
-      slug: string;
-    },
-    @Headers("x-user-id") userId: string,
-  ) {
-    return this.pagesService.create(siteId, body, userId);
-  }
 
   @Put(":pageId")
   async update(
