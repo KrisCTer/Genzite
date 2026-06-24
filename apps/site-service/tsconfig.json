@@ -1,1 +1,11 @@
-{ "extends": "../../tsconfig.base.json", "compilerOptions": { "outDir": "./dist", "baseUrl": "./" }, "include": ["src/**/*"] }
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "baseUrl": "./"
+    },
+    "include": [
+        "src/**/*",
+        "prisma/seed.ts"
+    ]
+}
