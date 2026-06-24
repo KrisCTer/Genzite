@@ -58,18 +58,20 @@ export class CvAnalyzerService {
         maxOutputTokens: 2048,
       });
 
-      await this.prisma.resume.update({
-        where: { id: resumeId },
-        data: { atsScores: result as object },
-      });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.resume.update({
+          where: { id: resumeId },
+          data: { atsScores: result as object },
+        });
 
-      await this.prisma.aiTaskLog.update({
-        where: { id: taskLog.id },
-        data: {
-          status: 'COMPLETED',
-          output: result as object,
-          endedAt: new Date(),
-        },
+        await tx.aiTaskLog.update({
+          where: { id: taskLog.id },
+          data: {
+            status: 'COMPLETED',
+            output: result as object,
+            endedAt: new Date(),
+          },
+        });
       });
 
       this.logger.log(`CV analyzed: resume=${resumeId}, ATS score=${result.atsScore}`);

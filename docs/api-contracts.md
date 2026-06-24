@@ -137,6 +137,54 @@ Marks a notification as read.
 
 ## 6. AI Module – Google Gemini (`/api/v1/ai`)
 
+### POST `/api/v1/ai/agent/chat` 🔒
+Reactive, single-turn agent that uses Gemini Function Calling to execute tools.
+- **Request**: `{ "message": "Analyze this CV", "model": "gemini-2.0-flash" }`
+- **Response (200)**:
+  ```json
+  {
+    "message": "CV analyzed successfully.",
+    "toolCalls": [
+      { "tool": "analyze_cv", "params": { "resumeId": "..." } }
+    ]
+  }
+  ```
+
+### POST `/api/v1/ai/agent/plan` 🔒
+Advanced multi-step planning agent. Generates a dependency-aware plan, executes it, and re-plans if a step fails.
+- **Request**: `{ "message": "Build a portfolio site with a CMS for projects" }`
+- **Response (200)**:
+  ```json
+  {
+    "message": "Successfully generated site and CMS schemas.",
+    "plan": {
+      "goal": "Build a portfolio site...",
+      "status": "completed",
+      "steps": [
+        { "id": "step_1", "description": "Generate site", "action": "generate_site", "status": "done" },
+        { "id": "step_2", "description": "Generate CMS", "action": "generate_cms", "status": "done" }
+      ]
+    }
+  }
+  ```
+
+### POST `/api/v1/ai/agent/ui` 🔒
+Specialized UI Design Agent. Enforces design systems, UX psychology, and anti-cliché rules. Can dynamically use external codebase or stitch MCP tools.
+- **Request**: `{ "message": "Design a premium pricing card" }`
+- **Response (200)**:
+  ```json
+  {
+    "message": "Pricing card generated.",
+    "toolCalls": [ { "tool": "generate_ui_component", "params": { "componentName": "PricingCard" } } ],
+    "generatedCode": [ "import React from 'react';\n..." ]
+  }
+  ```
+
+### POST `/api/v1/ai/mcp`
+Model Context Protocol (MCP) Server endpoint using Streamable HTTP. Exposes internal tools to external AI clients (like Claude Desktop).
+- **Request**: MCP Protocol JSON-RPC envelope.
+- **Response**: Streamed MCP JSON-RPC events.
+
 ### POST `/api/v1/ai/generate-site` 🔒
 Generates site structure (pages + widgets) from a text prompt.
 - **Request**: `{ "prompt": "Create a modern flower shop website with product gallery and checkout" }`

@@ -271,7 +271,7 @@ Genzite/
 │   ├── data-service/        # Dynamic CMS (JSONB)
 │   ├── media-service/       # File upload, S3
 │   ├── notification-service/# Email, Push, In-App
-│   ├── ai-service/          # Gemini AI, Resume, Interview
+│   ├── ai-service/          # Multi-Agent, MCP, Pipeline Engine, Gemini AI
 │   └── frontend/            # React + Vite + Tailwind
 │
 ├── packages/                # Shared libraries

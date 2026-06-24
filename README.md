@@ -12,7 +12,7 @@ Genzite is an AI No-Code platform that enables users to create and operate fully
 | **Frontend** | React + Vite + TypeScript + Tailwind CSS v4 |
 | **Database** | PostgreSQL (Relational + JSONB) |
 | **Cache/Queue** | Redis (Session + Cache + BullMQ) |
-| **AI Engine** | Google Gemini API |
+| **AI Engine** | Google Gemini API + Model Context Protocol (MCP) + Multi-Agent System |
 | **Cloud** | AWS (Route 53, CloudFront, S3, ALB, EC2, RDS, ElastiCache) |
 
 ## Repository Structure
@@ -50,8 +50,8 @@ genzite/
 2. **API Gateway**: All frontend traffic routes through `apps/gateway` (port 3000).
 3. **JSONB-First Dynamic Data**: All user-generated CMS content uses PostgreSQL JSONB columns.
 4. **S3 Direct Upload**: Media files bypass the backend entirely via Presigned URLs.
-5. **AI Isolation**: Gemini API calls run in `ai-service` with BullMQ workers to avoid blocking.
-6. **Event-Driven**: Services communicate asynchronously via Kafka events.
+5. **AI Multi-Agent & MCP**: Gemini API calls run in `ai-service` via a Multi-Agent architecture (Planner, UI Designer, Tool-calling). The service connects to external tools and exposes its own tools via the Model Context Protocol (MCP).
+6. **Event-Driven**: Services communicate asynchronously via Kafka events and BullMQ.
 7. **Cozy Design**: UI must feel warm, friendly, and community-oriented.
 
 ## AI Agent Workflow

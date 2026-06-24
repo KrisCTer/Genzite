@@ -31,7 +31,7 @@ Genzite is an **AI-Powered No-Code Business Application Builder & Dynamic CMS**.
 - **Backend**: NestJS Microservices (7 services, TypeScript)
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS v4
 - **Database**: PostgreSQL (Relational + JSONB) + Redis (Cache + Queue)
-- **AI Engine**: Google Gemini API
+- **AI Engine**: Google Gemini API + Model Context Protocol (MCP) + Multi-Agent System
 - **Cloud**: AWS (Route 53, CloudFront, S3, ALB, EC2, RDS, ElastiCache)
 
 ### Microservices Map
@@ -43,7 +43,7 @@ Genzite is an **AI-Powered No-Code Business Application Builder & Dynamic CMS**.
 | `apps/data-service` | 3003 | Dynamic CMS Collections & Records (JSONB) |
 | `apps/media-service` | 3004 | S3 Presigned URL generation |
 | `apps/notification-service` | 3005 | Email, Push, In-App |
-| `apps/ai-service` | 3006 | Google Gemini (generation + recruitment) |
+| `apps/ai-service` | 3006 | Multi-Agent System (Chat, Plan, UI), Pipeline Engine, MCP Server/Client |
 
 ---
 
@@ -53,7 +53,7 @@ Genzite is an **AI-Powered No-Code Business Application Builder & Dynamic CMS**.
 2. **Cross-Service Communication**: Kafka events (async) or API Gateway proxy (sync). NEVER direct service imports.
 3. **JSONB-First**: All dynamic user data MUST use PostgreSQL JSONB. NEVER create fixed columns for dynamic fields.
 4. **S3 Direct Upload**: Media uploads bypass backend entirely (Presigned URL → S3 → metadata callback).
-5. **AI Isolation**: Gemini API calls (10-15s) run in `ai-service` with BullMQ workers. NEVER call synchronously from other services.
+5. **AI Isolation & Agents**: Gemini API calls run in `ai-service` via a Multi-Agent architecture with MCP integration. Long-running tasks use BullMQ workers. NEVER call synchronously from other services.
 6. **QA Scope**: 100% functional backend API verification. UI testing is STRICTLY EXCLUDED.
 7. **Design Philosophy**: UI MUST be cozy, user-friendly, and home-oriented. REJECT harsh IT-dashboard designs.
 
