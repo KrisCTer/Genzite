@@ -1,17 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import { Controller, Logger, OnModuleInit } from "@nestjs/common";
+import { KafkaConsumerService } from "@genzite/kafka";
+import { NotificationsService } from "../in-app/notifications.service.js";
+import {
+  KAFKA_TOPICS,
+  ResumeAnalyzedEvent,
+  InterviewCompletedEvent,
+} from "@genzite/shared-types";
 
-/**
- * Listens to AI-related events and triggers notifications.
- */
-@Injectable()
-export class AiConsumer {
-  async handleResumeAnalyzed(payload: { resumeId: string; ownerId: string; atsScore: number }) {
-    // TODO: Send notification with ATS score results
-    console.log('[Notification] Consumed: resume.analyzed → Notifying user', payload.ownerId);
-  }
+@Controller()
+export class AiConsumer implements OnModuleInit {
+  private readonly logger = new Logger(AiConsumer.name);
 
-  async handleInterviewCompleted(payload: { sessionId: string; ownerId: string; overallScore: number }) {
-    // TODO: Send interview evaluation notification
-    console.log('[Notification] Consumed: interview.completed → Notifying user', payload.ownerId);
+  constructor(
+    private readonly kafkaConsumer: KafkaConsumerService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
+
+  onModuleInit() {
+    this.kafkaConsumer.subscribe<ResumeAnalyzedEvent["payload"]>(
+      KAFKA_TOPICS.RESUME_ANALYZED,
+      async (event) => {
+        this.logger.log(`Resume analyzed → ${event.payload.ownerId}`);
+
+        await this.notificationsService.createResumeAnalyzedNotification(
+          event.payload.ownerId,
+          event.payload.resumeId,
+          event.payload.atsScore,
+        );
+
+        this.logger.log(
+          `Resume notification created for ${event.payload.ownerId}`,
+        );
+      },
+    );
+
+    this.kafkaConsumer.subscribe<InterviewCompletedEvent["payload"]>(
+      KAFKA_TOPICS.INTERVIEW_COMPLETED,
+      async (event) => {
+        this.logger.log(`Interview completed → ${event.payload.ownerId}`);
+
+        await this.notificationsService.createInterviewCompletedNotification(
+          event.payload.ownerId,
+          event.payload.sessionId,
+          event.payload.resumeId,
+          event.payload.overallScore,
+        );
+
+        this.logger.log(
+          `Interview notification created for ${event.payload.ownerId}`,
+        );
+      },
+    );
   }
 }

@@ -1,20 +1,29 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
-import type { KafkaTopicName, BaseEvent } from '@genzite/shared-types';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Kafka, Consumer, EachMessagePayload } from "kafkajs";
+import type { KafkaTopicName, BaseEvent } from "@genzite/shared-types";
 
-export type EventHandler<T = unknown> = (event: BaseEvent & { payload: T }) => Promise<void>;
+export type EventHandler<T = unknown> = (
+  event: BaseEvent & { payload: T },
+) => Promise<void>;
 
 @Injectable()
-export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
+export class KafkaConsumerService
+  implements OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(KafkaConsumerService.name);
   private readonly kafka: Kafka;
   private readonly consumer: Consumer;
   private readonly handlers = new Map<string, EventHandler[]>();
 
   constructor(private readonly config: ConfigService) {
-    const brokers = this.config.getOrThrow<string>('KAFKA_BROKERS').split(',');
-    const groupId = this.config.getOrThrow<string>('KAFKA_CONSUMER_GROUP');
+    const brokers = this.config.getOrThrow<string>("KAFKA_BROKERS").split(",");
+    const groupId = this.config.getOrThrow<string>("KAFKA_CONSUMER_GROUP");
 
     this.kafka = new Kafka({
       clientId: `${groupId}-client`,
@@ -28,16 +37,18 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     this.consumer = this.kafka.consumer({ groupId });
   }
 
-  async onModuleInit() {
+  async onApplicationBootstrap() {
     const topics = Array.from(this.handlers.keys());
 
     if (topics.length === 0) {
-      this.logger.warn('No Kafka topics registered — consumer will not start');
+      this.logger.warn("No Kafka topics registered — consumer will not start");
       return;
     }
 
     await this.consumer.connect();
-    this.logger.log(`Kafka consumer connected (group: ${this.config.get('KAFKA_CONSUMER_GROUP')})`);
+    this.logger.log(
+      `Kafka consumer connected (group: ${this.config.get("KAFKA_CONSUMER_GROUP")})`,
+    );
 
     for (const topic of topics) {
       await this.consumer.subscribe({ topic, fromBeginning: false });
@@ -53,7 +64,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.consumer.disconnect();
-    this.logger.log('Kafka consumer disconnected');
+    this.logger.log("Kafka consumer disconnected");
   }
 
   subscribe<T>(topic: KafkaTopicName, handler: EventHandler<T>): void {
@@ -62,7 +73,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     this.handlers.set(topic, existing);
   }
 
-  private async handleMessage({ topic, message }: EachMessagePayload): Promise<void> {
+  private async handleMessage({
+    topic,
+    message,
+  }: EachMessagePayload): Promise<void> {
     const handlers = this.handlers.get(topic);
     if (!handlers || handlers.length === 0) return;
 

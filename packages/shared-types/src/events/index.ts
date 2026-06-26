@@ -156,6 +156,7 @@ export interface CmsGeneratedEvent extends BaseEvent {
   };
 }
 
+
 export interface ResumeAnalyzedEvent extends BaseEvent {
   type: "resume.analyzed";
   payload: {
@@ -218,6 +219,7 @@ export const KAFKA_TOPICS = {
   INTERVIEW_COMPLETED: 'interview.completed',
   AUDIT_LOG: 'audit.log',
 } as const;
+
 
 export type KafkaTopicName = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
 
