@@ -81,6 +81,8 @@ enum AiTaskType {
   CMS_GENERATION
   CV_ANALYSIS
   INTERVIEW
+  AGENT_TASK
+  CAREER_COACHING
 
   @@schema("ai")
 }

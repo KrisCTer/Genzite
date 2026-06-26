@@ -13,6 +13,11 @@ export class AiProducer {
     this.logger.log(`Event emitted: ${KAFKA_TOPICS.SITE_GENERATED} (site: ${payload.siteId})`);
   }
 
+  async emitCmsGenerated(payload: { siteId: string; prompt: string; ownerId: string }) {
+    await this.kafka.emit(KAFKA_TOPICS.CMS_GENERATED, payload);
+    this.logger.log(`Event emitted: ${KAFKA_TOPICS.CMS_GENERATED} (site: ${payload.siteId})`);
+  }
+
   async emitResumeAnalyzed(payload: { resumeId: string; ownerId: string; atsScore: number }) {
     await this.kafka.emit(KAFKA_TOPICS.RESUME_ANALYZED, payload);
     this.logger.log(`Event emitted: ${KAFKA_TOPICS.RESUME_ANALYZED} (resume: ${payload.resumeId}, score: ${payload.atsScore})`);

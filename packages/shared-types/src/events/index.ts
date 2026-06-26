@@ -54,7 +54,15 @@ export interface PageUpdatedEvent extends BaseEvent {
     title: string;
   };
 }
-
+// --- Widget Events ---
+export interface WidgetConfigChangedEvent extends BaseEvent {
+  type: "widget.config-changed";
+  payload: {
+    pageId: string;
+    siteId: string;
+    widgetCount: number;
+  };
+}
 // --- Data (CMS) Events ---
 export interface CollectionCreatedEvent extends BaseEvent {
   type: "collection.created";
@@ -71,6 +79,40 @@ export interface RecordCreatedEvent extends BaseEvent {
     recordId: string;
     collectionId: string;
     createdBy: string;
+  };
+}
+
+export interface RecordUpdatedEvent extends BaseEvent {
+  type: 'record.updated';
+  payload: {
+    recordId: string;
+    collectionId: string;
+    updatedBy: string;
+  };
+}
+
+export interface RecordDeletedEvent extends BaseEvent {
+  type: 'record.deleted';
+  payload: {
+    recordId: string;
+    collectionId: string;
+  };
+}
+
+export interface CollectionUpdatedEvent extends BaseEvent {
+  type: 'collection.updated';
+  payload: {
+    collectionId: string;
+    siteId: string;
+    name: string;
+  };
+}
+
+export interface CollectionDeletedEvent extends BaseEvent {
+  type: 'collection.deleted';
+  payload: {
+    collectionId: string;
+    siteId: string;
   };
 }
 
@@ -104,6 +146,16 @@ export interface SiteGeneratedEvent extends BaseEvent {
   };
 }
 
+export interface CmsGeneratedEvent extends BaseEvent {
+  type: 'cms.generated';
+  payload: {
+    siteId: string;
+    prompt: string;
+    ownerId: string;
+  };
+}
+
+
 export interface ResumeAnalyzedEvent extends BaseEvent {
   type: "resume.analyzed";
   payload: {
@@ -131,29 +183,42 @@ export type GenziteEvent =
   | SiteCreatedEvent
   | PageUpdatedEvent
   | CollectionCreatedEvent
+  | CollectionUpdatedEvent
+  | CollectionDeletedEvent
   | RecordCreatedEvent
+  | RecordUpdatedEvent
+  | RecordDeletedEvent
   | MediaUploadedEvent
   | MediaDeletedEvent
   | SiteGeneratedEvent
+  | CmsGeneratedEvent
   | ResumeAnalyzedEvent
-  | InterviewCompletedEvent;
+  | InterviewCompletedEvent
+  | WidgetConfigChangedEvent;
 
 // --- Kafka Topic Names ---
 export const KAFKA_TOPICS = {
-  USER_REGISTERED: "user.registered",
-  USER_UPDATED: "user.updated",
-  ROLE_ASSIGNED: "role.assigned",
-  SITE_CREATED: "site.created",
-  PAGE_UPDATED: "page.updated",
-  COLLECTION_CREATED: "collection.created",
-  RECORD_CREATED: "record.created",
-  MEDIA_UPLOADED: "media.uploaded",
-  MEDIA_DELETED: "media.deleted",
-  SITE_GENERATED: "site.generated",
-  RESUME_ANALYZED: "resume.analyzed",
-  INTERVIEW_COMPLETED: "interview.completed",
-  AUDIT_LOG: "audit.log",
+  USER_REGISTERED: 'user.registered',
+  USER_UPDATED: 'user.updated',
+  ROLE_ASSIGNED: 'role.assigned',
+  SITE_CREATED: 'site.created',
+  PAGE_UPDATED: 'page.updated',
+  WIDGET_CONFIG_CHANGED: 'widget.config-changed',
+  COLLECTION_CREATED: 'collection.created',
+  COLLECTION_UPDATED: 'collection.updated',
+  COLLECTION_DELETED: 'collection.deleted',
+  RECORD_CREATED: 'record.created',
+  RECORD_UPDATED: 'record.updated',
+  RECORD_DELETED: 'record.deleted',
+  MEDIA_UPLOADED: 'media.uploaded',
+  MEDIA_DELETED: 'media.deleted',
+  SITE_GENERATED: 'site.generated',
+  CMS_GENERATED: 'cms.generated',
+  RESUME_ANALYZED: 'resume.analyzed',
+  INTERVIEW_COMPLETED: 'interview.completed',
+  AUDIT_LOG: 'audit.log',
 } as const;
+
 
 export type KafkaTopicName = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
 

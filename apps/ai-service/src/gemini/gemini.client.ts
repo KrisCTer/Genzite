@@ -6,6 +6,8 @@ import {
   ChatSession,
   Content,
   type GenerationConfig,
+  type FunctionDeclaration,
+  type Tool as GeminiTool,
 } from '@google/generative-ai';
 import { GeminiApiException, GeminiParseException } from './gemini.exception.js';
 
@@ -220,4 +222,15 @@ export class GeminiClient {
       );
     }
   }
-}
+
+  /**
+   * Create a GenerativeModel configured with function calling tools.
+   * Used by AgentService for the tool-calling agent loop.
+   */
+  getModelWithTools(
+    tools: FunctionDeclaration[],
+    systemInstruction?: string,
+    modelName?: GeminiModelName,
+  ): GenerativeModel {
+    const name = modelName ?? this.defaultModel;
+    const geminiTools: GeminiTool[] = [{ functionDeclarations:

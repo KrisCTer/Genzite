@@ -129,8 +129,8 @@ Each NestJS service under `apps/` follows this layout:
 - Services NEVER access each other's database directly.
 - Cross-service communication: **Kafka events** (async) or **API Gateway** (sync proxy).
 
-### LLM Isolation
-The `ai-service` handles Google Gemini API calls (10–15 seconds per request). Long-running tasks are processed via BullMQ workers to avoid blocking.
+### LLM Isolation & Multi-Agent Architecture
+The `ai-service` handles Google Gemini API calls via a multi-agent system (Chat, Planner, UI Designer). It uses a Pipeline Engine for multi-step tasks and the Model Context Protocol (MCP) to expose internal tools and consume external ones (e.g., codebase-memory). Long-running tasks are processed via BullMQ workers to avoid blocking.
 
 ### Media Upload Path
 Media uploads **bypass all backend services**. The `media-service` generates **Presigned URLs** for S3. Frontend uploads directly, then notifies the backend via metadata callback.

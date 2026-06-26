@@ -1,22 +1,65 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Headers, Put, Delete } from '@nestjs/common';
 import { SitesService } from './sites.service.js';
 
 @Controller('sites')
 export class SitesController {
-  constructor(private readonly sitesService: SitesService) {}
+  constructor(private readonly sitesService: SitesService) { }
 
   @Get()
-  async findAll() {
-    return this.sitesService.findAll();
+  async findAll(
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.findAll(userId);
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return this.sitesService.findById(id);
+  async findById(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.findById(
+      id,
+      userId,
+    );
   }
 
   @Post()
-  async create(@Body() body: { name: string; subdomain: string; description?: string }) {
-    return this.sitesService.create(body);
+  async create(
+    @Body() body: {
+      name: string;
+      subdomain: string;
+      description?: string;
+    },
+    @Headers('x-user-id') userId: string
+  ) {
+    return this.sitesService.create(body, userId);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: {
+      name?: string;
+      subdomain?: string;
+      settings?: any;
+    },
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.update(
+      id,
+      body,
+      userId,
+    );
+  }
+
+  @Delete(':id')
+  async delete(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.delete(
+      id,
+      userId,
+    );
   }
 }
