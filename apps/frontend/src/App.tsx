@@ -223,7 +223,7 @@ const AppContent: React.FC = () => {
                       label="Title"
                       placeholder="Enter record title..."
                       value={newPostTitle}
-                      onChange={(e) => setNewPostTitle(e.target.value)}
+                      onChange={(e: any) => setNewPostTitle(e.target.value)}
                       required
                     />
                     <Select
@@ -241,7 +241,7 @@ const AppContent: React.FC = () => {
                       label="Content"
                       placeholder="Write content body here..."
                       value={newPostContent}
-                      onChange={(e) => setNewPostContent(e.target.value)}
+                      onChange={(e: any) => setNewPostContent(e.target.value)}
                       rows={4}
                       required
                     />
