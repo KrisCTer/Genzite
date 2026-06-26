@@ -136,6 +136,7 @@ export interface MediaDeletedEvent extends BaseEvent {
     ownerId: string;
   };
 }
+
 // --- AI Events ---
 export interface SiteGeneratedEvent extends BaseEvent {
   type: "site.generated";
