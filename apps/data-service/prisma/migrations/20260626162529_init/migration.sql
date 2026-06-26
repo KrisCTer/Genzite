@@ -36,5 +36,8 @@ CREATE INDEX "cms_records_collection_id_idx" ON "cms_records"("collection_id");
 -- CreateIndex
 CREATE INDEX "cms_records_created_by_idx" ON "cms_records"("created_by");
 
+-- CreateIndex
+CREATE INDEX "cms_records_data_idx" ON "cms_records" USING GIN ("data");
+
 -- AddForeignKey
 ALTER TABLE "cms_records" ADD CONSTRAINT "cms_records_collection_id_fkey" FOREIGN KEY ("collection_id") REFERENCES "cms_collections"("id") ON DELETE CASCADE ON UPDATE CASCADE;
