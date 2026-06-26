@@ -8,7 +8,7 @@ export class AiProducer {
 
   constructor(private readonly kafka: KafkaProducerService) {}
 
-  async emitSiteGenerated(payload: { siteId: string; prompt: string; ownerId: string }) {
+  async emitSiteGenerated(payload: { siteId: string; prompt: string; ownerId: string; siteData?: any }) {
     await this.kafka.emit(KAFKA_TOPICS.SITE_GENERATED, payload);
     this.logger.log(`Event emitted: ${KAFKA_TOPICS.SITE_GENERATED} (site: ${payload.siteId})`);
   }

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { NotificationType } from "@prisma/client";
+import { NotificationType } from "@prisma/client-notification";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 @Injectable()
@@ -11,8 +11,8 @@ export class NotificationsService {
       data: {
         userId,
         type: NotificationType.IN_APP,
-        title: "Chào mừng bạn đến với Genzite!",
-        body: "Cảm ơn bạn đã đăng ký tài khoản.",
+        title: "Welcome to Genzite!",
+        body: "Thank you for registering an account.",
         metadata: {
           event: "user.registered",
         },
@@ -69,8 +69,8 @@ export class NotificationsService {
       data: {
         userId: ownerId,
         type: NotificationType.IN_APP,
-        title: "Kết quả phân tích CV đã sẵn sàng",
-        body: `CV của bạn đã được phân tích. ATS Score: ${atsScore}.`,
+        title: "CV Analysis Result is Ready",
+        body: `Your CV has been analyzed. ATS Score: ${atsScore}.`,
         metadata: {
           resumeId,
           atsScore,
@@ -90,8 +90,8 @@ export class NotificationsService {
       data: {
         userId: ownerId,
         type: NotificationType.IN_APP,
-        title: "Báo cáo phỏng vấn thử đã hoàn thành",
-        body: `Điểm đánh giá tổng thể của bạn là ${overallScore}.`,
+        title: "Mock Interview Report Completed",
+        body: `Your overall evaluation score is ${overallScore}.`,
         metadata: {
           sessionId,
           resumeId,
@@ -111,12 +111,42 @@ export class NotificationsService {
       data: {
         userId: ownerId,
         type: NotificationType.IN_APP,
-        title: `Website ${siteName} đã được tạo thành công!`,
-        body: "Bạn có thể bắt đầu chỉnh sửa website ngay bây giờ.",
+        title: `Website ${siteName} created successfully!`,
+        body: "You can start editing your website now.",
         metadata: {
           siteId,
           siteName,
           event: "site.created",
+        },
+      },
+    });
+  }
+
+  async createSiteGeneratedNotification(ownerId: string, siteId: string) {
+    return this.prisma.notification.create({
+      data: {
+        userId: ownerId,
+        type: NotificationType.IN_APP,
+        title: "Your AI Website is fully initialized!",
+        body: "Please check the automatically generated interface and content.",
+        metadata: {
+          siteId,
+          event: "site.generated",
+        },
+      },
+    });
+  }
+
+  async createCmsGeneratedNotification(ownerId: string, siteId: string) {
+    return this.prisma.notification.create({
+      data: {
+        userId: ownerId,
+        type: NotificationType.IN_APP,
+        title: "CMS Structure Initialized",
+        body: "The CMS Collections are ready for you to add data.",
+        metadata: {
+          siteId,
+          event: "cms.generated",
         },
       },
     });

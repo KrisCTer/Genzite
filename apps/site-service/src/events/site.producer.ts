@@ -23,7 +23,7 @@ export class SiteProducer {
     await this.kafka.emit(KAFKA_TOPICS.PAGE_UPDATED, payload);
   }
 
-  // Emit khi widget config thay đổi
+  // Emit when widget config changes
   async emitWidgetConfigChanged(payload: {
     pageId: string;
     siteId: string;

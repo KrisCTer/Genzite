@@ -9,6 +9,7 @@ import { PagesService } from "./pages/pages.service.js";
 import { WidgetsController } from "./widgets/widgets.controller.js";
 import { WidgetsService } from "./widgets/widgets.service.js";
 import { SiteProducer } from "./events/site.producer.js";
+import { AiConsumer } from "./events/ai.consumer.js";
 import { PagesManagementController } from "./pages/pages-management.controller.js";
 
 @Module({
@@ -23,6 +24,6 @@ import { PagesManagementController } from "./pages/pages-management.controller.j
     PagesManagementController,
     WidgetsController,
   ],
-  providers: [SitesService, PagesService, WidgetsService, SiteProducer],
+  providers: [SitesService, PagesService, WidgetsService, SiteProducer, AiConsumer],
 })
 export class AppModule {}

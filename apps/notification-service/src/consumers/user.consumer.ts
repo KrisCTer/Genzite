@@ -40,8 +40,8 @@ export class UserConsumer implements OnModuleInit {
 
         await this.emailService.sendEmail(
           event.payload.email,
-          "Chào mừng đến với Genzite!",
-          "Cảm ơn bạn đã đăng ký tài khoản.",
+          "Welcome to Genzite!",
+          "Thank you for registering an account.",
         );
       },
     );
