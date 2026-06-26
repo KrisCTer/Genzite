@@ -128,6 +128,14 @@ export interface MediaUploadedEvent extends BaseEvent {
   };
 }
 
+export interface MediaDeletedEvent extends BaseEvent {
+  type: "media.deleted";
+  payload: {
+    mediaId: string;
+    s3Key: string;
+    ownerId: string;
+  };
+}
 // --- AI Events ---
 export interface SiteGeneratedEvent extends BaseEvent {
   type: "site.generated";
@@ -146,6 +154,7 @@ export interface CmsGeneratedEvent extends BaseEvent {
     ownerId: string;
   };
 }
+
 
 export interface ResumeAnalyzedEvent extends BaseEvent {
   type: "resume.analyzed";
@@ -180,6 +189,7 @@ export type GenziteEvent =
   | RecordUpdatedEvent
   | RecordDeletedEvent
   | MediaUploadedEvent
+  | MediaDeletedEvent
   | SiteGeneratedEvent
   | CmsGeneratedEvent
   | ResumeAnalyzedEvent
@@ -201,12 +211,14 @@ export const KAFKA_TOPICS = {
   RECORD_UPDATED: 'record.updated',
   RECORD_DELETED: 'record.deleted',
   MEDIA_UPLOADED: 'media.uploaded',
+  MEDIA_DELETED: 'media.deleted',
   SITE_GENERATED: 'site.generated',
   CMS_GENERATED: 'cms.generated',
   RESUME_ANALYZED: 'resume.analyzed',
   INTERVIEW_COMPLETED: 'interview.completed',
   AUDIT_LOG: 'audit.log',
 } as const;
+
 
 export type KafkaTopicName = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
 
