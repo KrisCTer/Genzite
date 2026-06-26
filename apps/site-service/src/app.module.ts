@@ -15,7 +15,7 @@ import { PagesManagementController } from "./pages/pages-management.controller.j
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    KafkaModule.forRoot(),
+    KafkaModule.forRoot({ enableConsumer: true }),
     PrismaModule,
   ],
   controllers: [

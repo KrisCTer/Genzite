@@ -64,7 +64,7 @@ function loadEnvFile(filePath) {
 }
 
 // ─── Build DATABASE_URL for a specific service ─────────────────────
-function buildDatabaseUrl(env, serviceName) {
+function buildDatabaseUrls(env, serviceName) {
   if (!(serviceName in SCHEMA_MAP)) {
     console.error(`[ERROR] Unknown service: ${serviceName}`);
     console.error(`   Available: ${Object.keys(SCHEMA_MAP).join(', ')}`);
@@ -74,13 +74,25 @@ function buildDatabaseUrl(env, serviceName) {
   const schema = SCHEMA_MAP[serviceName];
   if (!schema) return null; // Gateway has no database
 
-  const user = env.POSTGRES_USER || 'genzite_user';
-  const pass = env.POSTGRES_PASSWORD || 'genzite_password';
-  const host = env.POSTGRES_HOST || 'localhost';
-  const port = env.POSTGRES_PORT || '5432';
-  const db = env.POSTGRES_DB || 'genzite_dev';
+  let databaseUrl, directUrl;
 
-  return `postgresql://${user}:${pass}@${host}:${port}/${db}?schema=${schema}`;
+  if (env.SUPABASE_URL && env.SUPABASE_DIRECT_URL) {
+    const sep1 = env.SUPABASE_URL.includes('?') ? '&' : '?';
+    databaseUrl = `${env.SUPABASE_URL}${sep1}schema=${schema}`;
+    const sep2 = env.SUPABASE_DIRECT_URL.includes('?') ? '&' : '?';
+    directUrl = `${env.SUPABASE_DIRECT_URL}${sep2}schema=${schema}`;
+  } else {
+    const user = env.POSTGRES_USER || 'genzite_user';
+    const pass = env.POSTGRES_PASSWORD || 'genzite_password';
+    const host = env.POSTGRES_HOST || 'localhost';
+    const port = env.POSTGRES_PORT || '5432';
+    const db = env.POSTGRES_DB || 'genzite_dev';
+    const localUrl = `postgresql://${user}:${pass}@${host}:${port}/${db}?schema=${schema}`;
+    databaseUrl = localUrl;
+    directUrl = localUrl;
+  }
+
+  return { databaseUrl, directUrl };
 }
 
 // ─── Parse CLI args ────────────────────────────────────────────────
@@ -111,12 +123,12 @@ function runInService(serviceName, command, sharedEnv) {
     return false;
   }
 
-  const databaseUrl = buildDatabaseUrl(sharedEnv, serviceName);
+  const urls = buildDatabaseUrls(sharedEnv, serviceName);
 
   // Build the full command
   let fullCommand;
   if (command.startsWith('prisma')) {
-    if (!databaseUrl) {
+    if (!urls) {
       console.log(`\n[SKIP] [${serviceName}] Skipped (no database)`);
       return true;
     }
@@ -127,7 +139,7 @@ function runInService(serviceName, command, sharedEnv) {
 
   console.log(`\n[START] [${serviceName}] Running: ${fullCommand}`);
   console.log(`   [DIR] Dir: ${serviceDir}`);
-  if (databaseUrl) console.log(`   [SCHEMA] Schema: ${SCHEMA_MAP[serviceName]}`);
+  if (urls) console.log(`   [SCHEMA] Schema: ${SCHEMA_MAP[serviceName]}`);
 
   try {
     execSync(fullCommand, {
@@ -136,9 +148,10 @@ function runInService(serviceName, command, sharedEnv) {
       env: {
         ...process.env,
         ...sharedEnv,
-        ...(databaseUrl ? { DATABASE_URL: databaseUrl } : {}),
+        ...(urls ? { DATABASE_URL: urls.databaseUrl, DIRECT_URL: urls.directUrl } : {}),
         PORT: String(PORT_MAP[serviceName] || 3000),
         SERVICE_NAME: serviceName,
+        KAFKA_CONSUMER_GROUP: serviceName,
       },
     });
     console.log(`[SUCCESS] [${serviceName}] Done!`);

@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently \"pnpm run dev:gateway\" \"pnpm run dev:identity\" \"pnpm run dev:site\" \"pnpm run dev:data\" \"pnpm run dev:media\" \"pnpm run dev:notification\" \"pnpm run dev:ai\" \"pnpm run dev:frontend\"",
     "build:ui": "pnpm --filter ./packages/shared-ui run build",
     "build:types": "pnpm --filter ./packages/shared-types run build",
     "build:utils": "pnpm --filter ./packages/shared-utils run build",
@@ -45,5 +46,8 @@
       "prisma",
       "unrs-resolver"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }
