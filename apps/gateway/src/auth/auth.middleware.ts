@@ -1,5 +1,6 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
+import * as jwt from 'jsonwebtoken';
 
 /** Mock user injected when identity-service is not running (dev mode). */
 const MOCK_USER = {
@@ -45,11 +46,10 @@ export class AuthMiddleware implements NestMiddleware {
 
   use(req: Request, _res: Response, next: NextFunction) {
     // Public routes always pass through
-    const routeKey = `${req.method} ${req.path}`;
     if (
       this.publicRoutes.some(
         (r) =>
-          routeKey.startsWith(r.split(' ')[1]) &&
+          req.path!.startsWith(r.split(' ')[1]) &&
           req.method === r.split(' ')[0],
       )
     ) {
@@ -71,14 +71,24 @@ export class AuthMiddleware implements NestMiddleware {
       throw new UnauthorizedException('Missing or invalid Authorization header');
     }
 
-    // TODO: Implement real JWT verification when identity-service is ready
-    // const token = authHeader.split(' ')[1];
-    // const decoded = verifyToken(token, process.env.JWT_SECRET!);
-    // req['user'] = decoded;
-    // req.headers['x-user-id'] = decoded.sub;
-    // req.headers['x-user-email'] = decoded.email;
-    // req.headers['x-user-roles'] = decoded.roles.join(',');
+    try {
+      const token = authHeader.split(' ')[1];
+      const secret = process.env.JWT_SECRET;
+      
+      if (!secret) {
+        throw new Error('JWT_SECRET is not configured in production mode');
+      }
 
-    next();
+      const decoded = jwt.verify(token, secret) as any;
+      
+      req['user'] = decoded;
+      req.headers['x-user-id'] = decoded.sub;
+      req.headers['x-user-email'] = decoded.email;
+      req.headers['x-user-roles'] = decoded.roles ? decoded.roles.join(',') : '';
+
+      next();
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
   }
 }

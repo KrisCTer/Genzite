@@ -80,7 +80,10 @@ export class AgentService {
       try {
         responseText = response.text();
       } catch (e) {
-        responseText = 'Thao tác đã được thực thi hoàn tất.';
+        responseText = '';
+      }
+      if (!responseText && toolCalls.length > 0) {
+        responseText = 'Operation executed successfully.';
       }
 
       return {

@@ -45,6 +45,7 @@ export class SiteGenerationWorker extends WorkerHost {
       siteId: result.site.subdomain,
       prompt,
       ownerId,
+      siteData: result,
     });
 
     this.logger.log(`Site generated: "${result.site.name}" with ${result.pages.length} pages`);

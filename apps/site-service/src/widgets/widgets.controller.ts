@@ -16,7 +16,7 @@ export class WidgetsController {
   async updateWidgets(
     @Param("pageId") pageId: string,
 
-    // Body chứa danh sách widget mới
+    // Body contains the list of new widgets
     @Body()
     body: {
       widgets: Array<{
@@ -26,7 +26,7 @@ export class WidgetsController {
       }>;
     },
 
-    // Header xác định user hiện tại
+    // Header identifies current user
     @Headers("x-user-id")
     userId: string,
   ) {

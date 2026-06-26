@@ -63,9 +63,6 @@ export class UploadService {
       throw new ConflictException("Media already confirmed");
     }
 
-    // TODO:
-    // check ownerId from auth service
-
     // Save media file to database
     const media = await this.prisma.mediaFile.create({
       data: {

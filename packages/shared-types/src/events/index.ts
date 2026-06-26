@@ -144,6 +144,7 @@ export interface SiteGeneratedEvent extends BaseEvent {
     siteId: string;
     prompt: string;
     ownerId: string;
+    siteData?: any; // Contains the generated JSON structure (pages, widgets)
   };
 }
 

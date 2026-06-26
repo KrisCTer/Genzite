@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { SiteProducer } from "src/events/site.producer";
+import { SiteProducer } from "../events/site.producer.js";
 @Injectable()
 export class SitesService {
   constructor(
@@ -56,7 +56,7 @@ export class SitesService {
     if (existed) {
       throw new ConflictException("Subdomain already exists");
     }
-    // B1: Tạo site
+    // Step 1: Create site
     const site = await this.prisma.site.create({
       data: {
         name: dto.name,
@@ -74,7 +74,7 @@ export class SitesService {
       ownerId: site.ownerId,
     });
 
-    // B3: Trả kết quả
+    // Step 3: Return result
     return site;
   }
 

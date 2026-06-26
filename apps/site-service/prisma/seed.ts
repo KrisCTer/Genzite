@@ -3,22 +3,22 @@ import { PrismaClient } from '@prisma/client-site';
 const prisma = new PrismaClient();
 
 async function main() {
-    // Xóa dữ liệu cũ
+    // Delete old data
     await prisma.widget.deleteMany();
     await prisma.page.deleteMany();
     await prisma.site.deleteMany();
 
-    // Tạo Site
+    // Create Site
     const site = await prisma.site.create({
         data: {
             name: 'Flower Shop',
             subdomain: 'flowershop',
-            description: 'Website bán hoa',
+            description: 'Flower Shop Website',
             ownerId: 'test-user-1',
         },
     });
 
-    // Tạo Home Page
+    // Create Home Page
     const homePage = await prisma.page.create({
         data: {
             title: 'Home',
@@ -28,7 +28,7 @@ async function main() {
         },
     });
 
-    // Tạo About Page
+    // Create About Page
     const aboutPage = await prisma.page.create({
         data: {
             title: 'About',

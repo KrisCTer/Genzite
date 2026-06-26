@@ -1,5 +1,6 @@
-import { Controller, All, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import { Controller, All, Req, Res, Next } from '@nestjs/common';
+import type { Request, Response, NextFunction } from 'express';
+import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
 
 /**
  * API Gateway Proxy Controller
@@ -28,38 +29,32 @@ export class ProxyController {
     ai: process.env.AI_SERVICE_URL ?? 'http://localhost:3006',
   };
 
+  private readonly proxies: Record<string, RequestHandler> = {};
+
+  constructor() {
+    for (const [key, target] of Object.entries(this.serviceMap)) {
+      this.proxies[key] = createProxyMiddleware({
+        target,
+        changeOrigin: true,
+        // Optional: you can add onProxyReq here to inject custom headers if needed
+        // but auth.middleware already sets req.headers['x-user-id'] which proxy auto-forwards
+      });
+    }
+  }
+
   @All('api/v1/*path')
-  async proxy(@Req() req: Request, @Res() res: Response) {
+  proxy(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
     const path = req.url.replace('/api/v1/', '');
     const serviceKey = path.split('/')[0];
-    const targetBase = this.serviceMap[serviceKey];
-
-    if (!targetBase) {
+    
+    const proxyHandler = this.proxies[serviceKey];
+    
+    if (!proxyHandler) {
       return res.status(404).json({ error: 'Service not found', path: req.url });
     }
 
-    const targetUrl = `${targetBase}${req.url}`;
-
-    try {
-      const response = await fetch(targetUrl, {
-        method: req.method,
-        headers: {
-          'Content-Type': 'application/json',
-          // Forward auth headers
-          ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
-          // Forward user identity (from JWT or mock user)
-          ...(req.headers['x-user-id'] ? { 'x-user-id': req.headers['x-user-id'] as string } : {}),
-          ...(req.headers['x-user-email'] ? { 'x-user-email': req.headers['x-user-email'] as string } : {}),
-          ...(req.headers['x-user-roles'] ? { 'x-user-roles': req.headers['x-user-roles'] as string } : {}),
-        },
-        ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: JSON.stringify(req.body) } : {}),
-      });
-
-      const data = await response.json();
-      return res.status(response.status).json(data);
-    } catch (error) {
-      return res.status(502).json({ error: 'Bad Gateway', message: `Failed to reach ${serviceKey} service` });
-    }
+    // Call the proxy middleware
+    return proxyHandler(req as any, res as any, next);
   }
 
   @All('health')

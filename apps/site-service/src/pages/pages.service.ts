@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
-import { SiteProducer } from "src/events/site.producer";
+import { SiteProducer } from "../events/site.producer.js";
 
 @Injectable()
 export class PagesService {
@@ -53,7 +53,7 @@ export class PagesService {
 
   async findBySiteId(siteId: string, userId: string) {
     await this.verifySiteOwnership(siteId, userId);
-    // TODO: Query DB via Prisma
+    
     return this.prisma.page.findMany({
       where: {
         siteId,
@@ -72,10 +72,10 @@ export class PagesService {
     },
     userId: string,
   ) {
-    // B1: Kiểm tra user có quyền với site
+    // Step 1: Check if user has permission for the site
     await this.verifySiteOwnership(siteId, userId);
 
-    // B2: Kiểm tra slug trùng trong site
+    // Step 2: Check for duplicate slug in the site
     const existed = await this.prisma.page.findFirst({
       where: {
         siteId,
@@ -87,7 +87,7 @@ export class PagesService {
       throw new ConflictException("Slug already exists");
     }
 
-    // B3: Lấy page cuối cùng của site
+    // Step 3: Get the last page of the site
     const lastPage = await this.prisma.page.findFirst({
       where: {
         siteId,
@@ -97,10 +97,10 @@ export class PagesService {
       },
     });
 
-    // B4: Tính sortOrder tiếp theo
+    // Step 4: Calculate the next sortOrder
     const nextSortOrder = (lastPage?.sortOrder ?? -1) + 1;
 
-    // B5: Tạo page
+    // Step 5: Create the page
     return this.prisma.page.create({
       data: {
         title: dto.title,
@@ -120,10 +120,10 @@ export class PagesService {
     },
     userId: string,
   ) {
-    // B1: Check quyền
+    // Step 1: Check permissions
     const page = await this.verifyPageOwnership(pageId, userId);
 
-    // B2: Check slug trùng
+    // Step 2: Check duplicate slug
     if (dto.slug) {
       const existed = await this.prisma.page.findFirst({
         where: {
@@ -156,7 +156,7 @@ export class PagesService {
       title: updatedPage.title,
     });
 
-    // B5: Trả kết quả
+    // Step 5: Return result
     return updatedPage;
   }
 

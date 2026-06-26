@@ -8,11 +8,18 @@ import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
 import { IdentityProducer } from './events/identity.producer.js';
 
+import { JwtModule } from '@nestjs/jwt';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     KafkaModule.forRoot(),
     PrismaModule,
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production-please',
+      signOptions: { expiresIn: '1d' },
+    }),
   ],
   controllers: [AuthController, UsersController],
   providers: [AuthService, UsersService, IdentityProducer],
