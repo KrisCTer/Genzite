@@ -12,7 +12,7 @@ Genzite is an AI No-Code platform that enables users to create and operate fully
 | **Frontend** | React + Vite + TypeScript + Tailwind CSS v4 |
 | **Database** | PostgreSQL (Relational + JSONB) |
 | **Cache/Queue** | Redis (Session + Cache + BullMQ) |
-| **AI Engine** | Google Gemini API + Model Context Protocol (MCP) + Multi-Agent System |
+| **AI Engine** | Google Gemini API + Groq (Llama3) + Model Context Protocol (MCP) + Multi-Agent System |
 | **Cloud** | AWS (Route 53, CloudFront, S3, ALB, EC2, RDS, ElastiCache) |
 
 ## Repository Structure
@@ -27,6 +27,7 @@ genzite/
 │   ├── media-service/           # S3 Presigned URLs (port 3004)
 │   ├── notification-service/    # Email, Push, In-App (port 3005)
 │   ├── ai-service/              # Google Gemini (port 3006)
+│   ├── commerce-service/        # E-Commerce & SaaS Billing (port 3007)
 │   └── frontend/                # React + Vite + Tailwind CSS
 ├── packages/                    # Shared libraries
 │   ├── shared-types/            # DTOs, Kafka Events, Constants
@@ -46,7 +47,7 @@ genzite/
 
 ## Architecture Principles
 
-1. **Microservices**: 7 independent NestJS services, each with its own DB schema.
+1. **Microservices**: 8 independent NestJS services, each with its own DB schema.
 2. **API Gateway**: All frontend traffic routes through `apps/gateway` (port 3000).
 3. **JSONB-First Dynamic Data**: All user-generated CMS content uses PostgreSQL JSONB columns.
 4. **S3 Direct Upload**: Media files bypass the backend entirely via Presigned URLs.
@@ -82,6 +83,7 @@ pnpm run prisma:migrate
 pnpm run dev:gateway     # port 3000
 pnpm run dev:site        # port 3002
 pnpm run dev:data        # port 3003
+pnpm run dev:commerce    # port 3007
 
 # 6. Run Frontend
 pnpm run dev:frontend    # http://localhost:5173
@@ -100,6 +102,7 @@ pnpm run dev:frontend    # http://localhost:5173
 | Media Service | `http://localhost:3004` |
 | Notification Service | `http://localhost:3005` |
 | AI Service | `http://localhost:3006` |
+| Commerce Service | `http://localhost:3007` |
 | PostgreSQL | `localhost:5432` |
 | Redis | `localhost:6379` |
 | Kafka | `localhost:29092` |

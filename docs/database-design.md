@@ -23,6 +23,9 @@ erDiagram
     SITES ||--o{ CMS_COLLECTIONS : "defines"
     CMS_COLLECTIONS ||--o{ CMS_RECORDS : "stores"
     USERS ||--o{ MEDIAS : "uploads"
+    SITES ||--o{ CARTS : "has"
+    SITES ||--o{ ORDERS : "receives"
+    ORDERS ||--o{ PAYMENT_TRANSACTIONS : "paid_by"
     USERS ||--o{ RESUMES : "creates"
     RESUMES ||--o{ INTERVIEW_SESSIONS : "evaluated_in"
 ```
@@ -39,6 +42,7 @@ erDiagram
 | `password_hash` | VARCHAR(255) | NOT NULL |
 | `name` | VARCHAR(255) | NOT NULL |
 | `avatar_url` | VARCHAR(500) | NULLABLE |
+| `credits` | INT | DEFAULT 0 (SaaS Billing Wallet) |
 | `created_at` | TIMESTAMP | DEFAULT NOW() |
 | `updated_at` | TIMESTAMP | DEFAULT NOW() |
 
@@ -129,6 +133,48 @@ Stores actual content records matching collection schemas.
 | `created_by` | UUID | FK → `users.id` |
 | `created_at` | TIMESTAMP | DEFAULT NOW() |
 | `updated_at` | TIMESTAMP | DEFAULT NOW() |
+
+---
+
+## Commerce Module
+
+### `carts`
+| Column | Type | Constraint |
+|---|---|---|
+| `id` | UUID | PK |
+| `site_id` | UUID | FK → `sites.id` |
+| `session_id` | VARCHAR(255) | INDEXED (for guest checkout) |
+| `items` | JSONB | NOT NULL (product_id, quantity) |
+| `created_at` | TIMESTAMP | DEFAULT NOW() |
+| `updated_at` | TIMESTAMP | DEFAULT NOW() |
+
+### `orders`
+| Column | Type | Constraint |
+|---|---|---|
+| `id` | UUID | PK |
+| `site_id` | UUID | FK → `sites.id` |
+| `order_number` | VARCHAR(50) | UNIQUE, INDEXED |
+| `customer_name` | VARCHAR(255) | NOT NULL |
+| `customer_email`| VARCHAR(255) | NOT NULL |
+| `shipping_address`| TEXT | NULLABLE |
+| `items` | JSONB | NOT NULL (product_id, name, price, quantity) |
+| `subtotal` | FLOAT | NOT NULL |
+| `total` | FLOAT | NOT NULL |
+| `payment_method`| VARCHAR(50) | DEFAULT 'COD' |
+| `status` | VARCHAR(50) | DEFAULT 'PENDING' (`PAID`, `SHIPPED`) |
+| `created_at` | TIMESTAMP | DEFAULT NOW() |
+| `updated_at` | TIMESTAMP | DEFAULT NOW() |
+
+### `payment_transactions`
+| Column | Type | Constraint |
+|---|---|---|
+| `id` | UUID | PK |
+| `site_id` | UUID | FK → `sites.id` |
+| `order_id` | UUID | FK → `orders.id` |
+| `gateway` | VARCHAR(50) | NOT NULL (e.g., 'payos') |
+| `amount` | FLOAT | NOT NULL |
+| `status` | VARCHAR(50) | DEFAULT 'PENDING' (`SUCCESS`, `FAILED`) |
+| `created_at` | TIMESTAMP | DEFAULT NOW() |
 
 ---
 

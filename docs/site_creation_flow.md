@@ -1,63 +1,165 @@
-# Luồng Tạo Website Tự Động (Site Creation Flow)
+# Automated Site Creation Flow
 
-Tài liệu này mô tả chi tiết từng bước (step-by-step) diễn ra đằng sau hệ thống khi một người dùng tạo một trang web mới trên nền tảng Genzite, đặc biệt nhấn mạnh vào **Luồng tạo bằng AI (AI-Driven Generation)**.
-
----
-
-## 1. Luồng Tạo Website tự động qua Prompt bằng AI
-
-Đây là kịch bản cốt lõi của hệ thống No-code Genzite khi người dùng ra lệnh bằng một câu Prompt: *"Tạo cho tôi một trang web bán cà phê..."*.
-
-### Bước 1: Tiếp nhận yêu cầu (HTTP)
-* Người dùng gửi Prompt từ Frontend đến API Gateway. 
-* Gateway xác thực và chuyển request vào `GenerationController` của **AI Service**.
-
-### Bước 2: Xếp hàng đợi (Queueing & Asynchronous)
-* Việc gọi AI mất nhiều thời gian, hệ thống không bắt người dùng chờ request HTTP đồng bộ. Thay vào đó, API đưa Job này vào hàng đợi **BullMQ (trên Redis)** (Queue: `site-generation`).
-* API trả về ngay lập tức mã `HTTP 202 Accepted` kèm theo một mã định danh `jobId`.
-
-### Bước 3: Mở luồng theo dõi tiến độ (SSE Stream)
-* Frontend sử dụng `jobId` vừa nhận để mở kết nối **Server-Sent Events (SSE)** tới đường dẫn `/ai/stream/:jobId`.
-* Thông qua SSE, Frontend sẽ liên tục nhận phần trăm tiến độ (%) và hiển thị UI Loading theo thời gian thực cho người dùng.
-
-### Bước 4: Kiểm duyệt an toàn (Security Guardrail)
-* Trong background, **AI Worker** lấy Job ra khỏi hàng đợi để xử lý.
-* Hệ thống gọi `GuardrailService` kiểm tra câu Prompt đầu vào có chứa từ ngữ độc hại, nhạy cảm hay mang tính chất tấn công (Prompt Injection) hay không. 
-* Nếu vi phạm, Job bị huỷ ngay lập tức.
-
-### Bước 5: Trích xuất mẫu thông minh (RAG System)
-* Gọi `RagService` lấy câu lệnh của người dùng đi tìm kiếm vector trong Database để trích xuất các **"Golden Template"** (những mẫu cấu trúc UX/UI chuẩn mực nhất cho thể loại web đó).
-* Mục đích: Nhồi thêm kiến thức (Context) này vào cho AI để AI không thiết kế một cách ngẫu nhiên.
-
-### Bước 6: Kỹ sư AI thiết kế (Coder AI Generation)
-* Hệ thống gọi API tới **Google Gemini LLM** (đóng vai trò Coder).
-* Coder AI phân tích Prompt + Golden Template để sinh ra toàn bộ bản thiết kế web dưới dạng chuỗi JSON.
-* Chuỗi JSON bao gồm: Tên Web, Tên miền (subdomain), danh sách các Trang con (Pages), và mảng các phần tử giao diện (Widgets) được sắp xếp sẵn.
-
-### Bước 7: Chuyên gia UX kiểm duyệt (Auditor AI Reflection)
-* Để hạn chế tình trạng AI bị ảo giác (hallucination) tạo ra cấu trúc lỗi, file JSON ở bước 6 được gửi tiếp cho một LLM thứ 2 cực nhanh là **Groq / Llama3** (đóng vai trò Auditor).
-* Nếu bản thiết kế có lỗi logic UX/UI, Auditor sẽ trả lại 피드백 (feedback) cảnh báo.
-* Coder AI (Gemini) nhận feedback và **tự động sửa lại bản thiết kế**. Vòng lặp phản biện này diễn ra tự động tối đa 2 lần.
-
-### Bước 8: Hoàn tất & Trả kết quả
-* Bản thiết kế cuối cùng vượt qua bài kiểm định sẽ được lưu log vào DB (bảng `ai_task_logs`).
-* Sự kiện `completed` được kích hoạt trên BullMQ. Luồng SSE đẩy thông báo `100% Done` kèm theo `subdomain` về cho Frontend.
-* Frontend tự động chuyển hướng người dùng vào giao diện **App Builder Canvas** với bản thiết kế đã hoàn thành.
+This document details the step-by-step background process when a user creates a new website on the Genzite platform, with a special emphasis on the **AI-Driven Generation Flow**.
 
 ---
 
-## 2. Luồng Lưu Trữ Website (Core Site Service)
+## 1. AI Prompt-Driven Generation Flow
 
-Sau khi AI sinh ra bản thiết kế JSON (hoặc user tự bấm nút Tạo mới trắng bằng tay), dữ liệu được gửi đến `site-service` để lưu trữ chính thức vào Database.
+This is the core scenario of the Genzite No-Code system when a user inputs a prompt like: *"Create a coffee shop website for me..."*.
 
-* **Bước 1: Validate thông tin**
-  * Hệ thống kiểm tra tính hợp lệ và độ duy nhất của `subdomain` (Tên miền phụ). Nếu đã có người sử dụng, trả về lỗi `ConflictException`.
-* **Bước 2: Ghi vào Database**
-  * Dùng **Prisma ORM** để INSERT dữ liệu trang web vào `site_db` (bảng `Site`).
-  * Gắn thuộc tính `ownerId` để cấp quyền sở hữu trang web cho người dùng hiện tại.
-* **Bước 3: Phát tín hiệu sự kiện (Kafka Event-Driven)**
-  * Gọi `SiteProducer` để đẩy một sự kiện có tên `SiteCreated` vào Message Broker **Apache Kafka**.
-* **Bước 4: Các Service khác phản ứng (Background Sync)**
-  * Nhờ Kafka, các service khác tự động biết một site mới vừa được tạo mà không làm gián đoạn luồng API chính:
-    * **AI Service:** Nghe event và có thể tự động chạy ngầm việc sinh ra cấu trúc Database CMS (Collections) phù hợp cho trang web đó.
-    * **Notification Service:** Nghe event để bắn thông báo/email chúc mừng user.
+### Flow Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Frontend
+    participant Gateway as API Gateway
+    participant AIAPI as AI Service (HTTP)
+    participant Redis as Redis (BullMQ)
+    participant AIWorker as AI Worker (Background)
+    participant Guardrail as Guardrail Service
+    participant RAG as RAG Service
+    participant Groq as Groq (Llama3 Auditor)
+    participant Gemini as Google Gemini 2.0 (Coder)
+    participant DB as ai_db / site_db
+
+    User->>Frontend: Submit Prompt
+    Frontend->>Gateway: POST /api/v1/ai/generate
+    Gateway->>AIAPI: Forward Request
+    
+    rect rgb(200, 220, 240)
+        Note over AIAPI, Redis: 1. Queueing
+        AIAPI->>Redis: Add Job to 'site-generation' Queue
+        AIAPI-->>Frontend: HTTP 202 Accepted (jobId)
+    end
+    
+    Frontend->>AIAPI: Open SSE Stream (/api/v1/ai/stream/:jobId)
+    
+    rect rgb(220, 240, 200)
+        Note over Redis, Gemini: 2. Background Processing
+        Redis-->>AIWorker: Pop Job
+        
+        AIWorker->>Guardrail: Validate Prompt
+        Guardrail-->>AIWorker: Safe (Pass)
+        
+        AIWorker->>RAG: Vector Search for Golden Templates
+        RAG-->>AIWorker: Return Top 2 Templates
+        
+        loop Reflection Loop (Max 2 times)
+            AIWorker->>Gemini: Generate JSON (Prompt + Context)
+            Gemini-->>AIWorker: Return Draft JSON Layout
+            
+            AIWorker->>Groq: Audit UX/UI Logic of Draft JSON
+            Groq-->>AIWorker: Return Feedback / Approval
+        end
+    end
+    
+    rect rgb(240, 220, 220)
+        Note over AIWorker, Frontend: 3. Completion
+        AIWorker->>DB: Save Generated Layout Log
+        AIWorker->>Redis: Emit 'completed' Event
+        AIAPI-->>Frontend: SSE Event: 100% Done + subdomain
+    end
+    
+    Frontend->>User: Redirect to App Builder Canvas
+```
+
+### Detailed Steps
+
+#### Step 1: Request Intake (HTTP)
+* The user sends a Prompt from the Frontend to the API Gateway.
+* The Gateway authenticates and forwards the request to the `GenerationController` in the **AI Service**.
+
+#### Step 2: Queueing & Asynchronous Processing
+* Calling AI services takes time, so the system does not force the user to wait for a synchronous HTTP request. Instead, the API pushes this Job into the **BullMQ** queue (on Redis) (Queue: `site-generation`).
+* The API immediately returns an `HTTP 202 Accepted` status along with a unique `jobId`.
+
+#### Step 3: Progress Streaming (SSE Stream)
+* The Frontend uses the received `jobId` to open a **Server-Sent Events (SSE)** connection to `/api/v1/ai/stream/:jobId`.
+* Through SSE, the Frontend continuously receives progress percentages (%) and displays a real-time Loading UI to the user.
+
+#### Step 4: Security Guardrail
+* In the background, the **AI Worker** pops the Job from the queue for processing.
+* The system calls the `GuardrailService` to check if the input Prompt contains malicious, sensitive, or attack-oriented content (Prompt Injection).
+* If a violation is detected, the Job is immediately aborted.
+
+#### Step 5: Intelligent Template Extraction (RAG System)
+* Calls `RagService` to perform a vector search in the Database using the user's prompt to extract **"Golden Templates"** (the most standard UX/UI structures for that website category).
+* Purpose: To inject this context into the AI so it doesn't design randomly.
+
+#### Step 6: AI Engineer Design (Coder AI Generation)
+* The system calls the **Google Gemini LLM** API (acting as the Coder).
+* The Coder AI analyzes the Prompt + Golden Templates to generate the entire web layout as a JSON string.
+* The JSON includes: Website Name, Subdomain, a list of Pages, and an array of pre-arranged user interface elements (Widgets).
+
+#### Step 7: UX Expert Audit (Auditor AI Reflection)
+* To mitigate AI hallucination and structural errors, the JSON from Step 6 is sent to a second, ultra-fast LLM, **Groq / Llama3** (acting as the Auditor).
+* If the design contains UX/UI logic errors, the Auditor returns warning feedback.
+* The Coder AI (Gemini) receives the feedback and **automatically revises the design**. This reflection loop runs automatically a maximum of 2 times.
+
+#### Step 8: Completion & Return
+* The final design that passes the audit is logged in the DB (`ai_task_logs` table).
+* A `completed` event is triggered on BullMQ. The SSE stream pushes a `100% Done` notification along with the `subdomain` to the Frontend.
+* The Frontend automatically redirects the user to the **App Builder Canvas** interface with the completed design.
+
+---
+
+## 2. Core Site Storage Flow (Core Site Service)
+
+After the AI generates the JSON design (or if the user manually creates a blank site), the data is sent to `site-service` to be officially stored in the Database.
+
+* **Step 1: Validate Information**
+  * The system checks the validity and uniqueness of the `subdomain`. If it's already taken, it returns a `ConflictException`.
+* **Step 2: Write to Database**
+  * Uses **Prisma ORM** to INSERT the website data into `site_db` (`Site` table).
+  * Assigns the `ownerId` attribute to grant ownership to the current user.
+* **Step 3: Emit Event (Kafka Event-Driven)**
+  * Calls `SiteProducer` to push a `SiteCreated` event into the **Apache Kafka** Message Broker.
+* **Step 4: Other Services React (Background Sync)**
+  * Thanks to Kafka, other services automatically know a new site was just created without interrupting the main API flow:
+    * **AI Service (Hybrid UI Generation):** The AI Worker listens for the `SiteCreated` event. It automatically connects with `site-service` to generate mandatory system pages for the Shop owner without requiring manual user input. Specifically:
+      - Creates an `/admin` page: Automatically embeds the `AdminPanel` widget, allowing the shop owner to top-up Credits and view the CMS grid (`OrderTable`).
+      - Creates a `/payment-result` page: Automatically embeds the `PaymentStatus` widget to display a thank-you screen when a customer successfully pays via PayOS.
+    * **Notification Service:** Listens to the event to send a welcome/congratulatory email or in-app notification to the user.
+
+---
+
+## 3. Future Upgrade: True Vector RAG Architecture
+
+Currently, the `RagService` uses Keyword Matching. To enhance AI precision, Genzite plans to implement a true Vector Database (using `pgvector`) and an Embedding Model. The following diagram illustrates how this architecture will work and can be displayed in the Admin Dashboard for observability.
+
+```mermaid
+graph TD
+    classDef user fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px;
+    classDef model fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
+    classDef db fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
+    classDef logic fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
+
+    UserPrompt["User Prompt<br/>(e.g., 'Coffee Shop')"]:::user
+    
+    subgraph "Admin Dashboard Observability"
+        EmbeddingModel["Embedding Model<br/>(text-embedding-3-small)"]:::model
+        Vector["Prompt Vector<br/>[0.012, -0.051, 0.88...]"]:::logic
+        
+        VectorDB[("PostgreSQL (pgvector)<br/>Table: ai_templates<br/>Column: embedding")]:::db
+        
+        CosineSim{"Cosine Similarity<br/>(Vector Distance)"}:::logic
+        
+        TopK["Top-K Results<br/>Golden Templates"]:::logic
+        
+        PromptBuilder["Prompt Builder<br/>Merge Prompt + Templates"]:::logic
+    end
+    
+    GeminiCoder["Gemini Coder AI"]:::model
+
+    UserPrompt --> EmbeddingModel
+    EmbeddingModel --> Vector
+    Vector --> CosineSim
+    VectorDB -.-> CosineSim
+    CosineSim --> TopK
+    UserPrompt --> PromptBuilder
+    TopK --> PromptBuilder
+    PromptBuilder --> GeminiCoder
+```

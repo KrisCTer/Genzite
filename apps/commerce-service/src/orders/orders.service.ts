@@ -22,7 +22,7 @@ export class OrdersService {
 
     // Calculate subtotal
     let calculatedSubtotal = 0;
-    const validatedItems = [];
+    const validatedItems: any[] = [];
 
     for (const item of dto.items) {
       const product = availableProducts.find((p: any) => p.id === item.id);
