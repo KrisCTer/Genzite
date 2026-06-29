@@ -12,6 +12,14 @@ export class SitesController {
     return this.sitesService.findAll(userId);
   }
 
+  @Get('by-subdomain/:subdomain')
+  async findBySubdomain(
+    @Param('subdomain') subdomain: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.findBySubdomainWithDetails(subdomain, userId);
+  }
+
   @Get(':id')
   async findById(
     @Param('id') id: string,
@@ -61,5 +69,17 @@ export class SitesController {
       id,
       userId,
     );
+  }
+
+  // --- INTERNAL ENDPOINTS FOR MICROSERVICES ---
+  // In production, secure this with an API Gateway Internal token or VPC
+  @Get('internal/:id/config')
+  async getInternalConfig(@Param('id') id: string) {
+    return this.sitesService.getInternalConfig(id);
+  }
+
+  @Get('internal/:id/products')
+  async getInternalProducts(@Param('id') id: string) {
+    return this.sitesService.getInternalProducts(id);
   }
 }

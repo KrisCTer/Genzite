@@ -36,6 +36,7 @@ graph TB
         IDENTITY["Identity Service<br/>Port 3001"]
         SITE["Site Service<br/>Port 3002"]
         DATA["Data Service<br/>Port 3003"]
+        COMMERCE["Commerce Service<br/>Port 3007"]
     end
 
     subgraph "Support Services"
@@ -53,6 +54,7 @@ graph TB
         DB_SITE["PostgreSQL<br/>site_db"]
         DB_DATA["PostgreSQL<br/>data_db"]
         DB_MEDIA["PostgreSQL<br/>media_db"]
+        DB_COMMERCE["PostgreSQL<br/>commerce_db"]
         REDIS["Redis<br/>(Cache + Queue)"]
         KAFKA["Kafka<br/>(Event Bus)"]
         S3["Amazon S3<br/>(File Storage)"]
@@ -65,12 +67,14 @@ graph TB
     GATEWAY --> MEDIA
     GATEWAY --> NOTIFICATION
     GATEWAY --> AI
+    GATEWAY --> COMMERCE
 
     IDENTITY --> DB_IDENTITY
     SITE --> DB_SITE
     DATA --> DB_DATA
     MEDIA --> DB_MEDIA
     MEDIA --> S3
+    COMMERCE --> DB_COMMERCE
 
     AI --> AI_WORKER
     AI_WORKER --> REDIS
@@ -79,6 +83,7 @@ graph TB
     SITE -.->|Event| KAFKA
     DATA -.->|Event| KAFKA
     MEDIA -.->|Event| KAFKA
+    COMMERCE -.->|Event| KAFKA
     NOTIFICATION -.->|Subscribe| KAFKA
     AI -.->|Event| KAFKA
 ```
@@ -130,10 +135,18 @@ graph TB
 ### 3.6 AI Service (Port 3006)
 | Attribute | Value |
 |---|---|
-| **Responsibility** | All Google Gemini interactions. Features a Multi-Agent system (Chat, Planner, UI Designer), Pipeline Engine, and Model Context Protocol (MCP) Server/Client integration. |
+| **Responsibility** | Generation Pipeline using Groq (Speed) + Gemini (Reasoning) + RAG (Vector Search) + Guardrails (Security). Features a Multi-Agent system, and Model Context Protocol (MCP) Server/Client integration. |
 | **Database** | `ai_db` (resumes, interview_sessions) |
 | **Emitted Events** | `SiteGenerated`, `CmsGenerated`, `ResumeAnalyzed`, `InterviewCompleted` |
-| **Special Note** | Has a dedicated **AI Worker** (BullMQ/Redis Queue) for async execution. Uses MCP Client to auto-connect to external servers (like `codebase-memory`, `stitch`) to augment capabilities. |
+| **Special Note** | Has a dedicated **AI Worker** (BullMQ/Redis Queue) for async execution. Utilizes a dual-LLM architecture (Gemini for Coding, Groq/Llama3 for UX Reflection). Uses **Round-Robin Multi-API Key** load balancing to bypass API rate limits. Uses MCP Client to auto-connect to external servers. |
+
+### 3.7 Commerce Service (Port 3007)
+| Attribute | Value |
+|---|---|
+| **Responsibility** | Carts, Orders, Payment Gateways (PayOS), SaaS Billing deduction |
+| **Database** | `commerce_db` (carts, orders, payment_transactions) |
+| **Emitted Events** | `OrderCreated`, `PaymentCompleted` |
+| **Special Note** | Relies on Identity Service to deduct credits. Relies on Site Service to fetch product pricing for security validation. |
 
 ---
 
@@ -169,6 +182,8 @@ AI Service  ──publish──▶  Kafka Topic: "resume.analyzed"
 | `resume.submitted` | AI | AI Worker (analyze), Notification |
 | `resume.analyzed` | AI Worker | Notification, Data |
 | `interview.completed` | AI Worker | Notification |
+| `order.created` | Commerce | Notification |
+| `payment.completed` | Commerce | Notification, Site |
 | `audit.log` | All Services | Analytics Pipeline |
 
 ---
@@ -239,6 +254,9 @@ genzite/
 │   │
 │   ├── ai-service/                   # Gemini AI (port 3006)
 │   │   └── src/{agent/, mcp/, pipeline/, generation/, recruitment/, gemini/, workers/, events/}
+│   │
+│   ├── commerce-service/             # E-commerce & SaaS Billing (port 3007)
+│   │   └── src/{orders/, payments/, carts/, events/}
 │   │
 │   └── frontend/                     # React + Vite + Tailwind CSS
 │       └── src/{App.tsx, index.css, main.tsx, assets/}

@@ -26,19 +26,38 @@ interface GenerateOptions {
 @Injectable()
 export class GeminiClient {
   private readonly logger = new Logger(GeminiClient.name);
-  private readonly genAI: GoogleGenerativeAI;
+  private readonly genAIClients: GoogleGenerativeAI[];
   private readonly defaultModel: GeminiModelName;
+  private currentClientIndex = 0;
 
   constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.getOrThrow<string>('GEMINI_API_KEY');
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    const keysStr = this.config.get<string>('GEMINI_API_KEYS');
+    const legacyKey = this.config.get<string>('GEMINI_API_KEY');
+    
+    let apiKeys: string[] = [];
+    if (keysStr) {
+      apiKeys = keysStr.split(',').map((k) => k.trim()).filter((k) => k.length > 0);
+    } else if (legacyKey) {
+      apiKeys = [legacyKey];
+    }
+
+    if (apiKeys.length === 0) {
+      throw new Error('GEMINI_API_KEYS or GEMINI_API_KEY is not defined in environment variables');
+    }
+
+    this.genAIClients = apiKeys.map((key) => new GoogleGenerativeAI(key));
     this.defaultModel = (this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash') as GeminiModelName;
-    this.logger.log(`Gemini client initialized (default model: ${this.defaultModel})`);
+    this.logger.log(`Gemini client initialized with ${this.genAIClients.length} keys (default model: ${this.defaultModel})`);
   }
 
   private getModel(modelName?: GeminiModelName, systemInstruction?: string): GenerativeModel {
     const name = modelName ?? this.defaultModel;
-    return this.genAI.getGenerativeModel({
+    
+    // Round-robin selection
+    const client = this.genAIClients[this.currentClientIndex];
+    this.currentClientIndex = (this.currentClientIndex + 1) % this.genAIClients.length;
+    
+    return client.getGenerativeModel({
       model: name,
       ...(systemInstruction ? { systemInstruction } : {}),
     });
@@ -235,7 +254,10 @@ export class GeminiClient {
     const name = modelName ?? this.defaultModel;
     const geminiTools: GeminiTool[] = [{ functionDeclarations: tools }];
 
-    return this.genAI.getGenerativeModel({
+    const client = this.genAIClients[this.currentClientIndex];
+    this.currentClientIndex = (this.currentClientIndex + 1) % this.genAIClients.length;
+
+    return client.getGenerativeModel({
       model: name,
       tools: geminiTools,
       systemInstruction: systemInstruction,

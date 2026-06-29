@@ -39,6 +39,32 @@ export class SitesService {
     return site;
   }
 
+  async findBySubdomainWithDetails(subdomain: string, userId: string) {
+    const site = await this.prisma.site.findUnique({
+      where: { subdomain },
+      include: {
+        pages: {
+          include: {
+            widgets: {
+              orderBy: { sortOrder: 'asc' }
+            }
+          },
+          orderBy: { sortOrder: 'asc' }
+        }
+      }
+    });
+
+    if (!site) {
+      throw new NotFoundException("Site not found");
+    }
+
+    if (site.ownerId !== userId) {
+      throw new ForbiddenException("You do not own this site");
+    }
+
+    return site;
+  }
+
   async create(
     dto: {
       name: string;
@@ -119,5 +145,37 @@ export class SitesService {
         id,
       },
     });
+  }
+
+  // --- INTERNAL ENDPOINTS ---
+  async getInternalConfig(siteId: string) {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { ownerId: true, settings: true },
+    });
+    if (!site) throw new NotFoundException('Site not found');
+    return site;
+  }
+
+  async getInternalProducts(siteId: string) {
+    const pages = await this.prisma.page.findMany({
+      where: { siteId },
+      include: {
+        widgets: {
+          where: { type: { in: ['PRODUCT_GRID', 'product_grid'] } },
+        },
+      },
+    });
+
+    const products = [];
+    for (const page of pages) {
+      for (const widget of page.widgets) {
+        const config = widget.contentConfig as any;
+        if (config && config.products && Array.isArray(config.products)) {
+          products.push(...config.products);
+        }
+      }
+    }
+    return products;
   }
 }
