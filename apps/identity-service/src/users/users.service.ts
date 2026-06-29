@@ -36,20 +36,23 @@ export class UsersService {
 
   // --- INTERNAL METHODS ---
   async deductCredits(id: string, amount: number) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('User not found');
-    
-    if (user.credits < amount) {
-      throw new BadRequestException('Insufficient credits');
-    }
-
-    return this.prisma.user.update({
-      where: { id },
+    // SECURITY PATCH: Atomic decrement to prevent Race Condition (negative credits)
+    const result = await this.prisma.user.updateMany({
+      where: { 
+        id, 
+        credits: { gte: amount } 
+      },
       data: {
         credits: {
           decrement: amount
         }
       }
     });
+
+    if (result.count === 0) {
+      throw new BadRequestException('Insufficient credits or user not found');
+    }
+
+    return { success: true, deducted: amount };
   }
 }
