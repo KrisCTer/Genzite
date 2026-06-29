@@ -15,27 +15,27 @@ import { AI_QUEUES } from './queue.constants.js';
     BullModule.registerQueue(
       {
         name: AI_QUEUES.CV_ANALYSIS,
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        defaultJobOptions: { attempts: 5, backoff: { type: 'exponential', delay: 5000 } },
       },
       {
         name: AI_QUEUES.SITE_GENERATION,
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        defaultJobOptions: { attempts: 5, backoff: { type: 'exponential', delay: 5000 } },
       },
       {
         name: AI_QUEUES.CMS_GENERATION,
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        defaultJobOptions: { attempts: 5, backoff: { type: 'exponential', delay: 5000 } },
       },
       {
         name: AI_QUEUES.AGENT_TASKS,
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        defaultJobOptions: { attempts: 5, backoff: { type: 'exponential', delay: 5000 } },
       },
       {
         name: AI_QUEUES.CAREER_COACHING,
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        defaultJobOptions: { attempts: 5, backoff: { type: 'exponential', delay: 5000 } },
       },
       {
         name: AI_QUEUES.MOCK_INTERVIEW,
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        defaultJobOptions: { attempts: 5, backoff: { type: 'exponential', delay: 5000 } },
       },
     ),
     GenerationModule,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -28,8 +28,28 @@ export class UsersService {
       id: user.id,
       email: user.email,
       name: user.name,
+      credits: user.credits,
       roles: roleNames,
       avatarUrl: user.avatarUrl,
     };
+  }
+
+  // --- INTERNAL METHODS ---
+  async deductCredits(id: string, amount: number) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    
+    if (user.credits < amount) {
+      throw new BadRequestException('Insufficient credits');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        credits: {
+          decrement: amount
+        }
+      }
+    });
   }
 }

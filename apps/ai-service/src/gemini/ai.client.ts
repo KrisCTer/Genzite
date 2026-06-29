@@ -2,14 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GeminiClient, type GeminiModelName } from './gemini.client.js';
 import { DeepSeekClient, type DeepSeekModelName } from './deepseek.client.js';
+import { GroqClient, type GroqModelName } from './groq.client.js';
 
 /**
  * All supported model names across providers.
  * The AiClient automatically routes to the correct provider based on model prefix.
  */
-export type AiModelName = GeminiModelName | DeepSeekModelName;
+export type AiModelName = GeminiModelName | DeepSeekModelName | GroqModelName;
 
-export type AiProvider = 'gemini' | 'deepseek';
+export type AiProvider = 'gemini' | 'deepseek' | 'groq';
 
 interface AiGenerateOptions {
   model?: AiModelName;
@@ -39,6 +40,7 @@ export class AiClient {
     private readonly config: ConfigService,
     private readonly gemini: GeminiClient,
     private readonly deepseek: DeepSeekClient,
+    private readonly groq: GroqClient,
   ) {
     this.defaultProvider = (this.config.get<string>('AI_DEFAULT_PROVIDER') ?? 'gemini') as AiProvider;
     this.logger.log(`AI Client initialized (default provider: ${this.defaultProvider})`);
@@ -47,6 +49,7 @@ export class AiClient {
   private resolveProvider(model?: AiModelName): AiProvider {
     if (!model) return this.defaultProvider;
     if (model.startsWith('deepseek')) return 'deepseek';
+    if (model.startsWith('llama') || model.startsWith('mixtral')) return 'groq';
     return 'gemini';
   }
 
@@ -54,16 +57,32 @@ export class AiClient {
     const provider = this.resolveProvider(options.model);
 
     if (provider === 'deepseek') {
-      return this.deepseek.generateContent(prompt, {
-        ...options,
-        model: options.model as DeepSeekModelName,
-      });
+      return this.deepseek.generateContent(prompt, { ...options, model: options.model as DeepSeekModelName });
+    }
+    if (provider === 'groq') {
+      return this.groq.generateContent(prompt, { ...options, model: options.model as GroqModelName });
     }
 
-    return this.gemini.generateContent(prompt, {
-      ...options,
-      model: options.model as GeminiModelName,
-    });
+    try {
+      return await this.gemini.generateContent(prompt, {
+        ...options,
+        model: options.model as GeminiModelName,
+      });
+    } catch (error) {
+      this.logger.warn(`Gemini API failed, falling back to Groq... (${error})`);
+      try {
+        return await this.groq.generateContent(prompt, {
+          ...options,
+          model: 'llama3-70b-8192',
+        });
+      } catch (groqError) {
+        this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
+        return this.deepseek.generateContent(prompt, {
+          ...options,
+          model: 'deepseek-chat',
+        });
+      }
+    }
   }
 
   async generateJson<T = Record<string, unknown>>(
@@ -73,16 +92,32 @@ export class AiClient {
     const provider = this.resolveProvider(options.model);
 
     if (provider === 'deepseek') {
-      return this.deepseek.generateJson<T>(prompt, {
-        ...options,
-        model: options.model as DeepSeekModelName,
-      });
+      return this.deepseek.generateJson<T>(prompt, { ...options, model: options.model as DeepSeekModelName });
+    }
+    if (provider === 'groq') {
+      return this.groq.generateJson<T>(prompt, { ...options, model: options.model as GroqModelName });
     }
 
-    return this.gemini.generateJson<T>(prompt, {
-      ...options,
-      model: options.model as GeminiModelName,
-    });
+    try {
+      return await this.gemini.generateJson<T>(prompt, {
+        ...options,
+        model: options.model as GeminiModelName,
+      });
+    } catch (error) {
+      this.logger.warn(`Gemini API failed, falling back to Groq... (${error})`);
+      try {
+        return await this.groq.generateJson<T>(prompt, {
+          ...options,
+          model: 'llama3-70b-8192',
+        });
+      } catch (groqError) {
+        this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
+        return this.deepseek.generateJson<T>(prompt, {
+          ...options,
+          model: 'deepseek-chat',
+        });
+      }
+    }
   }
 
   async chatJson<T = Record<string, unknown>>(
@@ -94,15 +129,31 @@ export class AiClient {
     const provider = this.resolveProvider(options.model);
 
     if (provider === 'deepseek') {
-      return this.deepseek.chatJson<T>(systemInstruction, history, message, {
-        ...options,
-        model: options.model as DeepSeekModelName,
-      });
+      return this.deepseek.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as DeepSeekModelName });
+    }
+    if (provider === 'groq') {
+      return this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as GroqModelName });
     }
 
-    return this.gemini.chatJson<T>(systemInstruction, history, message, {
-      ...options,
-      model: options.model as GeminiModelName,
-    });
+    try {
+      return await this.gemini.chatJson<T>(systemInstruction, history, message, {
+        ...options,
+        model: options.model as GeminiModelName,
+      });
+    } catch (error) {
+      this.logger.warn(`Gemini API failed, falling back to Groq... (${error})`);
+      try {
+        return await this.groq.chatJson<T>(systemInstruction, history, message, {
+          ...options,
+          model: 'llama3-70b-8192',
+        });
+      } catch (groqError) {
+        this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
+        return this.deepseek.chatJson<T>(systemInstruction, history, message, {
+          ...options,
+          model: 'deepseek-chat',
+        });
+      }
+    }
   }
 }

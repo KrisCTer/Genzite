@@ -24,6 +24,7 @@ export class ProxyController {
     users: process.env.IDENTITY_SERVICE_URL ?? 'http://localhost:3001',
     sites: process.env.SITE_SERVICE_URL ?? 'http://localhost:3002',
     cms: process.env.DATA_SERVICE_URL ?? 'http://localhost:3003',
+    commerce: process.env.COMMERCE_SERVICE_URL ?? 'http://localhost:3007',
     media: process.env.MEDIA_SERVICE_URL ?? 'http://localhost:3004',
     notifications: process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3005',
     ai: process.env.AI_SERVICE_URL ?? 'http://localhost:3006',

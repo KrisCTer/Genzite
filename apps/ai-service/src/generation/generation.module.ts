@@ -7,6 +7,9 @@ import { GenerationController } from './generation.controller.js';
 import { SiteGeneratorService } from './site-generator.service.js';
 import { CmsGeneratorService } from './cms-generator.service.js';
 
+import { RagService } from './rag.service.js';
+import { GuardrailService } from './guardrail.service.js';
+
 @Module({
   imports: [
     GeminiModule,
@@ -17,7 +20,7 @@ import { CmsGeneratorService } from './cms-generator.service.js';
     ),
   ],
   controllers: [GenerationController],
-  providers: [SiteGeneratorService, CmsGeneratorService],
-  exports: [SiteGeneratorService, CmsGeneratorService],
+  providers: [SiteGeneratorService, CmsGeneratorService, RagService, GuardrailService],
+  exports: [SiteGeneratorService, CmsGeneratorService, RagService, GuardrailService],
 })
 export class GenerationModule {}
