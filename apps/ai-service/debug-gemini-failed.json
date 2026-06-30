@@ -1,0 +1,314 @@
+{
+  "site": {
+    "name": "Bố Ngầu",
+    "subdomain": "bongau.vn"
+  },
+  "pages": [
+    {
+      "title": "Bố Ngầu - Chào Mừng Đến Với Thế Giới Của Tôi",
+      "slug": "trang-chu",
+      "widgets": [
+        {
+          "type": "HEADER",
+          "contentConfig": {
+            "title": "Bố Ngầu",
+            "items": [
+              { "type": "link", "text": "Trang Chủ", "link": "/" },
+              { "type": "link", "text": "Về Tôi", "link": "/ve-toi" },
+              { "type": "link", "text": "Kỹ Năng & Sở Thích", "link": "/ky-nang-so-thich" },
+              { "type": "link", "text": "Dự Án & Thành Tựu", "link": "/du-an-thanh-tuu" },
+              { "type": "link", "text": "Lời Khen", "link": "/loi-khen" },
+              { "type": "link", "text": "Liên Hệ", "link": "/lien-he" }
+            ]
+          },
+          "sortOrder": 1
+        },
+        {
+          "type": "HERO",
+          "contentConfig": {
+            "title": "Bố Ngầu - Phong Cách Sống Đỉnh Cao",
+            "subtitle": "Nơi chia sẻ đam mê, kinh nghiệm và những khoảnh khắc đáng nhớ.",
+            "items": [
+              { "type": "image", "src": "https://picsum.photos/1920/1080?random=1", "alt": "Bố Ngầu phong cách" }
+            ]
+          },
+          "sortOrder": 2
+        },
+        {
+          "type": "TEXT",
+          "contentConfig": {
+            "title": "Chào Bạn Đến Với Góc Riêng Của Tôi",
+            "subtitle": "Tôi là Bố Ngầu, một người đàn ông đam mê cuộc sống, luôn tìm kiếm những điều mới mẻ và không ngừng học hỏi. Từ những dự án sáng tạo đến những chuyến phiêu lưu khám phá, tôi tin rằng mỗi ngày là một cơ hội để sống trọn vẹn và truyền cảm hứng."
+          },
+          "sortOrder": 3
+        },
+        {
+          "type": "CTA",
+          "contentConfig": {
+            "title": "Sẵn Sàng Khám Phá Thêm?",
+            "subtitle": "Hãy cùng tôi đi sâu vào những câu chuyện và trải nghiệm độc đáo.",
+            "items": [
+              { "type": "button", "text": "Tìm Hiểu Về Tôi", "link": "/ve-toi" }
+            ]
+          },
+          "sortOrder": 4
+        },
+        {
+          "type": "FOOTER",
+          "contentConfig": {
+            "title": "Bố Ngầu © 2023. Mọi quyền được bảo lưu.",
+            "items": [
+              { "type": "link", "text": "Chính sách bảo mật", "link": "/chinh-sach-bao-mat" },
+              { "type": "link", "text": "Điều khoản sử dụng", "link": "/dieu-khoan-su-dung" }
+            ]
+          },
+          "sortOrder": 5
+        }
+      ]
+    },
+    {
+      "title": "Về Bố Ngầu - Chân Dung Một Người Đàn Ông Đích Thực",
+      "slug": "ve-toi",
+      "widgets": [
+        {
+          "type": "HEADER",
+          "contentConfig": {
+            "title": "Bố Ngầu",
+            "items": [
+              { "type": "link", "text": "Trang Chủ", "link": "/" },
+              { "type": "link", "text": "Về Tôi", "link": "/ve-toi" },
+              { "type": "link", "text": "Kỹ Năng & Sở Thích", "link": "/ky-nang-so-thich" },
+              { "type": "link", "text": "Dự Án & Thành Tựu", "link": "/du-an-thanh-tuu" },
+              { "type": "link", "text": "Lời Khen", "link": "/loi-khen" },
+              { "type": "link", "text": "Liên Hệ", "link": "/lien-he" }
+            ]
+          },
+          "sortOrder": 1
+        },
+        {
+          "type": "IMAGE",
+          "contentConfig": {
+            "title": "Bố Ngầu - Người Đàn Ông Của Gia Đình & Đam Mê",
+            "items": [
+              { "type": "image", "src": "https://picsum.photos/800/600?random=2", "alt": "Chân dung Bố Ngầu" }
+            ]
+          },
+          "sortOrder": 2
+        },
+        {
+          "type": "TEXT",
+          "contentConfig": {
+            "title": "Hành Trình Của Tôi",
+            "subtitle": "Sinh ra và lớn lên tại Hà Nội, tôi đã có một hành trình đầy thú vị trong cả sự nghiệp lẫn cuộc sống cá nhân. Với hơn 20 năm kinh nghiệm trong lĩnh vực IT, tôi luôn tìm cách áp dụng công nghệ vào cuộc sống để tạo ra những giá trị mới. Ngoài công việc, tôi là một người chồng, người cha tận tâm, yêu thích nhiếp ảnh, du lịch và khám phá văn hóa."
+          },
+          "sortOrder": 3
+        },
+        {
+          "type": "FEATURES",
+          "contentConfig": {
+            "title": "Triết Lý Sống Của Bố Ngầu",
+            "items": [
+              { "icon": "fa-lightbulb", "title": "Không Ngừng Sáng Tạo", "description": "Luôn tìm tòi, đổi mới và áp dụng tư duy sáng tạo vào mọi khía cạnh." },
+              { "icon": "fa-heart", "title": "Sống Với Đam Mê", "description": "Theo đuổi những gì mình yêu thích, từ công việc đến sở thích cá nhân." },
+              { "icon": "fa-users", "title": "Kết Nối & Chia Sẻ", "description": "Trân trọng các mối quan hệ và sẵn lòng chia sẻ kinh nghiệm." }
+            ]
+          },
+          "sortOrder": 4
+        },
+        {
+          "type": "FOOTER",
+          "contentConfig": {
+            "title": "Bố Ngầu © 2023. Mọi quyền được bảo lưu.",
+            "items": [
+              { "type": "link", "text": "Chính sách bảo mật", "link": "/chinh-sach-bao-mat" },
+              { "type": "link", "text": "Điều khoản sử dụng", "link": "/dieu-khoan-su-dung" }
+            ]
+          },
+          "sortOrder": 5
+        }
+      ]
+    },
+    {
+      "title": "Kỹ Năng & Sở Thích - Nơi Thể Hiện Đam Mê Của Bố Ngầu",
+      "slug": "ky-nang-so-thich",
+      "widgets": [
+        {
+          "type": "HEADER",
+          "contentConfig": {
+            "title": "Bố Ngầu",
+            "items": [
+              { "type": "link", "text": "Trang Chủ", "link": "/" },
+              { "type": "link", "text": "Về Tôi", "link": "/ve-toi" },
+              { "type": "link", "text": "Kỹ Năng & Sở Thích", "link": "/ky-nang-so-thich" },
+              { "type": "link", "text": "Dự Án & Thành Tựu", "link": "/du-an-thanh-tuu" },
+              { "type": "link", "text": "Lời Khen", "link": "/loi-khen" },
+              { "type": "link", "text": "Liên Hệ", "link": "/lien-he" }
+            ]
+          },
+          "sortOrder": 1
+        },
+        {
+          "type": "FEATURES",
+          "contentConfig": {
+            "title": "Kỹ Năng Nổi Bật",
+            "items": [
+              { "icon": "fa-cogs", "title": "Quản Lý Dự Án", "description": "Dẫn dắt các dự án phức tạp từ khởi tạo đến hoàn thành." },
+              { "icon": "fa-code", "title": "Lập Trình & Công Nghệ", "description": "Thành thạo nhiều ngôn ngữ lập trình và công nghệ mới." },
+              { "icon": "fa-handshake", "title": "Tư Duy Chiến Lược", "description": "Xây dựng và thực thi các chiến lược hiệu quả." }
+            ]
+          },
+          "sortOrder": 2
+        },
+        {
+          "type": "GALLERY",
+          "contentConfig": {
+            "title": "Sở Thích Cá Nhân",
+            "subtitle": "Những khoảnh khắc tôi sống với đam mê.",
+            "items": [
+              { "type": "image", "src": "https://picsum.photos/800/600?random=3", "alt": "Nhiếp ảnh" },
+              { "type": "image", "src": "https://picsum.photos/800/600?random=4", "alt": "Du lịch" },
+              { "type": "image", "src": "https://picsum.photos/800/600?random=5", "alt": "Chế tạo đồ gỗ" },
+              { "type": "image", "src": "https://picsum.photos/800/600?random=6", "alt": "Chơi nhạc cụ" }
+            ]
+          },
+          "sortOrder": 3
+        },
+        {
+          "type": "TEXT",
+          "contentConfig": {
+            "title": "Luôn Học Hỏi & Phát Triển",
+            "subtitle": "Tôi tin rằng cuộc sống là một hành trình học hỏi không ngừng. Mỗi kỹ năng mới, mỗi sở thích được khám phá đều giúp tôi trở nên hoàn thiện hơn."
+          },
+          "sortOrder": 4
+        },
+        {
+          "type": "FOOTER",
+          "contentConfig": {
+            "title": "Bố Ngầu © 2023. Mọi quyền được bảo lưu.",
+            "items": [
+              { "type": "link", "text": "Chính sách bảo mật", "link": "/chinh-sach-bao-mat" },
+              { "type": "link", "text": "Điều khoản sử dụng", "link": "/dieu-khoan-su-dung" }
+            ]
+          },
+          "sortOrder": 5
+        }
+      ]
+    },
+    {
+      "title": "Dự Án & Thành Tựu - Những Dấu Ấn Của Bố Ngầu",
+      "slug": "du-an-thanh-tuu",
+      "widgets": [
+        {
+          "type": "HEADER",
+          "contentConfig": {
+            "title": "Bố Ngầu",
+            "items": [
+              { "type": "link", "text": "Trang Chủ", "link": "/" },
+              { "type": "link", "text": "Về Tôi", "link": "/ve-toi" },
+              { "type": "link", "text": "Kỹ Năng & Sở Thích", "link": "/ky-nang-so-thich" },
+              { "type": "link", "text": "Dự Án & Thành Tựu", "link": "/du-an-thanh-tuu" },
+              { "type": "link", "text": "Lời Khen", "link": "/loi-khen" },
+              { "type": "link", "text": "Liên Hệ", "link": "/lien-he" }
+            ]
+          },
+          "sortOrder": 1
+        },
+        {
+          "type": "GALLERY",
+          "contentConfig": {
+            "title": "Dự Án Nổi Bật",
+            "subtitle": "Những công trình và sáng tạo tôi đã đóng góp.",
+            "items": [
+              { "type": "image", "src": "https://picsum.photos/800/600?random=7", "alt": "Dự án A", "caption": "Phát triển hệ thống quản lý dữ liệu lớn cho công ty X." },
+              { "type": "image", "src": "https://picsum.photos/800/600?random=8", "alt": "Dự án B", "caption": "Thiết kế và thi công nội thất phòng làm việc cá nhân." },
+              { "type": "image", "src": "https://picsum.photos/800/600?random=9", "alt": "Dự án C", "caption": "Tổ chức chuỗi workshop về kỹ năng mềm cho cộng đồng." }
+            ]
+          },
+          "sortOrder": 2
+        },
+        {
+          "type": "CARD",
+          "contentConfig": {
+            "title": "Thành Tựu Đáng Tự Hào",
+            "items": [
+              { "icon": "fa-award", "title": "Giải Thưởng Sáng Tạo", "description": "Đạt giải thưởng 'Sáng Kiến Công Nghệ Của Năm' 2020." },
+              { "icon": "fa-star", "title": "Mentor Cộng Đồng", "description": "Hướng dẫn và truyền cảm hứng cho hơn 100 bạn trẻ." },
+              { "icon": "fa-globe", "title": "Du Lịch Bốn Phương", "description": "Khám phá văn hóa tại hơn 15 quốc gia." }
+            ]
+          },
+          "sortOrder": 3
+        },
+        {
+          "type": "STATS",
+          "contentConfig": {
+            "title": "Một Vài Con Số Ấn Tượng",
+            "items": [
+              { "value": "20+", "label": "Năm Kinh Nghiệm" },
+              { "value": "50+", "label": "Dự Án Hoàn Thành" },
+              { "value": "100%", "label": "Đam Mê Bất Tận" }
+            ]
+          },
+          "sortOrder": 4
+        },
+        {
+          "type": "FOOTER",
+          "contentConfig": {
+            "title": "Bố Ngầu © 2023. Mọi quyền được bảo lưu.",
+            "items": [
+              { "type": "link", "text": "Chính sách bảo mật", "link": "/chinh-sach-bao-mat" },
+              { "type": "link", "text": "Điều khoản sử dụng", "link": "/dieu-khoan-su-dung" }
+            ]
+          },
+          "sortOrder": 5
+        }
+      ]
+    },
+    {
+      "title": "Lời Khen Từ Bạn Bè & Gia Đình",
+      "slug": "loi-khen",
+      "widgets": [
+        {
+          "type": "HEADER",
+          "contentConfig": {
+            "title": "Bố Ngầu",
+            "items": [
+              { "type": "link", "text": "Trang Chủ", "link": "/" },
+              { "type": "link", "text": "Về Tôi", "link": "/ve-toi" },
+              { "type": "link", "text": "Kỹ Năng & Sở Thích", "link": "/ky-nang-so-thich" },
+              { "type": "link", "text": "Dự Án & Thành Tựu", "link": "/du-an-thanh-tuu" },
+              { "type": "link", "text": "Lời Khen", "link": "/loi-khen" },
+              { "type": "link", "text": "Liên Hệ", "link": "/lien-he" }
+            ]
+          },
+          "sortOrder": 1
+        },
+        {
+          "type": "HERO",
+          "contentConfig": {
+            "title": "Điều Mọi Người Nói Về Bố Ngầu",
+            "subtitle": "Những lời nhận xét chân thành từ những người thân yêu và đồng nghiệp."
+          },
+          "sortOrder": 2
+        },
+        {
+          "type": "TESTIMONIAL",
+          "contentConfig": {
+            "items": [
+              { "quote": "Bố Ngầu là nguồn cảm hứng bất tận của cả gia đình. Luôn lạc quan, sáng tạo và biết cách tận hưởng cuộc sống.", "author": "Vợ yêu" },
+              { "quote": "Anh ấy không chỉ là một đồng nghiệp xuất sắc mà còn là một người bạn tuyệt vời. Luôn sẵn lòng giúp đỡ và chia sẻ kinh nghiệm.", "author": "Đồng nghiệp X" },
+              { "quote": "Mỗi khi có vấn đề, tôi đều tìm đến Bố Ngầu. Anh ấy luôn có cách giải quyết thông minh và một góc nhìn rất độc đáo.", "author": "Bạn thân Y" }
+            ]
+          },
+          "sortOrder": 3
+        },
+        {
+          "type": "CTA",
+          "contentConfig": {
+            "title": "Bạn Cũng Muốn Kết Nối?",
+            "subtitle": "Đừng ngần ngại gửi lời chào hoặc chia sẻ câu chuyện của bạn.",
+            "items": [
+              { "type": "button", "text": "Liên Hệ Ngay", "link": "/lien-he" }
+            ]
+          },
+          "sortOrder": 4
+        }

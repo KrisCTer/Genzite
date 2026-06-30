@@ -1,451 +1,149 @@
-import React, { useState } from 'react'
-import {
-  AppShell,
-  PageWrapper,
-  Card,
-  Button,
-  Input,
-  Textarea,
-  Select,
-  Badge,
-  EmptyState,
-  SearchInput,
-  Toaster,
-  useToast,
-  cn
-} from '@genzite/shared-ui'
-import {
-  Plus,
-  Clock,
-  Trash2,
-  Layout,
-  PanelTop,
-  Image,
-  CreditCard,
-  PanelBottom,
-  AlertCircle
-} from 'lucide-react'
-import '@genzite/shared-ui/styles.css'
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
+import AdminLayout from './layouts/AdminLayout';
+import Login from './pages/Auth/Login';
+import UserManagement from './pages/Identity/UserManagement';
+import MediaLibrary from './pages/Media/MediaLibrary';
+import Collections from './pages/CMS/Collections';
+import DataGrid from './pages/CMS/DataGrid';
+import Dashboard from './pages/Dashboard/Dashboard';
+import Profile from './pages/Identity/Profile';
+import SitesList from './pages/Site/SitesList';
+import PagesList from './pages/Site/PagesList';
+import PageBuilder from './pages/Site/PageBuilder';
+import NotificationsList from './pages/Notifications/NotificationsList';
+import ResumeBuilder from './pages/AI/ResumeBuilder';
+import InterviewSession from './pages/AI/InterviewSession';
+import AgentLogs from './pages/AI/AgentLogs';
+import AIGenerateSite from './pages/AI/AIGenerateSite';
+import AgentWorkspace from './pages/AI/AgentWorkspace';
+import LandingPage from './pages/Public/LandingPage';
+import LiveViewer from './pages/Public/LiveViewer';
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  // Temporary bypass for UI redesign testing
+  return children;
+};
 
-interface Post {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  category: string;
-}
-
-interface Widget {
-  id: string;
-  type: 'Header' | 'Hero' | 'Card' | 'Footer';
-  content: string;
-  color: string;
-}
-
-const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'cms' | 'builder'>('cms')
-  const { toast } = useToast()
-
-  // CMS State
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: '1',
-      title: 'Welcome to Genzite CMS',
-      slug: 'welcome-to-genzite',
-      content: 'This is your first CMS post. You can edit or delete this post dynamically.',
-      category: 'Announcements'
-    },
-    {
-      id: '2',
-      title: 'Designing with Tailwind v4',
-      slug: 'designing-with-tailwind-v4',
-      content: 'Learn how to build beautiful, responsive layout components with the newly updated Tailwind CSS engine.',
-      category: 'Design'
-    }
-  ])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [newPostTitle, setNewPostTitle] = useState('')
-  const [newPostContent, setNewPostContent] = useState('')
-  const [newPostCategory, setNewPostCategory] = useState('General')
-
-  // Builder State
-  const [canvasWidgets, setCanvasWidgets] = useState<Widget[]>([
-    { id: 'w1', type: 'Header', content: 'Genzite Portal', color: 'from-teal-600 to-teal-700 text-white' },
-    { id: 'w2', type: 'Hero', content: 'Create Next-Gen Visual Interfaces Instantly', color: 'from-stone-800 to-stone-900 text-white' }
-  ])
-  const [canvasBg, setCanvasBg] = useState<'light' | 'dark' | 'grid'>('grid')
-
-  // Handle Add Post
-  const handleAddPost = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newPostTitle || !newPostContent) return
-    const newPost: Post = {
-      id: Date.now().toString(),
-      title: newPostTitle,
-      slug: newPostTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      content: newPostContent,
-      category: newPostCategory
-    }
-    setPosts([newPost, ...posts])
-    setNewPostTitle('')
-    setNewPostContent('')
-    toast({
-      title: 'Post Published',
-      description: `"${newPost.title}" has been successfully published to ${newPost.category}.`,
-      variant: 'success'
-    })
-  }
-
-  // Handle Delete Post
-  const handleDeletePost = (id: string) => {
-    const postToDelete = posts.find(p => p.id === id)
-    setPosts(posts.filter(post => post.id !== id))
-    if (postToDelete) {
-      toast({
-        title: 'Post Deleted',
-        description: `"${postToDelete.title}" has been removed.`,
-        variant: 'info'
-      })
-    }
-  }
-
-  // Handle Add Widget
-  const addWidget = (type: 'Header' | 'Hero' | 'Card' | 'Footer') => {
-    const defaultContents = {
-      Header: 'New Navigation Bar',
-      Hero: 'Discover Our Brand Value',
-      Card: 'Feature Highlight Card',
-      Footer: '© 2026 Genzite. All rights reserved.'
-    }
-    const colors = {
-      Header: 'from-teal-600 to-teal-700 text-white',
-      Hero: 'from-stone-800 to-stone-900 text-white',
-      Card: 'from-amber-600 to-amber-700 text-white',
-      Footer: 'from-stone-700 to-stone-800 text-stone-200'
-    }
-    const newWidget: Widget = {
-      id: Date.now().toString(),
-      type,
-      content: defaultContents[type],
-      color: colors[type]
-    }
-    setCanvasWidgets([...canvasWidgets, newWidget])
-    toast({
-      title: 'Widget Added',
-      description: `Successfully added ${type} widget to the canvas.`,
-      variant: 'success'
-    })
-  }
-
-  const removeWidget = (id: string) => {
-    const widgetToDelete = canvasWidgets.find(w => w.id === id)
-    setCanvasWidgets(canvasWidgets.filter(w => w.id !== id))
-    if (widgetToDelete) {
-      toast({
-        title: 'Widget Removed',
-        description: `Removed ${widgetToDelete.type} widget from the canvas.`,
-        variant: 'info'
-      })
-    }
-  }
-
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.category.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const getBadgeColor = (category: string) => {
-    switch (category) {
-      case 'Announcements': return 'amber'
-      case 'Design': return 'teal'
-      case 'Development': return 'blue'
-      default: return 'stone'
-    }
-  }
-
-  return (
-    <AppShell
-      header={
-        <div className="flex-1 flex items-center justify-between">
-          <div className="flex items-center space-x-3 text-left">
-            <div className="w-10 h-10 rounded-[var(--gz-radius-lg)] bg-[var(--gz-primary-600)] flex items-center justify-center p-2 shadow-[var(--gz-shadow-sm)]">
-              <Layout className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold tracking-tight text-[var(--gz-text)] m-0 leading-none">Genzite</h1>
-              <span className="text-[10px] text-[var(--gz-text-secondary)] font-medium">NestJS + React Workspace</span>
-            </div>
-          </div>
-
-          <div className="flex bg-[var(--gz-surface-sunken)] p-1 rounded-[var(--gz-radius-lg)] border border-[var(--gz-border)]">
-            <button
-              onClick={() => setActiveTab('cms')}
-              className={`px-4 py-1.5 rounded-[var(--gz-radius-md)] text-sm font-medium transition-all duration-150 cursor-pointer ${
-                activeTab === 'cms'
-                  ? 'bg-[var(--gz-surface-raised)] text-[var(--gz-text)] shadow-[var(--gz-shadow-xs)] border border-[var(--gz-border-strong)]'
-                  : 'text-[var(--gz-text-secondary)] hover:text-[var(--gz-text)]'
-              }`}
-            >
-              CMS Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('builder')}
-              className={`px-4 py-1.5 rounded-[var(--gz-radius-md)] text-sm font-medium transition-all duration-150 cursor-pointer ${
-                activeTab === 'builder'
-                  ? 'bg-[var(--gz-surface-raised)] text-[var(--gz-text)] shadow-[var(--gz-shadow-xs)] border border-[var(--gz-border-strong)]'
-                  : 'text-[var(--gz-text-secondary)] hover:text-[var(--gz-text)]'
-              }`}
-            >
-              App Builder Canvas
-            </button>
-          </div>
-        </div>
-      }
-    >
-      <PageWrapper
-        title={activeTab === 'cms' ? 'CMS Dashboard' : 'App Builder Canvas'}
-        description={activeTab === 'cms' ? 'Manage and publish dynamic JSONB records.' : 'Visually compose and stack application components.'}
-      >
-        {activeTab === 'cms' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Form Panel */}
-            <div className="h-fit">
-              <Card>
-                <Card.Header>
-                  <h2 className="text-base font-semibold text-[var(--gz-text)] flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-[var(--gz-primary-600)]" />
-                    Publish New Record
-                  </h2>
-                </Card.Header>
-                <Card.Body>
-                  <form onSubmit={handleAddPost} className="space-y-4 text-left">
-                    <Input
-                      label="Title"
-                      placeholder="Enter record title..."
-                      value={newPostTitle}
-                      onChange={(e: any) => setNewPostTitle(e.target.value)}
-                      required
-                    />
-                    <Select
-                      label="Category"
-                      value={newPostCategory}
-                      onValueChange={setNewPostCategory}
-                      options={[
-                        { value: 'General', label: 'General' },
-                        { value: 'Announcements', label: 'Announcements' },
-                        { value: 'Design', label: 'Design' },
-                        { value: 'Development', label: 'Development' },
-                      ]}
-                    />
-                    <Textarea
-                      label="Content"
-                      placeholder="Write content body here..."
-                      value={newPostContent}
-                      onChange={(e: any) => setNewPostContent(e.target.value)}
-                      rows={4}
-                      required
-                    />
-                    <Button type="submit" className="w-full" leftIcon={<Plus className="w-4 h-4" />}>
-                      Publish Record
-                    </Button>
-                  </form>
-                </Card.Body>
-              </Card>
-            </div>
-
-            {/* Right Display Panel */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="flex items-center justify-between gap-4">
-                <SearchInput
-                  placeholder="Search posts by title or category..."
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  className="w-full"
-                />
-              </div>
-
-              {filteredPosts.length === 0 ? (
-                <Card className="border-dashed">
-                  <Card.Body>
-                    <EmptyState
-                      icon={<AlertCircle className="w-12 h-12 text-[var(--gz-text-muted)]" />}
-                      title="No CMS records found."
-                      description="Try checking spelling or creating a new post."
-                    />
-                  </Card.Body>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredPosts.map(post => (
-                    <Card
-                      key={post.id}
-                      hoverable
-                      className="relative overflow-hidden flex flex-col justify-between"
-                    >
-                      <Card.Body className="text-left flex flex-col h-full justify-between">
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            <Badge variant="soft" color={getBadgeColor(post.category)}>
-                              {post.category}
-                            </Badge>
-                            <span className="text-[var(--gz-text-muted)] text-xs font-mono">/posts/{post.slug}</span>
-                          </div>
-                          <h3 className="text-sm font-semibold text-[var(--gz-text)] mb-2 leading-snug">
-                            {post.title}
-                          </h3>
-                          <p className="text-[var(--gz-text-secondary)] text-xs leading-relaxed mb-6">
-                            {post.content}
-                          </p>
-                        </div>
-                        <div className="flex justify-between items-center pt-4 border-t border-[var(--gz-border)] mt-auto">
-                          <span className="text-xs text-[var(--gz-text-muted)] flex items-center gap-1.5 font-medium">
-                            <Clock className="w-3.5 h-3.5" />
-                            Just now
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeletePost(post.id)}
-                            className="p-1 h-auto text-[var(--gz-text-muted)] hover:text-[var(--gz-danger-500)]"
-                            leftIcon={<Trash2 className="w-4 h-4" />}
-                          />
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* App Builder Canvas */
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Left Controls & Sidebar widgets */}
-            <div className="space-y-6">
-              <Card>
-                <Card.Header>
-                  <h3 className="text-xs font-semibold text-[var(--gz-text)] uppercase tracking-wider">Canvas Background</h3>
-                </Card.Header>
-                <Card.Body>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant={canvasBg === 'light' ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setCanvasBg('light')}
-                    >
-                      Light
-                    </Button>
-                    <Button
-                      variant={canvasBg === 'dark' ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setCanvasBg('dark')}
-                    >
-                      Dark
-                    </Button>
-                    <Button
-                      variant={canvasBg === 'grid' ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setCanvasBg('grid')}
-                    >
-                      Grid
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-
-              <Card>
-                <Card.Header>
-                  <h3 className="text-xs font-semibold text-[var(--gz-text)] uppercase tracking-wider">Widgets Toolbox</h3>
-                </Card.Header>
-                <Card.Body className="space-y-3">
-                  {[
-                    { type: 'Header', desc: 'Standard Header bar with links', icon: PanelTop },
-                    { type: 'Hero', desc: 'Hero section with text banner', icon: Image },
-                    { type: 'Card', desc: 'Feature highlight showcase card', icon: CreditCard },
-                    { type: 'Footer', desc: 'Copyright note footer segment', icon: PanelBottom }
-                  ].map(w => {
-                    const Icon = w.icon
-                    return (
-                      <button
-                        key={w.type}
-                        onClick={() => addWidget(w.type as any)}
-                        className="w-full flex items-center gap-3 p-3 bg-[var(--gz-surface-raised)] border border-[var(--gz-border)] hover:border-[var(--gz-primary-500)] hover:bg-[var(--gz-surface-sunken)] rounded-[var(--gz-radius-lg)] transition-all duration-200 text-left group cursor-pointer"
-                      >
-                        <div className="p-2 rounded-[var(--gz-radius-md)] bg-[var(--gz-surface-sunken)] text-[var(--gz-text-muted)] group-hover:text-[var(--gz-primary-600)] group-hover:bg-[var(--gz-primary-50)] transition-colors">
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-[var(--gz-text)] leading-none mb-1">{w.type}</h4>
-                          <span className="text-[10px] text-[var(--gz-text-secondary)]">{w.desc}</span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </Card.Body>
-              </Card>
-            </div>
-
-            {/* Right Canvas Area */}
-            <div className="lg:col-span-3">
-              <div
-                className={cn(
-                  'w-full min-h-[500px] rounded-[var(--gz-radius-xl)] p-6 transition-all duration-300 relative border',
-                  canvasBg === 'light' && 'bg-[var(--gz-surface-sunken)] border-[var(--gz-border)] text-[var(--gz-text)]',
-                  canvasBg === 'dark' && 'bg-stone-900 border-stone-800 text-stone-100',
-                  canvasBg === 'grid' && 'bg-[var(--gz-surface)] bg-[linear-gradient(to_right,var(--gz-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--gz-border)_1px,transparent_1px)] bg-[size:24px_24px] border-[var(--gz-border)] text-[var(--gz-text)]'
-                )}
-              >
-                {canvasWidgets.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <EmptyState
-                      icon={<Layout className="w-12 h-12 text-[var(--gz-text-muted)]" />}
-                      title="Your visual layout is empty."
-                      description="Select visual modules from the toolbox on the left to stack elements."
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-[var(--gz-border)]">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-[var(--gz-text-secondary)]">Live Workspace Preview</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-[var(--gz-radius-full)] bg-[var(--gz-primary-50)] text-[var(--gz-primary-700)] border border-[var(--gz-primary-100)] font-mono">{canvasWidgets.length} elements</span>
-                    </div>
-                    {canvasWidgets.map((widget, idx) => (
-                      <div
-                        key={widget.id}
-                        className={`group relative p-6 rounded-[var(--gz-radius-lg)] bg-gradient-to-r ${widget.color} shadow-[var(--gz-shadow-xs)] flex items-center justify-between transition-all duration-300 hover:scale-[1.01]`}
-                      >
-                        <div className="text-left">
-                          <span className="text-[10px] font-bold tracking-widest opacity-60 uppercase block mb-1">
-                            [{idx + 1}] {widget.type}
-                          </span>
-                          <span className="text-sm font-semibold">{widget.content}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeWidget(widget.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 bg-black/10 hover:bg-black/20 text-current hover:scale-105"
-                          leftIcon={<Trash2 className="w-4 h-4" />}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </PageWrapper>
-    </AppShell>
-  )
-}
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App: React.FC = () => {
   return (
-    <Toaster>
-      <AppContent />
-    </Toaster>
-  )
-}
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#2563EB',
+          colorSuccess: '#22C55E',
+          colorWarning: '#F59E0B',
+          colorError: '#EF4444',
+          colorInfo: '#3B82F6',
+          colorTextBase: '#111827',
+          colorTextSecondary: '#6B7280',
+          colorBgBase: '#FFFFFF',
+          colorBgContainer: '#FAFAFB', /* Surface */
+          colorBgLayout: '#FFFFFF', /* Background */
+          colorBorder: '#E5E7EB',
+          colorBorderSecondary: '#ECEEF2',
+          fontFamily: "'Inter', system-ui, sans-serif",
+          borderRadius: 12, /* Default radius */
+          boxShadow: '0 4px 12px rgba(0,0,0,.06)', /* Elevation 2 default for dropdowns/modals */
+        },
+        components: {
+          Layout: {
+            headerBg: '#FAFAFB',
+            bodyBg: '#FFFFFF',
+            siderBg: '#FAFAFB',
+          },
+          Menu: {
+            itemBorderRadius: 12,
+            activeBarBorderWidth: 0,
+            itemHoverBg: '#F3F4F6',
+            itemSelectedBg: '#DBEAFE',
+            itemSelectedColor: '#2563EB',
+            itemColor: '#111827',
+            itemHoverColor: '#111827',
+          },
+          Card: {
+            boxShadow: 'none', /* Level 0 shadow */
+            borderRadiusLG: 16,
+            headerFontSize: 20,
+            colorBorderSecondary: '#E5E7EB',
+            paddingLG: 24,
+            colorBgContainer: '#FAFAFB',
+          },
+          Button: {
+            borderRadius: 12,
+            controlHeight: 44, // Medium by default
+            controlHeightSM: 36,
+            controlHeightLG: 52,
+            paddingInline: 24,
+          },
+          Input: {
+            borderRadius: 12,
+            controlHeight: 48,
+            paddingInline: 16,
+            colorBorder: '#E5E7EB',
+          },
+          Select: {
+            borderRadius: 12,
+            controlHeight: 48,
+          },
+          Table: {
+            headerBg: '#FFFFFF',
+            headerColor: '#111827',
+            borderRadius: 12,
+            borderColor: '#E5E7EB',
+            rowHoverBg: '#F3F4F6',
+          },
+          Modal: {
+            borderRadiusLG: 20,
+            paddingLG: 32,
+            paddingMD: 32,
+          }
+        }
+      }}
+    >
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/live/:pageId" element={<LiveViewer />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="identity" element={<UserManagement />} />
+            <Route path="media" element={<MediaLibrary />} />
+            <Route path="cms">
+              <Route index element={<Collections />} />
+              <Route path=":collectionId" element={<DataGrid />} />
+            </Route>
+            <Route path="site">
+              <Route index element={<SitesList />} />
+              <Route path=":siteId/pages" element={<PagesList />} />
+              <Route path="pages/:pageId/builder" element={<PageBuilder />} />
+            </Route>
+            <Route path="notifications" element={<NotificationsList />} />
 
-export default App
+            <Route path="ai">
+              <Route path="resume" element={<ResumeBuilder />} />
+              <Route path="interview" element={<InterviewSession />} />
+              <Route path="logs" element={<AgentLogs />} />
+              <Route path="generate" element={<AIGenerateSite />} />
+              <Route path="agent" element={<AgentWorkspace />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </ErrorBoundary>
+    </ConfigProvider>
+  );
+};
+
+export default App;

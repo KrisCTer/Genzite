@@ -39,14 +39,6 @@
     "prisma:studio:ai": "node scripts/dev.mjs prisma studio --service ai-service",
     "prisma:studio:identity": "node scripts/dev.mjs prisma studio --service identity-service"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma",
-      "unrs-resolver"
-    ]
-  },
   "devDependencies": {
     "concurrently": "^10.0.3"
   }

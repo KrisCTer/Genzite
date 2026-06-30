@@ -45,8 +45,8 @@ export class CmsGeneratorService {
       const result = await this.ai.generateJson<GeneratedCms>(filledPrompt, {
         model: model as any,
         systemInstruction: CMS_GENERATION_SYSTEM,
-        temperature: 0.5,
-        maxOutputTokens: 4096,
+        temperature: 0.7,
+        maxOutputTokens: 8192,
       });
 
       await this.prisma.aiTaskLog.update({

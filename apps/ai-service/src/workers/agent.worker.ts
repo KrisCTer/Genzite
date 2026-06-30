@@ -20,7 +20,7 @@ export class AgentWorker extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any>): Promise<void> {
+  async process(job: Job<any>): Promise<any> {
     this.logger.log(`Processing Agent Task: ${job.name}, job=${job.id}`);
     
     // Create an AiTaskLog record to track execution
@@ -55,6 +55,7 @@ export class AgentWorker extends WorkerHost {
       });
 
       this.logger.log(`Agent Task completed: ${job.name}, job=${job.id}`);
+      return result;
     } catch (error) {
       this.logger.error(`Agent Task failed: ${job.name}, job=${job.id}, error=${error}`);
       

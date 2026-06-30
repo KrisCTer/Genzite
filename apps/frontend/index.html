@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <!-- SECURITY: Content Security Policy (Basic XSS & Clickjacking Protection) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https:; connect-src 'self' http://localhost:* https://*; media-src 'self' data:;" />
+    
+    <!-- SEO: Meta Tags -->
+    <title>Genzite | Premium SaaS Platform</title>
+    <meta name="description" content="Genzite is an advanced SaaS platform offering AI-driven site generation, Headless CMS, and next-gen workspaces." />
+    <meta name="keywords" content="SaaS, Workspace, Website Builder, Headless CMS, AI, Genzite" />
+    <meta name="theme-color" content="#2563EB" />
+
+    <!-- SEO: OpenGraph (Facebook/Zalo/LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Genzite Platform - Xây dựng website bằng AI" />
+    <meta property="og:description" content="Nền tảng tạo website tự động bằng AI, quản lý dữ liệu linh hoạt (Headless CMS) và phỏng vấn trực tuyến." />
+    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:url" content="https://genzite.com/" />
   </head>
   <body>
     <div id="root"></div>

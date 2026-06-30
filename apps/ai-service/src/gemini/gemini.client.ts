@@ -10,6 +10,7 @@ import {
   type Tool as GeminiTool,
 } from '@google/generative-ai';
 import { GeminiApiException, GeminiParseException } from './gemini.exception.js';
+import * as fs from 'fs';
 
 export type GeminiModelName =
   | 'gemini-2.0-flash'
@@ -30,7 +31,17 @@ export class GeminiClient {
   private readonly defaultModel: GeminiModelName;
 
   constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.getOrThrow<string>('GEMINI_API_KEY');
+    let apiKey = this.config.get<string>('GEMINI_API_KEY');
+    if (!apiKey) {
+      const keys = this.config.get<string>('GEMINI_API_KEYS');
+      if (keys) {
+        apiKey = keys.split(',')[0].trim();
+      }
+    }
+    if (!apiKey) {
+      throw new Error('Configuration key "GEMINI_API_KEY" or "GEMINI_API_KEYS" does not exist');
+    }
+
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.defaultModel = (this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash') as GeminiModelName;
     this.logger.log(`Gemini client initialized (default model: ${this.defaultModel})`);
@@ -74,6 +85,41 @@ export class GeminiClient {
   }
 
   /**
+   * Helper to repair truncated JSON strings by auto-closing arrays, objects, and strings.
+   */
+  private repairJson(str: string): string {
+    let inString = false;
+    let isEscaped = false;
+    const stack: string[] = [];
+
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      if (inString) {
+        if (char === '\\' && !isEscaped) {
+          isEscaped = true;
+        } else {
+          if (char === '"' && !isEscaped) {
+            inString = false;
+          }
+          isEscaped = false;
+        }
+      } else {
+        if (char === '"') inString = true;
+        else if (char === '{') stack.push('}');
+        else if (char === '[') stack.push(']');
+        else if (char === '}' || char === ']') stack.pop();
+      }
+    }
+
+    let repaired = str;
+    if (inString) repaired += '"';
+    while (stack.length > 0) {
+      repaired += stack.pop();
+    }
+    return repaired;
+  }
+
+  /**
    * Generate content with guaranteed JSON output.
    * Uses Gemini's responseMimeType: 'application/json' for structured responses.
    */
@@ -100,23 +146,48 @@ export class GeminiClient {
       this.logger.debug(`Generated JSON (${text.length} chars, model: ${modelName ?? this.defaultModel})`);
 
       // Robust JSON extraction
-      const start = Math.min(
-        text.indexOf('{') === -1 ? Infinity : text.indexOf('{'),
-        text.indexOf('[') === -1 ? Infinity : text.indexOf('[')
-      );
-      const end = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
-      if (start !== Infinity && end !== -1 && start <= end) {
-        text = text.substring(start, end + 1);
+      let jsonText = text.trim();
+      
+      // Strip markdown code blocks if present
+      const markdownMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (markdownMatch && markdownMatch[1]) {
+        jsonText = markdownMatch[1].trim();
       } else {
-        // Fallback: strip markdown blocks if no brackets found (though JSON.parse will likely fail anyway)
-        text = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+        // Find the first { or [ and the last } or ]
+        const startBrace = jsonText.indexOf('{');
+        const startBracket = jsonText.indexOf('[');
+        const start = Math.min(
+          startBrace === -1 ? Infinity : startBrace,
+          startBracket === -1 ? Infinity : startBracket
+        );
+
+        if (start !== Infinity) {
+          const isArray = start === startBracket;
+          const end = isArray ? jsonText.lastIndexOf(']') : jsonText.lastIndexOf('}');
+          if (end !== -1 && start <= end) {
+            jsonText = jsonText.substring(start, end + 1);
+          }
+        }
       }
 
+      // Quick fix for common LLM trailing comma issues in JSON
+      jsonText = jsonText.replace(/,\s*([\]}])/g, '$1');
+
+      // Attempt to auto-close any truncated structures
+      jsonText = this.repairJson(jsonText);
+
       try {
-        return JSON.parse(text) as T;
+        return JSON.parse(jsonText) as T;
       } catch {
-        this.logger.error(`Parse error on text: ${text}`);
-        throw new GeminiParseException('Failed to parse Gemini JSON response', text);
+        // Write to file for debugging
+        try {
+          fs.writeFileSync('debug-gemini-failed.json', jsonText);
+        } catch (e) {
+          this.logger.error(`Failed to write debug file: ${e}`);
+        }
+        
+        this.logger.error(`Parse error on text: ${jsonText.substring(0, 200)}...`);
+        throw new GeminiParseException('Failed to parse Gemini JSON response', jsonText);
       }
     } catch (error) {
       if (error instanceof GeminiParseException) throw error;

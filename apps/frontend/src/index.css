@@ -1,10 +1,116 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Outfit', sans-serif;
+:root {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  
+  /* Neutral Colors */
+  --color-background: #FFFFFF;
+  --color-surface: #FAFAFB;
+  --color-surface-secondary: #F5F6F8;
+  --color-border: #E5E7EB;
+  --color-divider: #ECEEF2;
+  --color-hover: #F3F4F6;
+  --color-muted: #9CA3AF;
+  
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  --color-disabled: #D1D5DB;
+
+  /* Accent Colors */
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-active: #1E40AF;
+  --color-primary-light: #DBEAFE;
+
+  /* Status Colors */
+  --color-success: #22C55E;
+  --color-success-bg: #F0FDF4;
+  --color-warning: #F59E0B;
+  --color-warning-bg: #FFFBEB;
+  --color-error: #EF4444;
+  --color-error-bg: #FEF2F2;
+  --color-info: #3B82F6;
+  --color-info-bg: #EFF6FF;
+
+  /* Grid & Spacing */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-2: 0 4px 12px rgba(0,0,0,.06);
+  --shadow-3: 0 12px 24px rgba(0,0,0,.08);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 180ms ease-out;
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout Utilities */
+.workspace-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-32);
+}
+
+.page-header {
+  margin-bottom: var(--space-32);
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.page-description {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-8);
+}
+
+/* Custom Scrollbar for premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }

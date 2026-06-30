@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Headers, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, Headers, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { AI_QUEUES } from '../workers/queue.constants.js';
@@ -78,6 +78,21 @@ export class AgentController {
     return {
       message: 'UI Agent job accepted',
       jobId: job.id,
+    };
+  }
+
+  @Get('job/:id')
+  async getJobStatus(@Param('id') id: string) {
+    const job = await this.agentQueue.getJob(id);
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    const state = await job.getState();
+    return {
+      id: job.id,
+      state,
+      result: job.returnvalue,
+      failedReason: job.failedReason,
     };
   }
 }

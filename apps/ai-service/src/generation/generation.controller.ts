@@ -1,4 +1,5 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Headers, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { AI_QUEUES } from '../workers/queue.constants.js';
@@ -48,6 +49,38 @@ export class GenerationController {
     return {
       message: 'CMS generation job accepted',
       jobId: job.id,
+    };
+  }
+
+  @SkipThrottle()
+  @Get('site/job/:id')
+  async getSiteJobStatus(@Param('id') id: string) {
+    const job = await this.siteQueue.getJob(id);
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    const state = await job.getState();
+    return {
+      id: job.id,
+      state,
+      result: job.returnvalue,
+      failedReason: job.failedReason,
+    };
+  }
+
+  @SkipThrottle()
+  @Get('cms/job/:id')
+  async getCmsJobStatus(@Param('id') id: string) {
+    const job = await this.cmsQueue.getJob(id);
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    const state = await job.getState();
+    return {
+      id: job.id,
+      state,
+      result: job.returnvalue,
+      failedReason: job.failedReason,
     };
   }
 }

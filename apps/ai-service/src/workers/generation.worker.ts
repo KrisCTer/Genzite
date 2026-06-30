@@ -35,20 +35,26 @@ export class SiteGenerationWorker extends WorkerHost {
     super();
   }
 
-  async process(job: Job<SiteGenerationJobData>): Promise<void> {
+  async process(job: Job<SiteGenerationJobData>): Promise<any> {
     const { prompt, ownerId, model } = job.data;
-    this.logger.log(`Processing site generation: job=${job.id}, owner=${ownerId}`);
+    this.logger.log(`Processing site generation: job=${job.id}, owner=${ownerId}, model=${model ?? 'default'}`);
 
-    const result = await this.siteGenerator.generate(prompt, ownerId, model);
+    try {
+      const result = await this.siteGenerator.generate(prompt, ownerId, model);
 
-    await this.aiProducer.emitSiteGenerated({
-      siteId: result.site.subdomain,
-      prompt,
-      ownerId,
-      siteData: result,
-    });
+      await this.aiProducer.emitSiteGenerated({
+        siteId: result.site.subdomain,
+        prompt,
+        ownerId,
+        siteData: result,
+      });
 
-    this.logger.log(`Site generated: "${result.site.name}" with ${result.pages.length} pages`);
+      this.logger.log(`Site generated: "${result.site.name}" with ${result.pages.length} pages`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Site generation FAILED (job=${job.id}): ${error instanceof Error ? error.message : error}`);
+      throw error;
+    }
   }
 }
 
@@ -66,18 +72,24 @@ export class CmsGenerationWorker extends WorkerHost {
     super();
   }
 
-  async process(job: Job<CmsGenerationJobData>): Promise<void> {
+  async process(job: Job<CmsGenerationJobData>): Promise<any> {
     const { siteId, prompt, ownerId, model } = job.data;
-    this.logger.log(`Processing CMS generation: job=${job.id}, site=${siteId}`);
+    this.logger.log(`Processing CMS generation: job=${job.id}, site=${siteId}, model=${model ?? 'default'}`);
 
-    const result = await this.cmsGenerator.generate(siteId, prompt, ownerId, model);
+    try {
+      const result = await this.cmsGenerator.generate(siteId, prompt, ownerId, model);
 
-    await this.aiProducer.emitCmsGenerated({
-      siteId,
-      prompt,
-      ownerId,
-    });
+      await this.aiProducer.emitCmsGenerated({
+        siteId,
+        prompt,
+        ownerId,
+      });
 
-    this.logger.log(`CMS generated: site=${siteId}, ${result.collections.length} collections`);
+      this.logger.log(`CMS generated: site=${siteId}, ${result.collections.length} collections`);
+      return result;
+    } catch (error) {
+      this.logger.error(`CMS generation FAILED (job=${job.id}): ${error instanceof Error ? error.message : error}`);
+      throw error;
+    }
   }
 }

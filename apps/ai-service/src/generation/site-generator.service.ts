@@ -45,7 +45,7 @@ export class SiteGeneratorService {
         model: model as any,
         systemInstruction: SITE_GENERATION_SYSTEM,
         temperature: 0.7,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
       });
 
       await this.prisma.aiTaskLog.update({
