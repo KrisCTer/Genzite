@@ -18,14 +18,26 @@ interface ReflectionResult {
   feedback?: string;
 }
 
-const PM_SYSTEM_INSTRUCTION = `You are an expert Product Manager and UX Designer. 
+const PM_SYSTEM_INSTRUCTION = `You are an expert Product Manager and UX Designer for Genzite. 
 Your job is to take a user's brief request and expand it into a highly detailed, professional UI design prompt.
-Describe the layout, color palette, typography, interactive elements, and overall aesthetic.
-Do NOT generate code. Only generate the descriptive prompt.`;
+
+CRITICAL REQUIREMENT - You MUST append this EXACT Design System block to the very bottom of your output prompt:
+**DESIGN SYSTEM (REQUIRED):**
+- **Frameworks:** React (Function Components), Tailwind CSS v4, Lucide React (icons), Framer Motion (animations).
+- **Theme:** Dark mode by default (Backgrounds: #09090b, #0f172a, #111827).
+- **Typography:** 'Inter' font for everything. Use semantic sizes (text-sm, text-base, text-2xl, etc.).
+- **Colors:** Use Slate/Zinc for neutrals. Primary accent should be Cyan/Emerald gradient or #06B6D4. No Purple/Violet.
+- **Components:** Use shadcn-like clean components with rounded corners (rounded-xl, rounded-2xl).
+- **Interactive:** Add hover effects (hover:scale-105, hover:bg-white/10), smooth transitions (transition-all duration-300).
+- **Output:** MUST use semantic HTML5 elements. MUST NOT use generic HTML tables for layouts.
+
+Do NOT generate code yourself. Only generate the descriptive prompt including the required Design System block.`;
 
 const AUDITOR_SYSTEM_INSTRUCTION = `You are a strict UX/UI QA Auditor. 
 Your job is to review HTML/Tailwind code to ensure it meets high standards of accessibility, visual hierarchy, and usability.
 Return JSON strictly in this format: { "passed": boolean, "feedback": "string explaining what needs to be fixed if passed is false" }`;
+
+import { ToolRegistry } from '../agent/tools/tool.registry.js';
 
 @Injectable()
 export class SiteGeneratorService {
@@ -36,6 +48,7 @@ export class SiteGeneratorService {
     private readonly prisma: PrismaService,
     private readonly rag: RagService,
     private readonly guardrail: GuardrailService,
+    private readonly toolRegistry: ToolRegistry,
   ) { }
 
   async generate(
@@ -69,10 +82,12 @@ export class SiteGeneratorService {
 
       // STEP 2: PM (Gemini) writes refined prompt
       onProgress?.('Product Manager is drafting design spec...', 30);
+      
       const refinedPrompt = await this.ai.generateContent(pmPrompt, {
         model: model as any,
         systemInstruction: PM_SYSTEM_INSTRUCTION,
         temperature: 0.7,
+        tools: this.toolRegistry.getDeclarations(), // Allow Gemini to use MCP tools if it needs to check codebase
       });
 
       this.logger.log(`Refined Prompt: ${refinedPrompt.substring(0, 100)}...`);
