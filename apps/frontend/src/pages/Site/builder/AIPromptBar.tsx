@@ -27,6 +27,7 @@ const QUICK_PROMPTS = [
 ];
 
 const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState<string | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,7 +38,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
   const siteMutation = useMutation({
     mutationFn: generateSiteApi,
     onSuccess: (data) => {
-      message.info('AI is generating your site…');
+      messageApi.info('AI is generating your site…');
       // Start polling for completion
       pollRef.current = setInterval(async () => {
         try {
@@ -47,13 +48,13 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
             pollRef.current = null;
             setIsGenerating(false);
             setPrompt('');
-            message.success('Site generated! Loading…');
+            messageApi.success('Site generated! Loading…');
             onGenerated?.(data.jobId);
           } else if (job.state === 'failed') {
             clearInterval(pollRef.current!);
             pollRef.current = null;
             setIsGenerating(false);
-            message.error(job.failedReason || 'Generation failed');
+            messageApi.error(job.failedReason || 'Generation failed');
           }
         } catch {
           // Ignore polling errors
@@ -62,7 +63,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
     },
     onError: (error: any) => {
       setIsGenerating(false);
-      message.error(error.response?.data?.message || 'Failed to start generation');
+      messageApi.error(error.response?.data?.message || 'Failed to start generation');
     },
   });
 
@@ -89,8 +90,10 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
   }, []);
 
   return (
-    <div className={`ai-prompt-bar ${compact ? 'compact' : ''} ${isGenerating ? 'generating' : ''}`}>
-      {/* Quick prompts (toggle) */}
+    <>
+      {contextHolder}
+      <div className={`ai-prompt-bar ${compact ? 'compact' : ''} ${isGenerating ? 'generating' : ''}`}>
+        {/* Quick prompts (toggle) */}
       {showQuick && !isGenerating && (
         <div className="ai-prompt-quick">
           {QUICK_PROMPTS.map((q) => (
@@ -164,6 +167,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
         </div>
       </div>
     </div>
+    </>
   );
 };
 

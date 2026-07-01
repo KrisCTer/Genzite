@@ -20,9 +20,23 @@ Requirements:
 - Content should be realistic and relevant to the business
 - Slugs should be lowercase, hyphenated, SEO-friendly
 
+CRITICAL LAYOUT RULES (CANVAS ABSOLUTE POSITIONING):
+- You must design the layout on a 1440px wide canvas grid (divided into 12 columns, 120px each).
+- Every widget MUST have a "geometry" object defining exact coordinates: x, y, width, height.
+- Do NOT overlap widgets unless intentionally creating a layered effect (e.g. glassmorphism background behind a card).
+- Calculate coordinates carefully. For example, if Card 1 is at x: 0, width: 480, Card 2 must start at x: 480.
+- y must increase sequentially as you go down the page.
+
+CRITICAL DESIGN RULES (TECH-NOIR THEME):
+- DO NOT use hex colors. You MUST inject premium dark-mode CSS design variables into contentConfig.
+- Use 'var(--gz-dark-1)', 'var(--gz-dark-2)', 'var(--gz-dark-3)' or 'rgba(11, 15, 25, 0.4)' for backgrounds.
+- Use 'var(--color-accent)' for primary buttons/CTAs.
+- Use 'var(--color-text-primary)' for headings and 'var(--color-text-secondary)' for body text.
+- Use 'backdrop-filter: blur(16px)' for glassmorphism effects where applicable.
+
 Available widget types: HEADER, HERO, CARD, TEXT, IMAGE, FORM, FOOTER, GALLERY, PRICING, TESTIMONIAL, FEATURES, CTA, STATS, FAQ, CONTACT
 
-Respond with this JSON structure:
+Respond with this exact JSON structure:
 {
   "site": { "name": "string", "subdomain": "string" },
   "pages": [
@@ -32,7 +46,13 @@ Respond with this JSON structure:
       "widgets": [
         {
           "type": "WIDGET_TYPE",
-          "contentConfig": { "title": "string", "subtitle": "string", "items": [] },
+          "geometry": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 480
+          },
+          "contentConfig": { "title": "string", "subtitle": "string", "bgColor": "string", "textColor": "string", "items": [] },
           "sortOrder": 1
         }
       ]
