@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Table, Button, Card, Typography, Space, Modal, Form, Input, message, Popconfirm } from 'antd';
-import { PlusOutlined, FileTextOutlined, ArrowLeftOutlined, EditOutlined, BuildOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Row, Col, Button, Card, Typography, Space, Modal, Form, Input, message, Popconfirm, Spin } from 'antd';
+import { PlusOutlined, FileTextOutlined, ArrowLeftOutlined, EditOutlined, DeleteOutlined, LayoutOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchPagesApi, createPageApi, updatePageApi, deletePageApi, type Page } from '../../api/sites';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const PagesList: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
@@ -78,63 +78,6 @@ const PagesList: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const columns = [
-    {
-      title: 'Page Title',
-      dataIndex: 'title',
-      key: 'title',
-      render: (text: string) => (
-        <Space>
-          <FileTextOutlined style={{ color: '#1677ff' }} />
-          <strong>{text}</strong>
-        </Space>
-      ),
-    },
-    {
-      title: 'Slug (Path)',
-      dataIndex: 'slug',
-      key: 'slug',
-      render: (slug: string) => `/${slug}`,
-    },
-    {
-      title: 'Order',
-      dataIndex: 'sortOrder',
-      key: 'sortOrder',
-    },
-    {
-      title: 'Created At',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: any, record: Page) => (
-        <Space size="middle">
-          <Button 
-            type="primary" 
-            size="small" 
-            icon={<BuildOutlined />} 
-            onClick={() => navigate(`/admin/site/pages/${record.id}/builder`)}
-          >
-            Page Builder
-          </Button>
-          <Button icon={<EditOutlined />} type="text" onClick={() => handleOpenModal(record)} />
-          <Popconfirm
-            title="Delete page"
-            description="Are you sure to delete this page?"
-            onConfirm={() => deleteMutation.mutate(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button icon={<DeleteOutlined />} type="text" danger />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -150,23 +93,60 @@ const PagesList: React.FC = () => {
         </Button>
       </div>
 
-      <Card 
-        bordered
-        styles={{ body: { padding: 0 } }}
-      >
-        {isError && (
-          <div style={{ padding: 16, color: '#EF4444', textAlign: 'center', background: '#FEF2F2' }}>
-            Failed to load pages. Make sure Site Service is running.
-          </div>
-        )}
-        <Table
-          columns={columns}
-          dataSource={pages || []}
-          loading={isLoading}
-          rowKey="id"
-          pagination={{ pageSize: 10, style: { padding: '16px 24px', margin: 0 } }}
-        />
-      </Card>
+      {isError && (
+        <div style={{ padding: 16, color: '#EF4444', textAlign: 'center', background: '#FEF2F2', borderRadius: 8 }}>
+          Failed to load pages. Make sure Site Service is running.
+        </div>
+      )}
+
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: '64px 0' }}>
+          <Spin size="large" />
+        </div>
+      ) : (
+        <Row gutter={[24, 24]}>
+          {(pages || []).sort((a, b) => a.sortOrder - b.sortOrder).map((page) => (
+            <Col xs={24} sm={12} md={8} lg={6} key={page.id}>
+              <Card
+                hoverable
+                variant="outlined"
+                onClick={() => navigate(`/admin/site/pages/${page.id}/builder`)}
+                styles={{ body: { padding: 0 } }}
+                style={{ overflow: 'hidden', borderRadius: 12, display: 'flex', flexDirection: 'column', height: '100%', cursor: 'pointer' }}
+              >
+                <div style={{ height: 160, background: 'var(--gz-dark-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--color-border-subtle)', transition: 'background 0.3s ease' }} className="page-card-cover">
+                  <LayoutOutlined style={{ fontSize: 48, color: 'var(--color-accent)', opacity: 0.5 }} />
+                </div>
+                <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <Title level={5} style={{ margin: '0 0 8px 0', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center' }}>
+                      <FileTextOutlined style={{ marginRight: 8, color: '#1677ff' }} />
+                      {page.title}
+                    </Title>
+                    <Text style={{ color: 'var(--color-text-secondary)' }}>/{page.slug}</Text>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }} onClick={(e) => e.stopPropagation()}>
+                    <Text style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>Created: {new Date(page.createdAt).toLocaleDateString()}</Text>
+                    <Space size="small">
+                      <Button icon={<EditOutlined />} type="text" onClick={(e) => { e.stopPropagation(); handleOpenModal(page); }} />
+                      <Popconfirm
+                        title="Delete page"
+                        description="Are you sure to delete this page?"
+                        onConfirm={(e) => { e?.stopPropagation(); deleteMutation.mutate(page.id); }}
+                        onCancel={(e) => e?.stopPropagation()}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <Button icon={<DeleteOutlined />} type="text" danger onClick={(e) => e.stopPropagation()} />
+                      </Popconfirm>
+                    </Space>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
 
       <Modal
         title={editingPage ? "Edit Page" : "Create New Page"}

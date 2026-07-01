@@ -73,16 +73,26 @@ const LiveViewer: React.FC = () => {
         </Button>
       </Link>
 
-      <div style={{ position: 'relative', width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {[...widgets].sort((a, b) => a.sortOrder - b.sortOrder).map(widget => (
-          <div key={widget.id} style={{ width: '100%' }}>
-            <WidgetRenderer
-              type={widget.type}
-              config={widget.contentConfig}
-              isActive={false} // never active on live site
-            />
-          </div>
-        ))}
+      <div style={{ position: 'relative', width: '1440px', margin: '0 auto', minHeight: '100vh' }}>
+        {[...widgets].map(widget => {
+          // Default geometry if none was saved yet
+          const geom = widget.contentConfig?.geometry || { x: 0, y: 0, width: 1440, height: 200 };
+          return (
+            <div key={widget.id} style={{ 
+              position: 'absolute',
+              left: geom.x,
+              top: geom.y,
+              width: geom.width,
+              height: geom.height
+            }}>
+              <WidgetRenderer
+                type={widget.type}
+                config={widget.contentConfig}
+                isActive={false}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
