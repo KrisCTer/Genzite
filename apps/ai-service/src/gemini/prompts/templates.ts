@@ -19,6 +19,8 @@ Requirements:
 - Each page should have 2-5 widgets arranged logically
 - Content should be realistic and relevant to the business
 - Slugs should be lowercase, hyphenated, SEO-friendly
+- E-COMMERCE RULE: If the user describes a store, shop, or e-commerce business, you MUST include 'PRODUCT_GRID', 'CART', and 'CHECKOUT' widgets. Also generate a separate Admin page with 'ORDER_TABLE' and 'ADMIN_PANEL' widgets.
+
 
 CRITICAL LAYOUT RULES (CANVAS ABSOLUTE POSITIONING):
 - You must design the layout on a 1440px wide canvas grid (divided into 12 columns, 120px each).

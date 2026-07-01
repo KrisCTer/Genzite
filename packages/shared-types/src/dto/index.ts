@@ -81,7 +81,7 @@ export interface WidgetDto {
   sortOrder: number;
 }
 
-export type WidgetType = 'HEADER' | 'HERO' | 'CARD' | 'TEXT' | 'IMAGE' | 'FORM' | 'FOOTER' | 'GALLERY' | 'PRICING' | 'TESTIMONIAL';
+export type WidgetType = 'HEADER' | 'HERO' | 'CARD' | 'TEXT' | 'IMAGE' | 'FORM' | 'FOOTER' | 'GALLERY' | 'PRICING' | 'TESTIMONIAL' | 'FEATURES' | 'CTA' | 'STATS' | 'FAQ' | 'CONTACT' | 'PRODUCT_GRID' | 'CART' | 'CHECKOUT' | 'SEARCH' | 'ORDER_TABLE' | 'ADMIN_PANEL' | 'PAYMENT_STATUS';
 
 export interface UpdateWidgetsDto {
   widgets: Array<{

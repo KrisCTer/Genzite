@@ -219,6 +219,8 @@ export const KAFKA_TOPICS = {
   RESUME_ANALYZED: 'resume.analyzed',
   INTERVIEW_COMPLETED: 'interview.completed',
   AUDIT_LOG: 'audit.log',
+  ORDER_CREATED: 'order.created',
+  PAYMENT_COMPLETED: 'payment.completed',
 } as const;
 
 

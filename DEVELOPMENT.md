@@ -169,6 +169,7 @@ pnpm run prisma:migrate:media
 pnpm run prisma:migrate:notification
 pnpm run prisma:migrate:ai
 pnpm run prisma:migrate:identity
+pnpm run prisma:migrate:commerce
 ```
 
 ### When to run again?
@@ -205,6 +206,9 @@ pnpm run dev:notification
 
 # Terminal 6 — AI Service (port 3006)
 pnpm run dev:ai
+
+# Terminal 7 — Commerce Service (port 3007)
+pnpm run dev:commerce
 ```
 
 > **💡 You don't need to run them all at once!** If you are only working on site-service, just run `dev:gateway` + `dev:site`.
@@ -257,6 +261,7 @@ API Gateway (:3000)
     ├── /api/v1/media/*         → Media Service (:3004)
     ├── /api/v1/notifications/* → Notification Service (:3005)
     ├── /api/v1/ai/*            → AI Service (:3006)
+    ├── /api/v1/commerce/*      → Commerce Service (:3007)
     └── /api/v1/auth/*          → Identity Service (:3001) [not running]
 ```
 
@@ -272,6 +277,7 @@ Genzite/
 │   ├── media-service/       # File upload, S3
 │   ├── notification-service/# Email, Push, In-App
 │   ├── ai-service/          # Multi-Agent, MCP, Pipeline Engine, Gemini AI
+│   ├── commerce-service/    # E-Commerce & SaaS Billing
 │   └── frontend/            # React + Vite + Tailwind
 │
 ├── packages/                # Shared libraries
@@ -303,6 +309,7 @@ Each service uses its own PostgreSQL schema (within the same database):
 | media-service | `media` | media_files, media_folders, media_tags |
 | notification-service | `notification` | notifications, notification_templates |
 | ai-service | `ai` | resumes, interview_sessions, ai_task_logs |
+| commerce-service | `commerce` | carts, orders, payment_transactions |
 
 ---
 
@@ -344,6 +351,7 @@ pnpm run dev:data                    # Data Service (:3003)
 pnpm run dev:media                   # Media Service (:3004)
 pnpm run dev:notification            # Notification (:3005)
 pnpm run dev:ai                      # AI Service (:3006)
+pnpm run dev:commerce                # Commerce Service (:3007)
 pnpm run dev:frontend                # Frontend (:5173)
 ```
 

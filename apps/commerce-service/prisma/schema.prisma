@@ -1,0 +1,81 @@
+// ============================================================
+// Genzite Commerce Service — Prisma Schema
+// PostgreSQL schema isolation: "commerce"
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client-commerce"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["commerce"]
+}
+
+// ======================== CART ========================
+
+model Cart {
+  id        String   @id @default(uuid())
+  siteId    String   @map("site_id")
+  sessionId String   @map("session_id")  // Anonymous user cart
+  userId    String?  @map("user_id")     // Registered user cart
+  items     Json     @default("[]")      // JSONB: [{productId, name, price, qty, image}]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([siteId, sessionId])
+  @@index([siteId, userId])
+  @@map("carts")
+  @@schema("commerce")
+}
+
+// ======================== ORDER ========================
+
+model Order {
+  id              String   @id @default(uuid())
+  siteId          String   @map("site_id")
+  orderNumber     String   @unique @map("order_number")
+  customerId      String?  @map("customer_id")
+  customerEmail   String   @map("customer_email")
+  customerName    String   @map("customer_name")
+  shippingAddress Json     @map("shipping_address")    // JSONB
+  items           Json     @default("[]")              // JSONB snapshot of cart
+  subtotal        Decimal  @db.Decimal(10, 2)
+  shippingFee     Decimal  @default(0) @db.Decimal(10, 2) @map("shipping_fee")
+  total           Decimal  @db.Decimal(10, 2)
+  status          String   @default("PENDING")        // PENDING → PAID → SHIPPED → DELIVERED → CANCELLED
+  paymentMethod   String   @default("COD") @map("payment_method") // COD or PAYOS
+  paymentId       String?  @map("payment_id")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([siteId, status])
+  @@index([siteId, customerEmail])
+  @@map("orders")
+  @@schema("commerce")
+}
+
+// ======================== PAYMENT TRANSACTION ========================
+
+model PaymentTransaction {
+  id              String   @id @default(uuid())
+  siteId          String   @map("site_id")
+  orderId         String   @map("order_id")
+  gateway         String   @default("payos")            // "payos"
+  gatewayTxId     String?  @map("gateway_tx_id")      // External transaction ID
+  amount          Decimal  @db.Decimal(10, 2)
+  currency        String   @default("VND")
+  status          String   @default("PENDING")        // PENDING → SUCCESS → FAILED → REFUNDED
+  metadata        Json     @default("{}")              // JSONB: gateway-specific data
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([siteId, status])
+  @@map("payment_transactions")
+  @@schema("commerce")
+}

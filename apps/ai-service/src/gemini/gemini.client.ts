@@ -10,7 +10,6 @@ import {
   type Tool as GeminiTool,
 } from '@google/generative-ai';
 import { GeminiApiException, GeminiParseException } from './gemini.exception.js';
-import * as fs from 'fs';
 
 export type GeminiModelName =
   | 'gemini-2.0-flash'
@@ -27,29 +26,38 @@ interface GenerateOptions {
 @Injectable()
 export class GeminiClient {
   private readonly logger = new Logger(GeminiClient.name);
-  private readonly genAI: GoogleGenerativeAI;
+  private readonly genAIClients: GoogleGenerativeAI[];
   private readonly defaultModel: GeminiModelName;
+  private currentClientIndex = 0;
 
   constructor(private readonly config: ConfigService) {
-    let apiKey = this.config.get<string>('GEMINI_API_KEY');
-    if (!apiKey) {
-      const keys = this.config.get<string>('GEMINI_API_KEYS');
-      if (keys) {
-        apiKey = keys.split(',')[0].trim();
-      }
-    }
-    if (!apiKey) {
-      throw new Error('Configuration key "GEMINI_API_KEY" or "GEMINI_API_KEYS" does not exist');
+    const keysStr = this.config.get<string>('GEMINI_API_KEYS');
+    const legacyKey = this.config.get<string>('GEMINI_API_KEY');
+    
+    let apiKeys: string[] = [];
+    if (keysStr) {
+      apiKeys = keysStr.split(',').map((k) => k.trim()).filter((k) => k.length > 0);
+    } else if (legacyKey) {
+      apiKeys = [legacyKey];
     }
 
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    if (apiKeys.length === 0) {
+      throw new Error('GEMINI_API_KEYS or GEMINI_API_KEY is not defined in environment variables');
+    }
+
+    this.genAIClients = apiKeys.map((key) => new GoogleGenerativeAI(key));
     this.defaultModel = (this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.0-flash') as GeminiModelName;
-    this.logger.log(`Gemini client initialized (default model: ${this.defaultModel})`);
+    this.logger.log(`Gemini client initialized with ${this.genAIClients.length} keys (default model: ${this.defaultModel})`);
   }
 
   private getModel(modelName?: GeminiModelName, systemInstruction?: string): GenerativeModel {
     const name = modelName ?? this.defaultModel;
-    return this.genAI.getGenerativeModel({
+    
+    // Round-robin selection
+    const client = this.genAIClients[this.currentClientIndex];
+    this.currentClientIndex = (this.currentClientIndex + 1) % this.genAIClients.length;
+    
+    return client.getGenerativeModel({
       model: name,
       ...(systemInstruction ? { systemInstruction } : {}),
     });
@@ -85,41 +93,6 @@ export class GeminiClient {
   }
 
   /**
-   * Helper to repair truncated JSON strings by auto-closing arrays, objects, and strings.
-   */
-  private repairJson(str: string): string {
-    let inString = false;
-    let isEscaped = false;
-    const stack: string[] = [];
-
-    for (let i = 0; i < str.length; i++) {
-      const char = str[i];
-      if (inString) {
-        if (char === '\\' && !isEscaped) {
-          isEscaped = true;
-        } else {
-          if (char === '"' && !isEscaped) {
-            inString = false;
-          }
-          isEscaped = false;
-        }
-      } else {
-        if (char === '"') inString = true;
-        else if (char === '{') stack.push('}');
-        else if (char === '[') stack.push(']');
-        else if (char === '}' || char === ']') stack.pop();
-      }
-    }
-
-    let repaired = str;
-    if (inString) repaired += '"';
-    while (stack.length > 0) {
-      repaired += stack.pop();
-    }
-    return repaired;
-  }
-
-  /**
    * Generate content with guaranteed JSON output.
    * Uses Gemini's responseMimeType: 'application/json' for structured responses.
    */
@@ -146,48 +119,23 @@ export class GeminiClient {
       this.logger.debug(`Generated JSON (${text.length} chars, model: ${modelName ?? this.defaultModel})`);
 
       // Robust JSON extraction
-      let jsonText = text.trim();
-      
-      // Strip markdown code blocks if present
-      const markdownMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-      if (markdownMatch && markdownMatch[1]) {
-        jsonText = markdownMatch[1].trim();
+      const start = Math.min(
+        text.indexOf('{') === -1 ? Infinity : text.indexOf('{'),
+        text.indexOf('[') === -1 ? Infinity : text.indexOf('[')
+      );
+      const end = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
+      if (start !== Infinity && end !== -1 && start <= end) {
+        text = text.substring(start, end + 1);
       } else {
-        // Find the first { or [ and the last } or ]
-        const startBrace = jsonText.indexOf('{');
-        const startBracket = jsonText.indexOf('[');
-        const start = Math.min(
-          startBrace === -1 ? Infinity : startBrace,
-          startBracket === -1 ? Infinity : startBracket
-        );
-
-        if (start !== Infinity) {
-          const isArray = start === startBracket;
-          const end = isArray ? jsonText.lastIndexOf(']') : jsonText.lastIndexOf('}');
-          if (end !== -1 && start <= end) {
-            jsonText = jsonText.substring(start, end + 1);
-          }
-        }
+        // Fallback: strip markdown blocks if no brackets found (though JSON.parse will likely fail anyway)
+        text = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
       }
 
-      // Quick fix for common LLM trailing comma issues in JSON
-      jsonText = jsonText.replace(/,\s*([\]}])/g, '$1');
-
-      // Attempt to auto-close any truncated structures
-      jsonText = this.repairJson(jsonText);
-
       try {
-        return JSON.parse(jsonText) as T;
+        return JSON.parse(text) as T;
       } catch {
-        // Write to file for debugging
-        try {
-          fs.writeFileSync('debug-gemini-failed.json', jsonText);
-        } catch (e) {
-          this.logger.error(`Failed to write debug file: ${e}`);
-        }
-        
-        this.logger.error(`Parse error on text: ${jsonText.substring(0, 200)}...`);
-        throw new GeminiParseException('Failed to parse Gemini JSON response', jsonText);
+        this.logger.error(`Parse error on text: ${text}`);
+        throw new GeminiParseException('Failed to parse Gemini JSON response', text);
       }
     } catch (error) {
       if (error instanceof GeminiParseException) throw error;
@@ -306,7 +254,10 @@ export class GeminiClient {
     const name = modelName ?? this.defaultModel;
     const geminiTools: GeminiTool[] = [{ functionDeclarations: tools }];
 
-    return this.genAI.getGenerativeModel({
+    const client = this.genAIClients[this.currentClientIndex];
+    this.currentClientIndex = (this.currentClientIndex + 1) % this.genAIClients.length;
+
+    return client.getGenerativeModel({
       model: name,
       tools: geminiTools,
       systemInstruction: systemInstruction,
