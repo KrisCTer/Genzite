@@ -73,7 +73,7 @@ export class AiClient {
       try {
         return await this.groq.generateContent(prompt, {
           ...options,
-          model: 'llama3-70b-8192',
+          model: 'llama-3.3-70b-versatile',
         });
       } catch (groqError) {
         this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
@@ -108,7 +108,7 @@ export class AiClient {
       try {
         return await this.groq.generateJson<T>(prompt, {
           ...options,
-          model: 'llama3-70b-8192',
+          model: 'llama-3.3-70b-versatile',
         });
       } catch (groqError) {
         this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
@@ -145,7 +145,7 @@ export class AiClient {
       try {
         return await this.groq.chatJson<T>(systemInstruction, history, message, {
           ...options,
-          model: 'llama3-70b-8192',
+          model: 'llama-3.3-70b-versatile',
         });
       } catch (groqError) {
         this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);

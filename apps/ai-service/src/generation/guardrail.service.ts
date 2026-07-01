@@ -23,7 +23,7 @@ export class GuardrailService {
       const userMessage = `User Input: "${prompt}"\n\nIs this safe?`;
       
       const result = await this.ai.generateJson<GuardrailResult>(userMessage, {
-        model: 'llama3-70b-8192', // Using Groq for ultra-fast processing (~0.2s)
+        model: 'llama-3.3-70b-versatile', // Using Groq for ultra-fast processing (~0.2s)
         systemInstruction: GUARDRAIL_SYSTEM_INSTRUCTION,
         temperature: 0.1, // High precision required, no creativity needed
       });
