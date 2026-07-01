@@ -33,9 +33,13 @@ const LegacyBuilderRedirect = () => {
   return <Navigate to={`/admin/site/canvas/${pageId}`} replace />;
 };
 
+import { Toaster } from '@genzite/shared-ui';
+import '@genzite/shared-ui/styles.css';
+
 const App: React.FC = () => {
   return (
     <ConfigProvider theme={genziteDarkTheme}>
+      <Toaster />
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<LandingPage />} />

@@ -135,7 +135,50 @@ Marks a notification as read.
 
 ---
 
-## 6. AI Module – Google Gemini (`/api/v1/ai`)
+## 6. Commerce Module (`/api/v1/commerce`)
+
+### POST `/api/v1/commerce/orders/checkout`
+Creates an order and returns a PayOS payment link.
+- **Request**:
+  ```json
+  {
+    "siteId": "site-uuid",
+    "customerInfo": { "name": "John Doe", "email": "john@test.com", "phone": "0123456789" },
+    "items": [ { "productId": "record-uuid", "quantity": 1 } ]
+  }
+  ```
+- **Response (201)**:
+  ```json
+  {
+    "orderId": "order-uuid",
+    "paymentUrl": "https://pay.payos.vn/..."
+  }
+  ```
+
+### GET `/api/v1/commerce/orders/:id`
+Gets order status.
+- **Response (200)**: `{ "status": "PENDING" }`
+
+### POST `/api/v1/commerce/payments/webhook`
+PayOS Webhook endpoint to receive payment confirmation. Protected by Checksum verification.
+- **Request**: PayOS Webhook Payload
+
+---
+
+## 7. Internal Endpoints (Not exposed to Gateway)
+
+These endpoints are called between microservices via internal HTTP calls (bypassing the Gateway).
+
+- `POST http://localhost:3001/internal/users/:id/deduct-credits`
+  - Deducts SaaS credits from user wallet. (Used by commerce-service)
+- `GET http://localhost:3002/internal/sites/:id/config`
+  - Returns PayOS `clientId`, `apiKey`, `checksumKey`. (Used by commerce-service)
+- `GET http://localhost:3002/internal/sites/:id/products`
+  - Returns product pricing validation map to prevent client spoofing. (Used by commerce-service)
+
+---
+
+## 8. AI Module – Google Gemini (`/api/v1/ai`)
 
 ### POST `/api/v1/ai/agent/chat` 🔒
 Reactive, single-turn agent that uses Gemini Function Calling to execute tools.

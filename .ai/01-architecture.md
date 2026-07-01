@@ -38,6 +38,10 @@ graph TB
         AI["apps/ai-service<br/>Port 3006"]
     end
 
+    subgraph "Commerce"
+        COMMERCE["apps/commerce-service<br/>Port 3007"]
+    end
+
     subgraph "Data Layer"
         RDS["Amazon RDS PostgreSQL"]
         REDIS["Amazon ElastiCache Redis"]
@@ -58,6 +62,7 @@ graph TB
     GW --> MEDIA
     GW --> NOTIFICATION
     GW --> AI
+    GW --> COMMERCE
     IDENTITY --> RDS
     SITE --> RDS
     DATA --> RDS
@@ -65,12 +70,14 @@ graph TB
     MEDIA --> S3_MEDIA
     NOTIFICATION --> RDS
     AI --> RDS
+    COMMERCE --> RDS
     AI --> GEMINI
     IDENTITY -.->|Event| KAFKA
     SITE -.->|Event| KAFKA
     DATA -.->|Event| KAFKA
     NOTIFICATION -.->|Subscribe| KAFKA
     AI -.->|Event| KAFKA
+    COMMERCE -.->|Event| KAFKA
     IDENTITY --> REDIS
     AI --> REDIS
 ```
@@ -88,6 +95,7 @@ genzite/
 │   ├── media-service/               # S3 Presigned URLs (port 3004)
 │   ├── notification-service/        # Email, Push, In-App (port 3005)
 │   ├── ai-service/                  # Google Gemini (port 3006)
+│   ├── commerce-service/            # E-Commerce & Billing (port 3007)
 │   └── frontend/                    # React + Vite + Tailwind CSS
 ├── packages/                        # Shared libraries
 │   └── shared-types/                # DTOs, Events, Constants
@@ -130,7 +138,7 @@ Each NestJS service under `apps/` follows this layout:
 - Cross-service communication: **Kafka events** (async) or **API Gateway** (sync proxy).
 
 ### LLM Isolation & Multi-Agent Architecture
-The `ai-service` handles Google Gemini API calls via a multi-agent system (Chat, Planner, UI Designer). It uses a Pipeline Engine for multi-step tasks and the Model Context Protocol (MCP) to expose internal tools and consume external ones (e.g., codebase-memory). Long-running tasks are processed via BullMQ workers to avoid blocking.
+The `ai-service` handles Google Gemini and Groq API calls via a multi-agent system. It uses a Pipeline Engine (with Groq acting as a fast UX Auditor and Gemini as the Coder) and the Model Context Protocol (MCP) to expose internal tools. Long-running tasks are processed via BullMQ workers to avoid blocking.
 
 ### Media Upload Path
 Media uploads **bypass all backend services**. The `media-service` generates **Presigned URLs** for S3. Frontend uploads directly, then notifies the backend via metadata callback.
