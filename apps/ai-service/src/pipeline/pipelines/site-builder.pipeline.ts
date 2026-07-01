@@ -3,8 +3,16 @@ import type { PipelineStep, PipelineContext, ConditionalStep } from '../pipeline
 import { PipelineRunner } from '../pipeline.runner.js';
 import type { PipelineResult } from '../pipeline.interface.js';
 import { AiClient } from '../../gemini/ai.client.js';
-import type { GeneratedSite } from '../../generation/site-generator.service.js';
 import type { GeneratedCms } from '../../generation/cms-generator.service.js';
+
+export interface PipelineGeneratedSite {
+  site: { name: string; subdomain: string };
+  pages: Array<{
+    title: string;
+    slug: string;
+    widgets: any[];
+  }>;
+}
 
 // ── Step Input/Output Types ────────────────────────────────
 
@@ -32,11 +40,11 @@ interface GeneratedStructure {
   userId?: string;
   withCms?: boolean;
   analysis: AnalyzedPrompt['analysis'];
-  site: GeneratedSite;
+  site: PipelineGeneratedSite;
 }
 
 export interface SitePipelineResult {
-  site: GeneratedSite;
+  site: PipelineGeneratedSite;
   cms?: GeneratedCms;
   analysis: AnalyzedPrompt['analysis'];
   validation: {
@@ -106,7 +114,7 @@ Return JSON matching GeneratedSite format:
   ]
 }`;
 
-    const site = await this.ai.generateJson<GeneratedSite>(enrichedPrompt, {
+    const site = await this.ai.generateJson<PipelineGeneratedSite>(enrichedPrompt, {
       temperature: 0.7,
       maxOutputTokens: 4096,
     });
