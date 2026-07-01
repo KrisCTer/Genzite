@@ -1,0 +1,144 @@
+/* ══════════════════════════════════════════════════════════════
+   Genzite Design Tokens — Dark-First, Stitch-Inspired
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Base Palette ───────────────────────────────────────── */
+  --gz-black:       #09090b;
+  --gz-dark-1:      #0c0c0e;
+  --gz-dark-2:      #111113;
+  --gz-dark-3:      #18181b;
+  --gz-dark-4:      #1e1e22;
+  --gz-dark-5:      #27272a;
+  --gz-dark-6:      #2e2e33;
+
+  --gz-gray-1:      #3f3f46;
+  --gz-gray-2:      #52525b;
+  --gz-gray-3:      #71717a;
+  --gz-gray-4:      #a1a1aa;
+  --gz-gray-5:      #d4d4d8;
+  --gz-gray-6:      #e4e4e7;
+  --gz-white:       #fafafa;
+
+  /* ─── Accent: Teal (Primary) ─────────────────────────────── */
+  --gz-accent-50:   #f0fdfa;
+  --gz-accent-100:  #ccfbf1;
+  --gz-accent-200:  #99f6e4;
+  --gz-accent-300:  #5eead4;
+  --gz-accent-400:  #2dd4bf;
+  --gz-accent-500:  #14b8a6;
+  --gz-accent-600:  #0d9488;
+  --gz-accent-700:  #0f766e;
+  --gz-accent-800:  #115e59;
+  --gz-accent-900:  #134e4a;
+
+  /* ─── Secondary: Sky Blue ───────────────────────────────── */
+  --gz-sky-400:     #38bdf8;
+  --gz-sky-500:     #0ea5e9;
+  --gz-sky-600:     #0284c7;
+
+  /* ─── Semantic: Status ──────────────────────────────────── */
+  --gz-success:     #22c55e;
+  --gz-warning:     #f59e0b;
+  --gz-error:       #ef4444;
+  --gz-info:        #3b82f6;
+
+  /* ─── Semantic: Surfaces ────────────────────────────────── */
+  --color-bg-app:         var(--gz-dark-1);
+  --color-bg-canvas:      var(--gz-black);
+  --color-bg-surface:     var(--gz-dark-3);
+  --color-bg-elevated:    var(--gz-dark-4);
+  --color-bg-overlay:     rgba(0, 0, 0, 0.6);
+  --color-bg-hover:       rgba(255, 255, 255, 0.04);
+  --color-bg-active:      rgba(255, 255, 255, 0.08);
+
+  /* ─── Semantic: Text ────────────────────────────────────── */
+  --color-text-primary:   var(--gz-gray-5);
+  --color-text-secondary: var(--gz-gray-4);
+  --color-text-muted:     var(--gz-gray-3);
+  --color-text-disabled:  var(--gz-gray-2);
+  --color-text-inverse:   var(--gz-dark-1);
+
+  /* ─── Semantic: Borders ─────────────────────────────────── */
+  --color-border:         rgba(255, 255, 255, 0.06);
+  --color-border-hover:   rgba(255, 255, 255, 0.12);
+  --color-border-focus:   var(--gz-accent-500);
+  --color-border-subtle:  rgba(255, 255, 255, 0.03);
+
+  /* ─── Semantic: Accent ──────────────────────────────────── */
+  --color-accent:         var(--gz-accent-500);
+  --color-accent-hover:   var(--gz-accent-400);
+  --color-accent-muted:   rgba(20, 184, 166, 0.15);
+  --color-accent-subtle:  rgba(20, 184, 166, 0.08);
+  --color-accent-glow:    rgba(20, 184, 166, 0.3);
+
+  /* ─── Gradients ─────────────────────────────────────────── */
+  --gradient-accent:     linear-gradient(135deg, var(--gz-accent-500), var(--gz-sky-500));
+  --gradient-surface:    linear-gradient(180deg, var(--gz-dark-2), var(--gz-dark-3));
+  --gradient-canvas:     radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.06) 0%, transparent 60%);
+  --gradient-aurora:     radial-gradient(ellipse at 30% 50%, rgba(20, 184, 166, 0.12) 0%, transparent 50%),
+                         radial-gradient(ellipse at 70% 50%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+
+  /* ─── Spacing ───────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─── Typography ────────────────────────────────────────── */
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --text-xs:    11px;
+  --text-sm:    13px;
+  --text-base:  14px;
+  --text-md:    16px;
+  --text-lg:    18px;
+  --text-xl:    20px;
+  --text-2xl:   24px;
+  --text-3xl:   30px;
+  --text-4xl:   36px;
+  --text-hero:  56px;
+
+  --weight-normal:  400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+  --weight-bold:    700;
+
+  /* ─── Radius ────────────────────────────────────────────── */
+  --radius-sm:    4px;
+  --radius-md:    8px;
+  --radius-lg:    12px;
+  --radius-xl:    16px;
+  --radius-2xl:   20px;
+  --radius-full:  9999px;
+
+  /* ─── Shadows (Dark-mode optimized) ─────────────────────── */
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-xl:    0 16px 48px rgba(0, 0, 0, 0.7);
+  --shadow-glow:  0 0 16px var(--color-accent-glow);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* ─── Transitions ───────────────────────────────────────── */
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:   100ms;
+  --duration-normal: 200ms;
+  --duration-slow:   350ms;
+
+  /* ─── Z-Index Scale ─────────────────────────────────────── */
+  --z-base:     1;
+  --z-dropdown: 10;
+  --z-sticky:   20;
+  --z-overlay:  30;
+  --z-modal:    40;
+  --z-tooltip:  50;
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Typography, Button, message, Form, Input, Row, Col, Divider, Space } from 'antd';
+import { Card, Typography, Button, message, Form, Input, Row, Col, Space } from 'antd';
 import { RobotOutlined, UserOutlined, CompassOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { analyzeCvApi, careerCoachingApi } from '../../api/ai';
@@ -58,7 +58,7 @@ const ResumeBuilder: React.FC = () => {
 
       <Row gutter={[24, 24]}>
         <Col xs={24} md={12}>
-          <Card title="1. CV Analysis" bordered>
+          <Card title="1. CV Analysis" variant="outlined">
             <Form form={form} layout="vertical" onFinish={handleAnalyze}>
               <Form.Item 
                 name="resumeId" 
@@ -96,7 +96,7 @@ const ResumeBuilder: React.FC = () => {
         </Col>
 
         <Col xs={24} md={12}>
-          <Card title="2. Career Coaching Roadmap" bordered>
+          <Card title="2. Career Coaching Roadmap" variant="outlined">
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               <Text>
                 Generate a personalized career progression roadmap based on your current resume.
@@ -113,7 +113,7 @@ const ResumeBuilder: React.FC = () => {
 
             {coachingJobId && (
               <div style={{ marginTop: 16, padding: 12, background: '#e6f4ff', border: '1px solid #91caff', borderRadius: 6 }}>
-                <Text type="info" style={{ color: '#1677ff' }}>Coaching Job ID: {coachingJobId}</Text>
+                <Text style={{ color: '#1677ff' }}>Coaching Job ID: {coachingJobId}</Text>
                 <br/>
                 <Text type="secondary" style={{ fontSize: 12 }}>Your personalized roadmap is being generated.</Text>
               </div>

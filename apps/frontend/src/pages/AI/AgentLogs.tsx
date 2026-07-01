@@ -57,7 +57,7 @@ const AgentLogs: React.FC = () => {
         <div style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>Monitor Model Context Protocol activities and tool executions</div>
       </div>
 
-      <Card bordered styles={{ body: { padding: 0 } }}>
+      <Card variant="outlined" styles={{ body: { padding: 0 } }}>
         {isError && (
           <div style={{ padding: '16px', color: 'orange', textAlign: 'center' }}>
             Warning: Backend MCP logs unreachable. Showing mock data for UI demonstration.

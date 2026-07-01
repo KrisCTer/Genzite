@@ -41,7 +41,7 @@ const LandingPage: React.FC = () => {
 
         <Row gutter={[32, 32]} style={{ paddingBottom: 80 }}>
           <Col xs={24} md={8}>
-            <Card bordered hoverable style={{ height: '100%', borderRadius: 16 }} styles={{ body: { padding: '32px 24px' } }}>
+            <Card variant="outlined" hoverable style={{ height: '100%', borderRadius: 16 }} styles={{ body: { padding: '32px 24px' } }}>
               <div style={{ width: 56, height: 56, borderRadius: 12, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
                 <CodeOutlined style={{ fontSize: 28, color: '#2563EB' }} />
               </div>
@@ -50,7 +50,7 @@ const LandingPage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card bordered hoverable style={{ height: '100%', borderRadius: 16 }} styles={{ body: { padding: '32px 24px' } }}>
+            <Card variant="outlined" hoverable style={{ height: '100%', borderRadius: 16 }} styles={{ body: { padding: '32px 24px' } }}>
               <div style={{ width: 56, height: 56, borderRadius: 12, background: '#ECFCCB', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
                 <GlobalOutlined style={{ fontSize: 28, color: '#65A30D' }} />
               </div>
@@ -59,7 +59,7 @@ const LandingPage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card bordered hoverable style={{ height: '100%', borderRadius: 16 }} styles={{ body: { padding: '32px 24px' } }}>
+            <Card variant="outlined" hoverable style={{ height: '100%', borderRadius: 16 }} styles={{ body: { padding: '32px 24px' } }}>
               <div style={{ width: 56, height: 56, borderRadius: 12, background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
                 <RobotOutlined style={{ fontSize: 28, color: '#9333EA' }} />
               </div>

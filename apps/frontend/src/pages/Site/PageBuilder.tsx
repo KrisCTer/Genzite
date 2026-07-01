@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import { message, Spin } from 'antd';
 import {
-  ArrowLeftOutlined,
   SaveOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
@@ -17,6 +16,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import WidgetRenderer from './builder/WidgetRenderer';
 import DarkPropertyEditor from './builder/DarkPropertyEditor';
+import AIPromptBar from './builder/AIPromptBar';
 import './CanvasBuilder.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -82,6 +82,9 @@ const PageBuilder: React.FC = () => {
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
 
+  // Whether to show the welcome/AI-generation screen (no pageId or no widgets)
+  const isWelcomeMode = !pageId;
+
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
   const { data: dbWidgets, isLoading, isError } = useQuery({
@@ -98,15 +101,19 @@ const PageBuilder: React.FC = () => {
       let yOffset = 0;
       const mapped: CanvasWidget[] = sorted.map((w: any, i: number) => {
         const defaults = WIDGET_DEFAULTS[w.type?.toUpperCase()] || { w: 760, h: 200 };
+        const geom = w.contentConfig?.geometry || {};
         const widget: CanvasWidget = {
           ...w,
           _id: `widget-${i}-${Date.now()}`,
-          x: 0,
-          y: yOffset,
-          width: defaults.w,
-          height: defaults.h,
+          x: geom.x ?? 0,
+          y: geom.y ?? yOffset,
+          width: geom.width ?? defaults.w,
+          height: geom.height ?? defaults.h,
         };
-        yOffset += defaults.h;
+        // Only increment default yOffset if it wasn't saved explicitly
+        if (geom.y === undefined) {
+          yOffset += defaults.h;
+        }
         return widget;
       });
       setWidgets(mapped);
@@ -132,9 +139,15 @@ const PageBuilder: React.FC = () => {
     // Sort by Y position to determine order; strip canvas-only fields
     const sorted = [...widgets].sort((a, b) => a.y - b.y);
     const payload = sorted.map((w, i) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _id, x, y, width, height, ...rest } = w;
-      return { ...rest, sortOrder: i + 1 };
+      const { _id, x, y, width, height, contentConfig, ...rest } = w;
+      return { 
+        ...rest, 
+        contentConfig: {
+          ...(contentConfig || {}),
+          geometry: { x, y, width, height }
+        },
+        sortOrder: i + 1 
+      };
     });
     saveMutation.mutate(payload);
   };
@@ -142,7 +155,7 @@ const PageBuilder: React.FC = () => {
   const handleExportHTML = () => {
     try {
       const sorted = [...widgets].sort((a, b) => a.y - b.y);
-      const htmlContent = sorted.map(widget => 
+      const htmlContent = sorted.map(widget =>
         renderToStaticMarkup(
           <WidgetRenderer
             type={widget.type}
@@ -162,9 +175,9 @@ const PageBuilder: React.FC = () => {
     body {
       margin: 0;
       padding: 0;
-      background: #0D1117;
-      color: #E5E7EB;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #09090b;
+      color: #d4d4d8;
+      font-family: 'Inter', system-ui, sans-serif;
     }
     * {
       box-sizing: border-box;
@@ -244,15 +257,13 @@ const PageBuilder: React.FC = () => {
     }
   }, []);
 
-  // Pan with space+drag
+  // Pan with middle-click or Alt+drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || e.altKey) { // Middle click or Alt+drag
+    if (e.button === 1 || e.altKey) {
       e.preventDefault();
       setIsPanning(true);
-      // Read current pan from the event target's transform — avoid stale closure
       panStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
     }
-  // pan is intentionally in deps to capture latest value on mousedown
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pan.x, pan.y]);
 
@@ -270,6 +281,14 @@ const PageBuilder: React.FC = () => {
     panStart.current = null;
   }, []);
 
+  // ─── AI Generation callback ────────────────────────────────────────────────
+
+  const handleAIGenerated = (_jobId: string) => {
+    // After AI generates a site, navigate to the site list to view it
+    // (since the AI creates a whole new site with new pages)
+    navigate('/admin/site');
+  };
+
   // ─── Canvas height (dynamic) ────────────────────────────────────────────────
 
   const canvasHeight = Math.max(
@@ -279,33 +298,51 @@ const PageBuilder: React.FC = () => {
 
   const selectedWidget = widgets.find(w => w._id === selectedId) || null;
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  // ─── Welcome State (Stitch-style) ──────────────────────────────────────────
+
+  if (isWelcomeMode) {
+    return (
+      <div className="canvas-builder">
+        <div className="canvas-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="canvas-welcome">
+            <h1 className="canvas-welcome-title">
+              Build at the<br />speed of AI
+            </h1>
+            <p className="canvas-welcome-subtitle">
+              Describe your app or website and Genzite will generate it for you. Drag, drop, and customize every detail.
+            </p>
+          </div>
+        </div>
+        <AIPromptBar onGenerated={handleAIGenerated} />
+      </div>
+    );
+  }
+
+  // ─── Loading / Error ────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#0D1117' }}>
+      <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Spin size="large" />
       </div>
     );
   }
   if (isError) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#0D1117', color: '#F87171' }}>
+      <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gz-error)' }}>
         Failed to load widgets.
       </div>
     );
   }
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="canvas-builder">
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="canvas-toolbar">
         <div className="canvas-toolbar-left">
-          <button className="canvas-back-btn" onClick={() => navigate(-1)}>
-            <ArrowLeftOutlined style={{ fontSize: 13 }} />
-            Back
-          </button>
-          <span className="canvas-page-title">Visual Canvas Editor</span>
+          <span className="canvas-page-title">✦ Canvas Editor</span>
         </div>
 
         <div className="canvas-toolbar-center">
@@ -324,18 +361,18 @@ const PageBuilder: React.FC = () => {
 
         <div className="canvas-toolbar-right">
           <button
-            className="canvas-action-btn"
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#C9D1D9', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            className="canvas-tool-btn"
             onClick={handleExportHTML}
+            title="Export HTML"
           >
-            <DownloadOutlined /> Export HTML
+            <DownloadOutlined />
           </button>
           <button
-            className="canvas-action-btn"
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#C9D1D9', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            className="canvas-tool-btn"
             onClick={() => window.open(`/live/${pageId}`, '_blank')}
+            title="View Live"
           >
-            <GlobalOutlined /> View Live
+            <GlobalOutlined />
           </button>
           <button
             className={`canvas-save-btn ${hasUnsaved ? 'unsaved' : 'saved'}`}
@@ -343,7 +380,7 @@ const PageBuilder: React.FC = () => {
             disabled={saveMutation.isPending}
           >
             <SaveOutlined />
-            {saveMutation.isPending ? 'Saving…' : hasUnsaved ? 'Publish Changes' : 'Published'}
+            {saveMutation.isPending ? 'Saving…' : hasUnsaved ? 'Publish' : 'Published'}
           </button>
         </div>
       </div>
@@ -352,7 +389,7 @@ const PageBuilder: React.FC = () => {
       <div className="canvas-body">
         {/* Left: Widget Library */}
         <div className="canvas-sidebar-left">
-          <div className="canvas-sidebar-section-title">Widget Library</div>
+          <div className="canvas-sidebar-section-title">Widgets</div>
           <div className="canvas-widget-grid">
             {WIDGET_LIBRARY.map(({ type, label, icon }) => (
               <button
@@ -390,7 +427,7 @@ const PageBuilder: React.FC = () => {
             className="canvas-viewport"
             style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
           >
-            {/* Page Frame (white page representation) */}
+            {/* Page Frame */}
             <div
               className="canvas-page-frame"
               style={{ width: CANVAS_WIDTH, height: canvasHeight }}
@@ -432,8 +469,8 @@ const PageBuilder: React.FC = () => {
                     topRight: true, bottomRight: true, bottomLeft: true, topLeft: true,
                   }}
                   resizeHandleStyles={{
-                    right: { width: 4, right: -2, background: selectedId === widget._id ? '#6D28D9' : 'transparent' },
-                    bottom: { height: 4, bottom: -2, background: selectedId === widget._id ? '#6D28D9' : 'transparent' },
+                    right: { width: 4, right: -2, background: selectedId === widget._id ? 'var(--color-accent)' : 'transparent' },
+                    bottom: { height: 4, bottom: -2, background: selectedId === widget._id ? 'var(--color-accent)' : 'transparent' },
                   }}
                 >
                   <div
@@ -479,6 +516,9 @@ const PageBuilder: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* ── Floating AI Prompt Bar (always visible) ─────────── */}
+      <AIPromptBar compact onGenerated={handleAIGenerated} />
     </div>
   );
 };

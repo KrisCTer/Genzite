@@ -83,7 +83,7 @@ const InterviewSession: React.FC = () => {
       </div>
 
       {!isSessionActive ? (
-        <Card title="Setup Interview Session" bordered>
+        <Card title="Setup Interview Session" variant="outlined">
           <Form form={form} layout="vertical" onFinish={handleStart}>
             <Row gutter={[24, 24]}>
               <Col xs={24} md={12}>
@@ -111,7 +111,7 @@ const InterviewSession: React.FC = () => {
         </Card>
       ) : (
         <Card 
-          bordered
+          variant="outlined"
           title={
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Active Interview Session</span>
