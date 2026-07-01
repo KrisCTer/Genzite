@@ -155,15 +155,24 @@ const PageBuilder: React.FC = () => {
   const handleExportHTML = () => {
     try {
       const sorted = [...widgets].sort((a, b) => a.y - b.y);
-      const htmlContent = sorted.map(widget =>
-        renderToStaticMarkup(
-          <WidgetRenderer
-            type={widget.type}
-            config={widget.contentConfig}
-            isActive={false}
-          />
-        )
-      ).join('');
+      const htmlContent = sorted.map(widget => {
+        const geom = widget.contentConfig?.geometry || { x: widget.x, y: widget.y, width: widget.width, height: widget.height };
+        return renderToStaticMarkup(
+          <div key={widget._id} style={{ 
+            position: 'absolute',
+            left: geom.x,
+            top: geom.y,
+            width: geom.width,
+            height: geom.height
+          }}>
+            <WidgetRenderer
+              type={widget.type}
+              config={widget.contentConfig}
+              isActive={false}
+            />
+          </div>
+        );
+      }).join('');
 
       const fullHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -172,20 +181,47 @@ const PageBuilder: React.FC = () => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exported Layout</title>
   <style>
+    :root {
+      --color-bg-app: #0B0F19;
+      --color-text-primary: #FFFFFF;
+      --color-text-secondary: #94A3B8;
+      --color-text-muted: #475569;
+      --color-accent: #06B6D4;
+      --color-accent-hover: #0891b2;
+      --color-accent-muted: rgba(6, 182, 212, 0.2);
+      --color-accent-glow: rgba(6, 182, 212, 0.4);
+      --gradient-accent: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+      --color-border: #1E293B;
+      --color-border-subtle: rgba(30, 41, 59, 0.5);
+      --gz-dark-1: #0B0F19;
+      --gz-dark-2: #0f172a;
+      --gz-dark-3: #111827;
+      --gz-dark-4: #1E293B;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+    }
     body {
       margin: 0;
       padding: 0;
-      background: #09090b;
-      color: #d4d4d8;
+      background: var(--color-bg-app);
+      color: var(--color-text-primary);
       font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
     }
     * {
       box-sizing: border-box;
     }
+    .ant-typography {
+      color: inherit;
+    }
   </style>
 </head>
 <body>
-  ${htmlContent}
+  <div style="position: relative; width: 1440px; margin: 0 auto; min-height: 100vh;">
+    ${htmlContent}
+  </div>
 </body>
 </html>`;
 

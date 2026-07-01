@@ -27,6 +27,7 @@
     "prisma:migrate": "node scripts/dev.mjs prisma migrate dev --all",
     "prisma:generate": "node scripts/dev.mjs prisma generate --all",
     "prisma:migrate:site": "node scripts/dev.mjs prisma migrate dev --service site-service",
+    "prisma:push:site": "node scripts/dev.mjs prisma db push --service site-service",
     "prisma:migrate:data": "node scripts/dev.mjs prisma migrate dev --service data-service",
     "prisma:migrate:media": "node scripts/dev.mjs prisma migrate dev --service media-service",
     "prisma:migrate:notification": "node scripts/dev.mjs prisma migrate dev --service notification-service",

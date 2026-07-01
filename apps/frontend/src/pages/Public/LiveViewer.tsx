@@ -29,7 +29,7 @@ const LiveViewer: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1117' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0F19' }}>
         <Spin size="large" />
       </div>
     );
@@ -37,11 +37,11 @@ const LiveViewer: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1117' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0F19' }}>
         <Result
           status="500"
           title={<span style={{ color: '#fff' }}>Page Not Found</span>}
-          subTitle={<span style={{ color: '#8B949E' }}>Sorry, something went wrong or the page does not exist.</span>}
+          subTitle={<span style={{ color: '#94A3B8' }}>Sorry, something went wrong or the page does not exist.</span>}
           extra={<Link to="/admin"><Button type="primary">Back Home</Button></Link>}
         />
       </div>
@@ -52,7 +52,7 @@ const LiveViewer: React.FC = () => {
     <div style={{ 
       width: '100vw', 
       minHeight: '100vh', 
-      background: '#0D1117', 
+      background: '#0B0F19', 
       position: 'relative', 
       overflowX: 'hidden' 
     }}>
