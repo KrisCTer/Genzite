@@ -1,6 +1,6 @@
 import { Controller, All, Req, Res, Next } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
-import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
+import { createProxyMiddleware, RequestHandler, fixRequestBody } from 'http-proxy-middleware';
 
 /**
  * API Gateway Proxy Controller
@@ -37,8 +37,17 @@ export class ProxyController {
       this.proxies[key] = createProxyMiddleware({
         target,
         changeOrigin: true,
-        // Optional: you can add onProxyReq here to inject custom headers if needed
-        // but auth.middleware already sets req.headers['x-user-id'] which proxy auto-forwards
+        on: {
+          proxyReq: fixRequestBody,
+          proxyRes: (proxyRes) => {
+            // Remove CORS headers from downstream services
+            // so the gateway's own CORS config is the single source of truth
+            delete proxyRes.headers['access-control-allow-origin'];
+            delete proxyRes.headers['access-control-allow-credentials'];
+            delete proxyRes.headers['access-control-allow-methods'];
+            delete proxyRes.headers['access-control-allow-headers'];
+          },
+        },
       });
     }
   }

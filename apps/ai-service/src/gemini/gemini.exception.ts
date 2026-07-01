@@ -21,11 +21,12 @@ export class GeminiParseException extends HttpException {
     message: string,
     public readonly rawResponse?: string,
   ) {
+    const fullMessage = rawResponse ? `${message}. Raw text: ${rawResponse.substring(0, 100)}...` : message;
     super(
       {
         statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         error: 'Gemini Parse Error',
-        message,
+        message: fullMessage,
         rawResponse,
       },
       HttpStatus.UNPROCESSABLE_ENTITY,

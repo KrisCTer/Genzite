@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client-site";
 import { SiteProducer } from "../events/site.producer";
 @Injectable()
 export class WidgetsService {
