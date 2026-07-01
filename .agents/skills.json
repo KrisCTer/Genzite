@@ -1,0 +1,7 @@
+{
+  "entries": [
+    { "path": "skills/stitch-skills/plugins/stitch-build/skills" },
+    { "path": "skills/stitch-skills/plugins/stitch-design/skills" },
+    { "path": "skills/stitch-skills/plugins/stitch-utilities/skills" }
+  ]
+}

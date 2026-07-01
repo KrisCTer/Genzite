@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent } from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent, Get, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { Observable } from 'rxjs';
@@ -63,6 +63,38 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
     return {
       message: 'CMS generation job accepted',
       jobId: job.id,
+    };
+  }
+
+  @Get('site/job/:jobId')
+  async getSiteJobStatus(@Param('jobId') jobId: string) {
+    const job = await this.siteQueue.getJob(jobId);
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    const state = await job.getState();
+    return {
+      id: job.id,
+      state,
+      progress: job.progress,
+      failedReason: job.failedReason,
+      output: job.returnvalue,
+    };
+  }
+
+  @Get('cms/job/:jobId')
+  async getCmsJobStatus(@Param('jobId') jobId: string) {
+    const job = await this.cmsQueue.getJob(jobId);
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    const state = await job.getState();
+    return {
+      id: job.id,
+      state,
+      progress: job.progress,
+      failedReason: job.failedReason,
+      output: job.returnvalue,
     };
   }
 

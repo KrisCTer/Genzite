@@ -91,6 +91,7 @@ const SuccessState: React.FC<{ mode: Mode; onViewSites: () => void }> = ({ mode,
       <button className="ai-studio-result-btn" onClick={onViewSites}>
         View Sites →
       </button>
+
     )}
   </div>
 );
@@ -122,6 +123,9 @@ const AIGenerateSite: React.FC = () => {
   const [siteStatus, setSiteStatus] = useState<JobStatus>('idle');
   const [siteError, setSiteError] = useState<string | null>(null);
 
+  const [siteResult, setSiteResult] = useState<{ htmlUrl: string; imageUrl: string } | null>(null);
+
+
   const [cmsJobId, setCmsJobId] = useState<string | null>(null);
   const [cmsStatus, setCmsStatus] = useState<JobStatus>('idle');
   const [cmsError, setCmsError] = useState<string | null>(null);
@@ -137,6 +141,9 @@ const AIGenerateSite: React.FC = () => {
         const job = await getSiteJobApi(siteJobId);
         if (job.state === 'completed') {
           setSiteStatus('completed');
+
+          setSiteResult(job.output);
+
           message.success('Site generation completed successfully!');
         } else if (job.state === 'failed') {
           setSiteStatus('failed');
@@ -423,10 +430,10 @@ const AIGenerateSite: React.FC = () => {
                     currentStatus === 'completed'
                       ? '#30A46C'
                       : currentStatus === 'failed'
-                      ? '#EF4444'
-                      : currentStatus === 'pending'
-                      ? '#F59E0B'
-                      : '#6E7681',
+                        ? '#EF4444'
+                        : currentStatus === 'pending'
+                          ? '#F59E0B'
+                          : '#6E7681',
                 }}
               />
               {currentStatus === 'idle' && 'Preview'}
@@ -445,7 +452,11 @@ const AIGenerateSite: React.FC = () => {
               <PendingState jobId={currentJobId} mode={mode} />
             )}
             {currentStatus === 'completed' && (
-              <SuccessState mode={mode} onViewSites={() => navigate('/admin/site')} />
+
+
+
+              <SuccessState mode={mode} onViewSites={() => navigate('/admin/site')} result={siteResult} />
+
             )}
             {currentStatus === 'failed' && (
               <FailedState error={currentError} onRetry={handleReset} />

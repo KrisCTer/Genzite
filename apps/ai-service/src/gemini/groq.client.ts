@@ -7,7 +7,7 @@ const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
 export type GroqModelName =
   | 'llama3-8b-8192'
-  | 'llama3-70b-8192'
+  | 'llama-3.3-70b-versatile'
   | 'mixtral-8x7b-32768';
 
 interface GenerateOptions {
@@ -29,7 +29,7 @@ export class GroqClient {
       baseURL: GROQ_BASE_URL,
       apiKey,
     });
-    this.defaultModel = (this.config.get<string>('GROQ_MODEL') ?? 'llama3-70b-8192') as GroqModelName;
+    this.defaultModel = (this.config.get<string>('GROQ_MODEL') ?? 'llama-3.3-70b-versatile') as GroqModelName;
     
     if (apiKey === 'dummy-key-to-prevent-crash') {
       this.logger.warn('GROQ_API_KEY is missing. Groq provider will not be available.');
