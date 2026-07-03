@@ -21,6 +21,6 @@ export const markNotificationAsReadApi = async (id: string) => {
 };
 
 export const markAllNotificationsAsReadApi = async () => {
-  const response = await apiClient.post<{ success: boolean }>('/notifications/read-all', {});
+  const response = await apiClient.put<{ success: boolean }>('/notifications/read-all', {});
   return response.data;
 };

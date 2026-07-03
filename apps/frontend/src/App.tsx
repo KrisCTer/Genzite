@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntdApp } from 'antd';
 import { genziteDarkTheme } from './styles/theme';
 import AdminLayout from './layouts/AdminLayout';
 import CanvasLayout from './layouts/CanvasLayout';
@@ -39,8 +39,9 @@ import '@genzite/shared-ui/styles.css';
 const App: React.FC = () => {
   return (
     <ConfigProvider theme={genziteDarkTheme}>
-      <Toaster />
-      <ErrorBoundary>
+      <AntdApp>
+      <Toaster>
+        <ErrorBoundary>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/live/:pageId" element={<LiveViewer />} />
@@ -57,7 +58,7 @@ const App: React.FC = () => {
           >
             {/* New unified route: AI Generate + Canvas Builder */}
             <Route index element={<PageBuilder />} />
-            <Route path=":pageId" element={<PageBuilder />} />
+            <Route path=":siteId" element={<PageBuilder />} />
           </Route>
 
           {/* Legacy canvas route — redirect for backwards compatibility */}
@@ -99,7 +100,9 @@ const App: React.FC = () => {
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </Toaster>
+      </AntdApp>
     </ConfigProvider>
   );
 };
