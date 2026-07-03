@@ -1,19 +1,28 @@
 import React from 'react';
-import { Table, Tag, Typography, Card } from 'antd';
-import { CodeOutlined } from '@ant-design/icons';
+import { Table, Typography, Card, Button, Space } from 'antd';
+import { CodeOutlined, ExclamationCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMcpLogsApi } from '../../api/ai';
+import './AgentLogs.css';
 
 const { Title } = Typography;
 
+type LogItem = {
+  id: string;
+  action: string;
+  toolName: string;
+  status: string;
+  timestamp: string;
+};
+
 const AgentLogs: React.FC = () => {
-  const { data: logs, isLoading, isError } = useQuery({
+  const { data: logs, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['mcp-logs'],
     queryFn: fetchMcpLogsApi,
     retry: 1,
   });
 
-  const mockLogs = [
+  const mockLogs: LogItem[] = [
     { id: '1', action: 'Tool Call', toolName: 'read_file', status: 'SUCCESS', timestamp: new Date().toISOString() },
     { id: '2', action: 'Context Sync', toolName: 'sync', status: 'SUCCESS', timestamp: new Date(Date.now() - 5000).toISOString() },
     { id: '3', action: 'Tool Call', toolName: 'execute_query', status: 'ERROR', timestamp: new Date(Date.now() - 15000).toISOString() },
@@ -31,46 +40,84 @@ const AgentLogs: React.FC = () => {
       dataIndex: 'action',
       key: 'action',
       render: (text: string) => (
-        <span><CodeOutlined style={{ marginRight: 8 }} />{text}</span>
-      )
+        <span className="agent-logs-action-cell">
+          <CodeOutlined />
+          {text}
+        </span>
+      ),
     },
     {
       title: 'Target / Tool',
       dataIndex: 'toolName',
       key: 'toolName',
-      render: (text: string) => <Tag color="blue">{text}</Tag>
+      render: (text: string) => <span className="agent-logs-tool-tag">{text}</span>,
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'SUCCESS' ? 'green' : 'red'}>{status}</Tag>
-      )
+        <span className={`agent-logs-status-tag ${status === 'SUCCESS' ? 'success' : 'error'}`}>
+          {status}
+        </span>
+      ),
     },
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      <div>
-        <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: 32 }}>MCP Agent Logs</Title>
-        <div style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>Monitor Model Context Protocol activities and tool executions</div>
-      </div>
+  const rows = (logs as LogItem[] | undefined) || mockLogs;
 
-      <Card variant="outlined" styles={{ body: { padding: 0 } }}>
+  return (
+    <div className="agent-logs-page">
+      <div className="agent-logs-content">
+        <header className="agent-logs-header glass-card">
+          <div>
+            <Title level={2} className="agent-logs-title">
+              MCP Agent Logs
+            </Title>
+            <p className="agent-logs-subtitle">Monitor Model Context Protocol activities and tool executions</p>
+          </div>
+
+          <Space size={10} wrap>
+            <Button
+              className="agent-logs-action-btn"
+              icon={<ReloadOutlined />}
+              loading={isFetching}
+              onClick={() => refetch()}
+            >
+              Refresh
+            </Button>
+          </Space>
+        </header>
+
         {isError && (
-          <div style={{ padding: '16px', color: 'orange', textAlign: 'center' }}>
-            Warning: Backend MCP logs unreachable. Showing mock data for UI demonstration.
+          <div className="agent-logs-alert glass-card" role="alert">
+            <ExclamationCircleOutlined className="agent-logs-alert-icon" />
+            <div>
+              <div className="agent-logs-alert-title">Live logs are temporarily unavailable</div>
+              <div className="agent-logs-alert-message">
+                Showing mock data for UI continuity while the MCP logs endpoint is unreachable.
+              </div>
+            </div>
           </div>
         )}
-        <Table
-          columns={columns}
-          dataSource={logs || mockLogs}
-          loading={isLoading && !isError}
-          rowKey="id"
-          pagination={{ pageSize: 15 }}
-        />
-      </Card>
+
+        <Card className="agent-logs-table-card glass-card" variant="borderless" styles={{ body: { padding: 0 } }}>
+          <Table
+            className="agent-logs-table"
+            columns={columns}
+            dataSource={rows}
+            loading={isLoading && !isError}
+            rowKey="id"
+            rowClassName={(_record, index) => (index % 2 === 0 ? 'agent-logs-row-even' : 'agent-logs-row-odd')}
+            sticky
+            pagination={{
+              pageSize: 15,
+              showSizeChanger: false,
+              className: 'agent-logs-pagination',
+            }}
+          />
+        </Card>
+      </div>
     </div>
   );
 };

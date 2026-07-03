@@ -1,5 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { message, Select } from 'antd';
+import { ArrowUp, ImagePlus, Paperclip, Sparkles } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { generateSiteApi, getSiteJobApi } from '../../../api/ai';
 import './AIPromptBar.css';
@@ -12,9 +13,9 @@ interface AIPromptBarProps {
 }
 
 const MODEL_OPTIONS = [
-  { value: 'gemini-2.5-flash', label: '✦ 3 Flash' },
-  { value: 'gemini-2.0-pro', label: '✦ 2.0 Pro' },
-  { value: 'gemini-1.5-pro', label: '✦ 1.5 Pro' },
+  { value: 'gemini-2.5-flash', label: '3 Flash' },
+  { value: 'gemini-2.0-pro', label: '2.0 Pro' },
+  { value: 'gemini-1.5-pro', label: '1.5 Pro' },
   { value: 'deepseek-chat', label: 'DeepSeek' },
 ];
 
@@ -37,8 +38,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
   const siteMutation = useMutation({
     mutationFn: generateSiteApi,
     onSuccess: (data) => {
-      message.info('AI is generating your site…');
-      // Start polling for completion
+      message.info('AI is generating your site...');
       pollRef.current = setInterval(async () => {
         try {
           const job = await getSiteJobApi(data.jobId);
@@ -47,7 +47,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
             pollRef.current = null;
             setIsGenerating(false);
             setPrompt('');
-            message.success('Site generated! Loading…');
+            message.success('Site generated! Loading...');
             onGenerated?.(data.jobId);
           } else if (job.state === 'failed') {
             clearInterval(pollRef.current!);
@@ -56,7 +56,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
             message.error(job.failedReason || 'Generation failed');
           }
         } catch {
-          // Ignore polling errors
+          // Ignore transient polling errors.
         }
       }, 2500);
     },
@@ -73,15 +73,14 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
     siteMutation.mutate({ prompt: prompt.trim(), model });
   };
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       handleSubmit();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, model, isGenerating]);
 
-  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -90,48 +89,57 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
 
   return (
     <div className={`ai-prompt-bar ${compact ? 'compact' : ''} ${isGenerating ? 'generating' : ''}`}>
-      {/* Quick prompts (toggle) */}
       {showQuick && !isGenerating && (
         <div className="ai-prompt-quick">
-          {QUICK_PROMPTS.map((q) => (
+          {QUICK_PROMPTS.map((quickPrompt) => (
             <button
-              key={q}
+              key={quickPrompt}
               className="ai-prompt-quick-chip"
-              onClick={() => { setPrompt(q); setShowQuick(false); inputRef.current?.focus(); }}
+              type="button"
+              onClick={() => {
+                setPrompt(quickPrompt);
+                setShowQuick(false);
+                inputRef.current?.focus();
+              }}
             >
-              {q}
+              {quickPrompt}
             </button>
           ))}
         </div>
       )}
 
       <div className="ai-prompt-bar-inner">
-        {/* Plus button for quick prompts */}
-        <button
-          className="ai-prompt-icon-btn"
-          onClick={() => setShowQuick(!showQuick)}
-          title="Quick templates"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+        <div className="ai-prompt-main-row">
+          <div className="ai-prompt-left-tools">
+            <button className="ai-prompt-icon-btn" type="button" title="Attach file">
+              <Paperclip size={18} strokeWidth={2} />
+            </button>
+            <button className="ai-prompt-icon-btn" type="button" title="Upload image">
+              <ImagePlus size={18} strokeWidth={2} />
+            </button>
+            <button
+              className={`ai-prompt-icon-btn ai-prompt-icon-btn--spark ${showQuick ? 'active' : ''}`}
+              type="button"
+              onClick={() => setShowQuick(!showQuick)}
+              title="AI prompt templates"
+            >
+              <Sparkles size={18} strokeWidth={2.1} />
+            </button>
+          </div>
 
-        {/* Main input */}
-        <textarea
-          ref={inputRef}
-          className="ai-prompt-input"
-          placeholder={compact ? 'Describe changes…' : 'What would you like to build?'}
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isGenerating}
-          rows={1}
-        />
+          <textarea
+            ref={inputRef}
+            className="ai-prompt-input"
+            placeholder={compact ? 'Describe changes...' : 'Ask Genzite to build a site, page, store, dashboard...'}
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isGenerating}
+            rows={1}
+          />
+        </div>
 
-        {/* Right controls */}
         <div className="ai-prompt-controls">
-          {/* Model selector */}
           <Select
             className="ai-prompt-model-select"
             placeholder="Flash"
@@ -139,26 +147,25 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
             onChange={setModel}
             options={MODEL_OPTIONS}
             variant="borderless"
-            size="small"
-            popupMatchSelectWidth={140}
-            style={{ minWidth: 90 }}
+            popupMatchSelectWidth={150}
+            style={{ minWidth: 104 }}
           />
 
-          {/* Submit button */}
           <button
             className="ai-prompt-submit"
+            type="button"
             onClick={handleSubmit}
             disabled={!prompt.trim() || isGenerating}
             title="Generate"
           >
             {isGenerating ? (
               <div className="ai-prompt-loading">
-                <span className="ai-prompt-dot" /><span className="ai-prompt-dot" /><span className="ai-prompt-dot" />
+                <span className="ai-prompt-dot" />
+                <span className="ai-prompt-dot" />
+                <span className="ai-prompt-dot" />
               </div>
             ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
-              </svg>
+              <ArrowUp size={18} strokeWidth={2.6} />
             )}
           </button>
         </div>

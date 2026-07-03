@@ -39,12 +39,12 @@ import '@genzite/shared-ui/styles.css';
 const App: React.FC = () => {
   return (
     <ConfigProvider theme={genziteDarkTheme}>
-      <Toaster />
-      <ErrorBoundary>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/live/:pageId" element={<LiveViewer />} />
-          <Route path="/login" element={<Login />} />
+      <Toaster>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/live/:pageId" element={<LiveViewer />} />
+            <Route path="/login" element={<Login />} />
 
           {/* Canvas routes — full-bleed, no admin shell */}
           <Route
@@ -97,9 +97,10 @@ const App: React.FC = () => {
               <Route path="logs" element={<AgentLogs />} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </ErrorBoundary>
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </ErrorBoundary>
+      </Toaster>
     </ConfigProvider>
   );
 };

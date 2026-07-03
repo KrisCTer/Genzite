@@ -3,10 +3,26 @@ import { AiClient } from '../gemini/ai.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RagService } from './rag.service.js';
 import { GuardrailService } from './guardrail.service.js';
-import { stitch } from '@google/stitch-sdk';
 
+
+export interface GeneratedWidget {
+  type: string;
+  contentConfig?: Record<string, unknown>;
+  sortOrder: number;
+}
+
+export interface GeneratedPage {
+  title: string;
+  slug: string;
+  widgets?: GeneratedWidget[];
+}
 
 export interface GeneratedSite {
+  site: {
+    name: string;
+    subdomain: string;
+  };
+  pages: GeneratedPage[];
   projectId: string;
   screenId: string;
   htmlUrl: string;
@@ -79,6 +95,7 @@ export class SiteGeneratorService {
 
       // STEP 3: Designer (Stitch SDK) generates UI
       onProgress?.('Designer (Stitch) is drawing UI...', 50);
+      const { stitch } = await import('@google/stitch-sdk');
       const project = await stitch.createProject(`Genzite_${Date.now()}`);
       this.logger.log(`Created Stitch Project: ${project.id}`);
 
@@ -140,6 +157,23 @@ export class SiteGeneratorService {
       }
 
       const result: GeneratedSite = {
+        site: {
+          name: `Genzite Project ${project.id}`,
+          subdomain: `genzite-${project.id}`,
+        },
+        pages: [
+          {
+            title: 'Home',
+            slug: 'home',
+            widgets: [
+              {
+                type: 'hero',
+                contentConfig: { prompt },
+                sortOrder: 1,
+              },
+            ],
+          },
+        ],
         projectId: project.id,
         screenId: screen.id,
         htmlUrl,
