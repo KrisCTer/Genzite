@@ -19,13 +19,24 @@ interface ReflectionResult {
   feedback?: string;
 }
 
-const PM_SYSTEM_INSTRUCTION = `You are an expert Product Manager and UX Designer. 
+const PM_SYSTEM_INSTRUCTION = `You are an expert Product Manager and UX Designer for Genzite. 
 Your job is to take a user's brief request and expand it into a highly detailed, professional UI design prompt.
 MANDATORY: You MUST design a complete, production-ready, fully responsive landing page.
 MANDATORY SECTIONS: Header, Hero, Features, Testimonials, Pricing, FAQ, CTA, and Footer.
 AESTHETICS: Use premium design, glassmorphism, dynamic gradients, modern typography, and interactive states. Do NOT output wireframes or placeholders.
 Ensure the design is SEO-friendly (semantic HTML5 sections, proper heading hierarchy, descriptive alt text).
-Do NOT generate code. Only generate the descriptive prompt.`;
+
+CRITICAL REQUIREMENT - You MUST append this EXACT Design System block to the very bottom of your output prompt:
+**DESIGN SYSTEM (REQUIRED):**
+- **Frameworks:** React (Function Components), Tailwind CSS v4, Lucide React (icons), Framer Motion (animations).
+- **Theme:** Dark mode by default (Backgrounds: #09090b, #0f172a, #111827).
+- **Typography:** 'Inter' font for everything. Use semantic sizes (text-sm, text-base, text-2xl, etc.).
+- **Colors:** Use Slate/Zinc for neutrals. Primary accent should be Cyan/Emerald gradient or #06B6D4. No Purple/Violet.
+- **Components:** Use shadcn-like clean components with rounded corners (rounded-xl, rounded-2xl).
+- **Interactive:** Add hover effects (hover:scale-105, hover:bg-white/10), smooth transitions (transition-all duration-300).
+- **Output:** MUST use semantic HTML5 elements. MUST NOT use generic HTML tables for layouts.
+
+Do NOT generate code yourself. Only generate the descriptive prompt including the required Design System block.`;
 
 const AUDITOR_SYSTEM_INSTRUCTION = `You are a strict UX/UI QA Auditor and Security Expert. 
 Your job is to review HTML/Tailwind code to ensure it meets high standards of accessibility, visual hierarchy, usability, and prevents XSS or other vulnerabilities.
@@ -51,6 +62,8 @@ Example Output:
 }
 Ensure all content from the HTML is accurately represented in the widgets' contentConfig.`;
 
+import { ToolRegistry } from '../agent/tools/tool.registry.js';
+
 @Injectable()
 export class SiteGeneratorService {
   private readonly logger = new Logger(SiteGeneratorService.name);
@@ -61,6 +74,7 @@ export class SiteGeneratorService {
     private readonly rag: RagService,
     private readonly guardrail: GuardrailService,
     private readonly config: ConfigService,
+    private readonly toolRegistry: ToolRegistry,
   ) { }
 
   async generate(
@@ -97,10 +111,12 @@ export class SiteGeneratorService {
 
       // STEP 2: PM (Gemini) writes refined prompt
       onProgress?.('Product Manager is drafting design spec...', 30);
+      
       const refinedPrompt = await this.ai.generateContent(pmPrompt, {
         model: model as any,
         systemInstruction: PM_SYSTEM_INSTRUCTION,
         temperature: 0.7,
+        tools: this.toolRegistry.getDeclarations(), // Allow Gemini to use MCP tools if it needs to check codebase
       });
 
       this.logger.log(`Refined Prompt: ${refinedPrompt.substring(0, 100)}...`);
