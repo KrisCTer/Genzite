@@ -60,7 +60,7 @@ export class SiteGenerationWorker extends WorkerHost {
       }
     );
 
-    const resolvedSiteId = result.projectId || result.site?.subdomain || siteId || `gen-${Date.now()}`;
+    const resolvedSiteId = siteId || result.projectId || result.site?.subdomain || `gen-${Date.now()}`;
 
     await this.aiProducer.emitSiteGenerated({
       siteId: resolvedSiteId,
