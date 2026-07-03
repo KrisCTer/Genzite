@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, message, Select } from 'antd';
+import { message, Select } from 'antd';
 import { GlobalOutlined, AppstoreAddOutlined, CheckCircleOutlined, CloseCircleOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { generateSiteApi, generateCmsApi, getSiteJobApi, getCmsJobApi } from '../../api/ai';
@@ -74,6 +74,7 @@ const PendingState: React.FC<{ jobId: string | null; mode: Mode }> = ({ jobId, m
   </div>
 );
 
+
 const SuccessState: React.FC<{ mode: Mode; onViewSites: () => void; result?: any }> = ({ mode, onViewSites, result }) => (
   <div className="ai-studio-result" style={result?.imageUrl ? { padding: 0 } : {}}>
     {result?.imageUrl ? (
@@ -108,6 +109,7 @@ const SuccessState: React.FC<{ mode: Mode; onViewSites: () => void; result?: any
           </button>
         )}
       </>
+
     )}
   </div>
 );
@@ -138,7 +140,10 @@ const AIGenerateSite: React.FC = () => {
   const [siteJobId, setSiteJobId] = useState<string | null>(null);
   const [siteStatus, setSiteStatus] = useState<JobStatus>('idle');
   const [siteError, setSiteError] = useState<string | null>(null);
+
+
   const [siteResult, setSiteResult] = useState<{ htmlUrl: string; imageUrl: string } | null>(null);
+
 
   const [cmsJobId, setCmsJobId] = useState<string | null>(null);
   const [cmsStatus, setCmsStatus] = useState<JobStatus>('idle');
@@ -249,6 +254,7 @@ const AIGenerateSite: React.FC = () => {
       setSiteStatus('idle');
       setSiteJobId(null);
       setSiteError(null);
+
       setSiteResult(null);
     } else {
       setCmsStatus('idle');
@@ -443,10 +449,10 @@ const AIGenerateSite: React.FC = () => {
                     currentStatus === 'completed'
                       ? '#30A46C'
                       : currentStatus === 'failed'
-                      ? '#EF4444'
-                      : currentStatus === 'pending'
-                      ? '#F59E0B'
-                      : '#6E7681',
+                        ? '#EF4444'
+                        : currentStatus === 'pending'
+                          ? '#F59E0B'
+                          : '#6E7681',
                 }}
               />
               {currentStatus === 'idle' && 'Preview'}

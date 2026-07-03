@@ -5,7 +5,7 @@ import type { PipelineResult } from '../pipeline.interface.js';
 import { AiClient } from '../../gemini/ai.client.js';
 import type { GeneratedCms } from '../../generation/cms-generator.service.js';
 
-export interface PipelineGeneratedSite {
+export interface GeneratedSiteData {
   site: { name: string; subdomain: string };
   pages: Array<{
     title: string;
@@ -40,11 +40,11 @@ interface GeneratedStructure {
   userId?: string;
   withCms?: boolean;
   analysis: AnalyzedPrompt['analysis'];
-  site: PipelineGeneratedSite;
+  site: GeneratedSiteData;
 }
 
 export interface SitePipelineResult {
-  site: PipelineGeneratedSite;
+  site: GeneratedSiteData;
   cms?: GeneratedCms;
   analysis: AnalyzedPrompt['analysis'];
   validation: {
@@ -114,7 +114,7 @@ Return JSON matching GeneratedSite format:
   ]
 }`;
 
-    const site = await this.ai.generateJson<PipelineGeneratedSite>(enrichedPrompt, {
+    const site = await this.ai.generateJson<GeneratedSiteData>(enrichedPrompt, {
       temperature: 0.7,
       maxOutputTokens: 4096,
     });

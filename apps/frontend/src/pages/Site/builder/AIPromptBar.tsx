@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { message, Select } from 'antd';
 import { useMutation } from '@tanstack/react-query';
-import { generateSiteApi, getSiteJobApi } from '../../../api/ai';
+import { generateSiteApi } from '../../../api/ai';
 import './AIPromptBar.css';
 
 interface AIPromptBarProps {
@@ -9,12 +9,14 @@ interface AIPromptBarProps {
   onGenerated?: (jobId: string) => void;
   /** Whether to show the bar in its compact (inline) form */
   compact?: boolean;
+  /** Optional siteId to append pages to an existing site */
+  siteId?: string;
 }
 
 const MODEL_OPTIONS = [
-  { value: 'gemini-2.5-flash', label: '✦ 3 Flash' },
+  { value: 'gemini-2.5-flash', label: '✦ 2.5 Flash' },
+  { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 (Free)' },
   { value: 'gemini-2.0-pro', label: '✦ 2.0 Pro' },
-  { value: 'gemini-1.5-pro', label: '✦ 1.5 Pro' },
   { value: 'deepseek-chat', label: 'DeepSeek' },
 ];
 
@@ -26,40 +28,52 @@ const QUICK_PROMPTS = [
   'Personal blog with dark theme',
 ];
 
-const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false }) => {
+const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false, siteId }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState<string | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sseRef = useRef<EventSource | null>(null);
 
   const siteMutation = useMutation({
     mutationFn: generateSiteApi,
     onSuccess: (data) => {
       messageApi.info('AI is generating your site…');
-      // Start polling for completion
-      pollRef.current = setInterval(async () => {
+      // Connect to SSE stream
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+      const eventSource = new EventSource(`${baseUrl}/ai/stream/${data.jobId}`);
+      
+      eventSource.onmessage = (event) => {
         try {
-          const job = await getSiteJobApi(data.jobId);
-          if (job.state === 'completed') {
-            clearInterval(pollRef.current!);
-            pollRef.current = null;
+          const payload = JSON.parse(event.data);
+          if (payload.done) {
+            eventSource.close();
+            sseRef.current = null;
             setIsGenerating(false);
-            setPrompt('');
-            messageApi.success('Site generated! Loading…');
-            onGenerated?.(data.jobId);
-          } else if (job.state === 'failed') {
-            clearInterval(pollRef.current!);
-            pollRef.current = null;
-            setIsGenerating(false);
-            messageApi.error(job.failedReason || 'Generation failed');
+            
+            if (payload.error) {
+              messageApi.error(payload.error || 'Generation failed');
+            } else {
+              setPrompt('');
+              messageApi.success('Site generated! Loading…');
+              onGenerated?.(data.jobId);
+            }
           }
-        } catch {
-          // Ignore polling errors
+        } catch (e) {
+          console.error("SSE parse error", e);
         }
-      }, 2500);
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        sseRef.current = null;
+        setIsGenerating(false);
+        messageApi.error('Connection to generation stream lost');
+      };
+      
+      sseRef.current = eventSource;
     },
     onError: (error: any) => {
       setIsGenerating(false);
@@ -71,7 +85,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
     if (!prompt.trim() || isGenerating) return;
     setIsGenerating(true);
     setShowQuick(false);
-    siteMutation.mutate({ prompt: prompt.trim(), model });
+    siteMutation.mutate({ prompt: prompt.trim(), model, siteId });
   };
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -85,7 +99,9 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, compact = false 
   // Cleanup on unmount
   React.useEffect(() => {
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (sseRef.current) {
+        sseRef.current.close();
+      }
     };
   }, []);
 

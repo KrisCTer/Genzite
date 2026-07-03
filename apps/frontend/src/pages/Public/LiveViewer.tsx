@@ -48,6 +48,31 @@ const LiveViewer: React.FC = () => {
     );
   }
 
+  // Map widgets to include stacking geometry
+  let yOffset = 0;
+  const mappedWidgets = [...widgets].sort((a, b) => a.sortOrder - b.sortOrder).map(widget => {
+    // Basic defaults
+    const defaults = { w: 1440, h: 300 };
+    if (widget.type.toUpperCase() === 'HEADER') defaults.h = 100;
+    if (widget.type.toUpperCase() === 'HERO') defaults.h = 600;
+    if (widget.type.toUpperCase() === 'FOOTER') defaults.h = 150;
+
+    const geom = widget.contentConfig?.geometry || {};
+    const finalGeom = {
+      x: geom.x ?? 0,
+      y: geom.y ?? yOffset,
+      width: geom.width ?? defaults.w,
+      height: geom.height ?? defaults.h,
+    };
+    
+    // Only increment yOffset if this widget didn't have a fixed Y saved
+    if (geom.y === undefined) {
+      yOffset += defaults.h;
+    }
+
+    return { ...widget, _geom: finalGeom };
+  });
+
   return (
     <div style={{ 
       width: '100vw', 
@@ -73,26 +98,22 @@ const LiveViewer: React.FC = () => {
         </Button>
       </Link>
 
-      <div style={{ position: 'relative', width: '1440px', margin: '0 auto', minHeight: '100vh' }}>
-        {[...widgets].map(widget => {
-          // Default geometry if none was saved yet
-          const geom = widget.contentConfig?.geometry || { x: 0, y: 0, width: 1440, height: 200 };
-          return (
-            <div key={widget.id} style={{ 
-              position: 'absolute',
-              left: geom.x,
-              top: geom.y,
-              width: geom.width,
-              height: geom.height
-            }}>
-              <WidgetRenderer
-                type={widget.type}
-                config={widget.contentConfig}
-                isActive={false}
-              />
-            </div>
-          );
-        })}
+      <div style={{ position: 'relative', width: '1440px', margin: '0 auto', minHeight: `${Math.max(yOffset, 1000)}px` }}>
+        {mappedWidgets.map(widget => (
+          <div key={widget.id} style={{ 
+            position: 'absolute',
+            left: widget._geom.x,
+            top: widget._geom.y,
+            width: widget._geom.width,
+            height: widget._geom.height
+          }}>
+            <WidgetRenderer
+              type={widget.type}
+              config={widget.contentConfig}
+              isActive={false}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

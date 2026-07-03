@@ -167,7 +167,7 @@ export class SitesService {
       },
     });
 
-    const products = [];
+    const products: any[] = [];
     for (const page of pages) {
       for (const widget of page.widgets) {
         const config = widget.contentConfig as any;

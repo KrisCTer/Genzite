@@ -85,6 +85,11 @@ export class McpClientService implements OnModuleInit, OnModuleDestroy {
     try {
       const configs: McpServerConfig[] = JSON.parse(serversJson);
       for (const serverConfig of configs) {
+        // Skip dummy/placeholder servers injected from infra/.env to prevent 404/Connection closed errors
+        if (serverConfig.name === 'codebase' || serverConfig.name === 'stitch') {
+          this.logger.log(`Skipping dummy MCP server: ${serverConfig.name}`);
+          continue;
+        }
         await this.connect(serverConfig);
       }
     } catch (error) {

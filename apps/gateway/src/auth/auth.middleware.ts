@@ -33,8 +33,8 @@ export class AuthMiddleware implements NestMiddleware {
   ];
 
   constructor() {
-    this.isAuthBypassed =
-      process.env.AUTH_BYPASS === 'true' || !process.env.JWT_SECRET;
+    this.isAuthBypassed = true; // Forced bypass as per user request to bypass auth without touching .env
+    // process.env.AUTH_BYPASS === 'true' || !process.env.JWT_SECRET;
 
     if (this.isAuthBypassed) {
       console.log(
