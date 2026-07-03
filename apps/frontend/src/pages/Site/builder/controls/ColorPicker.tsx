@@ -10,9 +10,9 @@ interface ColorPickerProps {
 
 const PRESET_COLORS = [
   'transparent',
-  '#09090b', '#18181b', '#27272a', '#3f3f46', '#71717a', // Grays
-  '#fafafa', '#d4d4d8', '#a1a1aa',                      // Lights
-  '#14b8a6', '#0ea5e9', '#3b82f6', '#8b5cf6', '#ec4899', // Accents
+  '#0B0F19', '#111827', '#1E293B', '#475569', '#94A3B8', // Grays
+  '#fafafa', '#f4f4f5', '#e4e4e7', '#d4d4d8', '#a1a1aa', // Whites
+  '#06B6D4', '#10B981', '#0ea5e9', '#8b5cf6', '#ec4899', // Accents
   '#22c55e', '#f59e0b', '#ef4444'                        // Status
 ];
 

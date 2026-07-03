@@ -1,5 +1,6 @@
 import { Controller, Put, Body, Param, Headers, Get } from "@nestjs/common";
 import { WidgetsService } from "./widgets.service.js";
+import { WidgetValidationPipe } from "./pipes/widget-validation.pipe.js";
 
 @Controller("sites/pages/:pageId/widgets")
 export class WidgetsController {
@@ -17,7 +18,7 @@ export class WidgetsController {
     @Param("pageId") pageId: string,
 
     // Body contains the list of new widgets
-    @Body()
+    @Body(new WidgetValidationPipe())
     body: {
       widgets: Array<{
         type: string;

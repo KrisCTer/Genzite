@@ -48,28 +48,32 @@ export class WidgetsService {
     // Step 2: Check permissions
     const page = await this.verifyPageOwnership(pageId, userId);
 
-    // Step 3: Delete all old widgets of the page
-    await this.prisma.widget.deleteMany({
-      where: {
-        pageId,
-      },
-    });
-
-    // Step 4: Recreate new widgets
-    await this.prisma.widget.createMany({
-      data: widgets.map((widget) => ({
-        pageId,
-        type: widget.type,
-        contentConfig: widget.contentConfig as Prisma.InputJsonValue,
-        sortOrder: widget.sortOrder,
-      })),
-    });
-    // B5: Emit Kafka event
-    await this.siteProducer.emitWidgetConfigChanged({
-      pageId,
-      siteId: page.siteId,
-      widgetCount: widgets.length,
-    });
+    // Step 3: Delete old widgets, create new widgets, and create outbox event in a single transaction
+    await this.prisma.$transaction([
+      this.prisma.widget.deleteMany({
+        where: {
+          pageId,
+        },
+      }),
+      this.prisma.widget.createMany({
+        data: widgets.map((widget) => ({
+          pageId,
+          type: widget.type,
+          contentConfig: widget.contentConfig as Prisma.InputJsonValue,
+          sortOrder: widget.sortOrder,
+        })),
+      }),
+      (this.prisma as any).outboxEvent.create({
+        data: {
+          eventType: 'WIDGET_CONFIG_CHANGED',
+          payload: {
+            pageId,
+            siteId: page.siteId,
+            widgetCount: widgets.length,
+          } as Prisma.InputJsonValue,
+        },
+      })
+    ]);
     // Step 5: Return the newly created widget list
     return this.prisma.widget.findMany({
       where: {

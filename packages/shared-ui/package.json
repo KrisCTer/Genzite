@@ -31,6 +31,7 @@
     "@radix-ui/react-select": "^2.1.14",
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.1.14",
+    "@emotion/is-prop-valid": "^1.2.2",
     "framer-motion": "^12.42.0",
     "lucide-react": "^0.511.0"
   },

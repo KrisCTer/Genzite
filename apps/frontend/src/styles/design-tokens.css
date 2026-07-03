@@ -4,21 +4,21 @@
 
 :root {
   /* ─── Base Palette ───────────────────────────────────────── */
-  --gz-black:       #09090b;
-  --gz-dark-1:      #0c0c0e;
-  --gz-dark-2:      #111113;
-  --gz-dark-3:      #18181b;
-  --gz-dark-4:      #1e1e22;
-  --gz-dark-5:      #27272a;
-  --gz-dark-6:      #2e2e33;
+  --gz-black:       #000000;
+  --gz-dark-1:      #0B0F19; /* Main Page Background */
+  --gz-dark-2:      #0E1422; 
+  --gz-dark-3:      #111827; /* Card/Container Background */
+  --gz-dark-4:      #172033;
+  --gz-dark-5:      #1E293B; /* Container Borders */
+  --gz-dark-6:      #334155;
 
-  --gz-gray-1:      #3f3f46;
-  --gz-gray-2:      #52525b;
-  --gz-gray-3:      #71717a;
-  --gz-gray-4:      #a1a1aa;
-  --gz-gray-5:      #d4d4d8;
-  --gz-gray-6:      #e4e4e7;
-  --gz-white:       #fafafa;
+  --gz-gray-1:      #475569;
+  --gz-gray-2:      #64748B;
+  --gz-gray-3:      #94A3B8; /* Body & Description Text */
+  --gz-gray-4:      #CBD5E1;
+  --gz-gray-5:      #F1F5F9;
+  --gz-gray-6:      #F8FAF8; /* Section/Card Headings */
+  --gz-white:       #FFFFFF; /* Hero/Main Title */
 
   /* ─── Accent: Teal (Primary) ─────────────────────────────── */
   --gz-accent-50:   #f0fdfa;
@@ -45,39 +45,39 @@
 
   /* ─── Semantic: Surfaces ────────────────────────────────── */
   --color-bg-app:         var(--gz-dark-1);
-  --color-bg-canvas:      var(--gz-black);
+  --color-bg-canvas:      var(--gz-dark-1);
   --color-bg-surface:     var(--gz-dark-3);
   --color-bg-elevated:    var(--gz-dark-4);
-  --color-bg-overlay:     rgba(0, 0, 0, 0.6);
+  --color-bg-overlay:     rgba(11, 15, 25, 0.8);
   --color-bg-hover:       rgba(255, 255, 255, 0.04);
   --color-bg-active:      rgba(255, 255, 255, 0.08);
 
   /* ─── Semantic: Text ────────────────────────────────────── */
-  --color-text-primary:   var(--gz-gray-5);
-  --color-text-secondary: var(--gz-gray-4);
+  --color-text-primary:   var(--gz-white);
+  --color-text-secondary: var(--gz-gray-6);
   --color-text-muted:     var(--gz-gray-3);
   --color-text-disabled:  var(--gz-gray-2);
   --color-text-inverse:   var(--gz-dark-1);
 
   /* ─── Semantic: Borders ─────────────────────────────────── */
-  --color-border:         rgba(255, 255, 255, 0.06);
-  --color-border-hover:   rgba(255, 255, 255, 0.12);
+  --color-border:         var(--gz-dark-5);
+  --color-border-hover:   var(--gz-dark-6);
   --color-border-focus:   var(--gz-accent-500);
-  --color-border-subtle:  rgba(255, 255, 255, 0.03);
+  --color-border-subtle:  rgba(30, 41, 59, 0.5);
 
   /* ─── Semantic: Accent ──────────────────────────────────── */
-  --color-accent:         var(--gz-accent-500);
-  --color-accent-hover:   var(--gz-accent-400);
-  --color-accent-muted:   rgba(20, 184, 166, 0.15);
-  --color-accent-subtle:  rgba(20, 184, 166, 0.08);
-  --color-accent-glow:    rgba(20, 184, 166, 0.3);
+  --color-accent:         #06B6D4; /* Cyan base */
+  --color-accent-hover:   #10B981; /* Emerald base */
+  --color-accent-muted:   rgba(6, 182, 212, 0.15);
+  --color-accent-subtle:  rgba(6, 182, 212, 0.10); /* 10% opacity for decorative */
+  --color-accent-glow:    rgba(6, 182, 212, 0.15); /* Neon glow */
 
   /* ─── Gradients ─────────────────────────────────────────── */
-  --gradient-accent:     linear-gradient(135deg, var(--gz-accent-500), var(--gz-sky-500));
-  --gradient-surface:    linear-gradient(180deg, var(--gz-dark-2), var(--gz-dark-3));
-  --gradient-canvas:     radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.06) 0%, transparent 60%);
-  --gradient-aurora:     radial-gradient(ellipse at 30% 50%, rgba(20, 184, 166, 0.12) 0%, transparent 50%),
-                         radial-gradient(ellipse at 70% 50%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+  --gradient-accent:     linear-gradient(135deg, #06B6D4, #10B981); /* Cyan to Emerald */
+  --gradient-surface:    linear-gradient(180deg, var(--gz-dark-1), var(--gz-dark-3));
+  --gradient-canvas:     radial-gradient(ellipse at 50% 0%, rgba(6, 182, 212, 0.06) 0%, transparent 60%);
+  --gradient-aurora:     radial-gradient(ellipse at 30% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                         radial-gradient(ellipse at 70% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
 
   /* ─── Spacing ───────────────────────────────────────────── */
   --space-1:  4px;

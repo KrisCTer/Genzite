@@ -7,4 +7,8 @@ export class GenerateSiteDto {
   @IsOptional()
   @IsString()
   model?: string;
+
+  @IsOptional()
+  @IsString()
+  siteId?: string;
 }

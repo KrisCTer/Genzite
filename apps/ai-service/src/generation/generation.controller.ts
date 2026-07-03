@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent, Get, NotFoundException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { Observable } from 'rxjs';
@@ -18,10 +19,12 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    // Initialize QueueEvents to listen to Redis events, sharing the connection with siteQueue
-    const redisOptions = await this.siteQueue.opts.connection;
+    // Initialize QueueEvents with a dedicated connection to avoid blocking the main queue connection
     this.queueEvents = new QueueEvents(AI_QUEUES.SITE_GENERATION, {
-      connection: redisOptions,
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      },
     });
   }
 
@@ -39,6 +42,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
       prompt: dto.prompt,
       ownerId: userId ?? 'anonymous',
       model: dto.model,
+      siteId: dto.siteId,
     });
 
     return {
@@ -66,6 +70,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  @SkipThrottle()
   @Get('site/job/:jobId')
   async getSiteJobStatus(@Param('jobId') jobId: string) {
     const job = await this.siteQueue.getJob(jobId);
@@ -82,6 +87,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  @SkipThrottle()
   @Get('cms/job/:jobId')
   async getCmsJobStatus(@Param('jobId') jobId: string) {
     const job = await this.cmsQueue.getJob(jobId);

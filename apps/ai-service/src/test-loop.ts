@@ -1,5 +1,3 @@
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '../../infra/.env' });
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -8,7 +6,7 @@ import { SiteGeneratorService } from './generation/site-generator.service.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '../../infra/.env' }),
     GenerationModule,
   ],
 })
@@ -22,6 +20,7 @@ async function bootstrap() {
   try {
     const result = await generator.generate(
       'A beautiful SaaS landing page with dark theme and pricing section',
+      undefined,
       undefined,
       undefined,
       (step, percent) => {

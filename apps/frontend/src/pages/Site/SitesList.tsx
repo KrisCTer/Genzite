@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Card, Typography, Space, Modal, Form, Input, message, Popconfirm, Row, Col } from 'antd';
+import { Button, Card, Typography, Space, Modal, Form, Input, Popconfirm, Row, Col, App } from 'antd';
 import { PlusOutlined, GlobalOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchSitesApi, createSiteApi, deleteSiteApi, updateSiteApi, type Site } from '../../api/sites';
@@ -13,6 +13,7 @@ const SitesList: React.FC = () => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { message } = App.useApp();
 
   const { data: sites, isLoading, isError } = useQuery({
     queryKey: ['sites'],
@@ -101,7 +102,7 @@ const SitesList: React.FC = () => {
           <Col xs={24} sm={12} lg={8} key={site.id}>
             <Card 
               hoverable
-              bordered
+              variant="outlined"
               styles={{ body: { padding: 24 } }}
               actions={[
                 <Button type="link" icon={<SettingOutlined />} onClick={() => handleOpenModal(site)}>Edit</Button>,
@@ -141,9 +142,9 @@ const SitesList: React.FC = () => {
                   type="primary" 
                   ghost 
                   size="small" 
-                  onClick={() => navigate(`/admin/site/${site.id}/pages`)}
+                  onClick={() => navigate(`/admin/site/canvas/${site.id}`)}
                 >
-                  Manage Pages
+                  Open Canvas
                 </Button>
               </div>
             </Card>

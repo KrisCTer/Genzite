@@ -33,13 +33,19 @@ export class AiConsumer implements OnModuleInit {
     }
 
     try {
-      // 1. Create site
-      const site = await this.sitesService.create({
-        name: siteData.site.name,
-        subdomain: siteData.site.subdomain,
-      }, ownerId);
-
-      this.logger.log(`Created Site ID: ${site.id} for subdomain ${site.subdomain}`);
+      // 1. Create or fetch site
+      let site: any;
+      if (siteData.site.id) {
+        site = await this.sitesService.findById(siteData.site.id, ownerId);
+        if (!site) throw new Error(`Site with ID ${siteData.site.id} not found`);
+        this.logger.log(`Using existing Site ID: ${site.id} for subdomain ${site.subdomain}`);
+      } else {
+        site = await this.sitesService.create({
+          name: siteData.site.name,
+          subdomain: siteData.site.subdomain,
+        }, ownerId);
+        this.logger.log(`Created Site ID: ${site.id} for subdomain ${site.subdomain}`);
+      }
 
       // 2. Iterate pages and create them
       for (const pageDef of siteData.pages) {

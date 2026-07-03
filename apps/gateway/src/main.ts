@@ -7,7 +7,7 @@ async function bootstrap() {
     origin: true,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization, x-user-id',
+    allowedHeaders: 'Content-Type, Accept, Authorization, x-user-id, x-requested-with',
   });
   await app.listen(process.env.PORT ?? 3000);
   console.log(`[API Gateway] Running on port ${process.env.PORT ?? 3000}`);

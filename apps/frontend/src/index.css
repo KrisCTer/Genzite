@@ -2,11 +2,9 @@
    Genzite — Global Styles (Dark-First)
    ══════════════════════════════════════════════════════════════ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import './styles/design-tokens.css';
 @import 'tailwindcss';
-
-/* ─── Google Fonts: Inter ─────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ─── Global Reset & Base ─────────────────────────────────── */
 *,
@@ -78,11 +76,11 @@ a:hover {
 }
 
 .ant-layout-sider {
-  background: var(--gz-dark-2) !important;
+  background: var(--gz-dark-3) !important;
 }
 
 .ant-layout-header {
-  background: var(--gz-dark-2) !important;
+  background: var(--gz-dark-3) !important;
 }
 
 .ant-popover-inner {
@@ -99,7 +97,26 @@ a:hover {
 
 /* Fix Ant badge text on dark bg */
 .ant-badge .ant-badge-count {
-  box-shadow: 0 0 0 2px var(--gz-dark-2);
+  box-shadow: 0 0 0 2px var(--gz-dark-3);
+}
+
+/* Tech-Noir Button Overrides */
+.ant-btn-primary {
+  background: var(--gradient-accent) !important;
+  color: #0B0F19 !important;
+  border: none !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-btn-primary:hover, .ant-btn-primary:focus {
+  box-shadow: 0 0 12px var(--color-accent-glow) !important;
+  transform: translateY(-1px);
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0);
 }
 
 /* ─── Reduced Motion ──────────────────────────────────────── */

@@ -11,6 +11,7 @@ import { WidgetsService } from "./widgets/widgets.service.js";
 import { SiteProducer } from "./events/site.producer.js";
 import { AiConsumer } from "./events/ai.consumer.js";
 import { PagesManagementController } from "./pages/pages-management.controller.js";
+import { OutboxWorker } from "./events/outbox.worker.js";
 
 @Module({
   imports: [
@@ -24,6 +25,6 @@ import { PagesManagementController } from "./pages/pages-management.controller.j
     PagesManagementController,
     WidgetsController,
   ],
-  providers: [SitesService, PagesService, WidgetsService, SiteProducer, AiConsumer],
+  providers: [SitesService, PagesService, WidgetsService, SiteProducer, AiConsumer, OutboxWorker],
 })
 export class AppModule {}
