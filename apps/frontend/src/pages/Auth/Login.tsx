@@ -152,6 +152,33 @@ const Login: React.FC = () => {
         .gz-login .ant-form-item { margin-bottom: 0 !important; }
         .gz-login .ant-form-item-control-input { min-height: auto; }
         .gz-login .ant-form-item-explain-error { font-size: 11px; margin-top: 4px; text-align: center; }
+
+        @keyframes float-blob-1 {
+          0% { transform: translate(0px, 0px) scale(1) rotate(0deg); }
+          33% { transform: translate(30px, -45px) scale(1.1) rotate(120deg); }
+          66% { transform: translate(-25px, 25px) scale(0.95) rotate(240deg); }
+          100% { transform: translate(0px, 0px) scale(1) rotate(360deg); }
+        }
+        @keyframes float-blob-2 {
+          0% { transform: translate(0px, 0px) scale(1.05) rotate(0deg); }
+          50% { transform: translate(-35px, 30px) scale(0.9) rotate(-180deg); }
+          100% { transform: translate(0px, 0px) scale(1.05) rotate(-360deg); }
+        }
+        @keyframes float-blob-3 {
+          0% { transform: translate(0px, 0px) scale(0.95) rotate(0deg); }
+          40% { transform: translate(45px, 35px) scale(1.12) rotate(140deg); }
+          80% { transform: translate(-30px, -30px) scale(0.88) rotate(280deg); }
+          100% { transform: translate(0px, 0px) scale(0.95) rotate(360deg); }
+        }
+        .animate-blob-1 {
+          animation: float-blob-1 22s infinite alternate ease-in-out;
+        }
+        .animate-blob-2 {
+          animation: float-blob-2 26s infinite alternate ease-in-out;
+        }
+        .animate-blob-3 {
+          animation: float-blob-3 18s infinite alternate ease-in-out;
+        }
       `}</style>
 
       {/* ── page background decorations ── */}
@@ -326,24 +353,41 @@ const Login: React.FC = () => {
                 SLIDING COLORED PANEL — Symmetric layout aligned like screenshot
                 ═══════════════════════════════════════════════════════════════ */}
             <div
-              className="absolute top-0 left-1/2 w-1/2 h-full z-50"
+              className="absolute top-0 left-1/2 w-1/2 h-full z-50 overflow-hidden"
               style={{
                 transform: isSignUp ? 'translateX(-100%)' : 'translateX(0%)',
                 transition: 'transform 0.6s ease-in-out',
               }}
             >
-              {/* Marbled background image */}
+              {/* Marbled background image with transition shift & water wave filter */}
               <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: "url('/login_cover_art.png')" }}
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 ease-in-out"
+                style={{ 
+                  backgroundImage: "url('/login_cover_art.png')",
+                  transform: isSignUp ? 'scale(1.05) rotate(-1deg)' : 'scale(1) rotate(0deg)',
+                  filter: 'url(#liquid-water-wave)'
+                }}
               />
-              {/* Dark overlay */}
-              <div className="absolute inset-0 bg-black/50" />
+
+              {/* Dynamic marbled color mix overlay container */}
+              <div className="absolute inset-0 mix-blend-color opacity-75 pointer-events-none overflow-hidden">
+                {/* Blob 1: Cyan/Teal */}
+                <div className="absolute -top-1/4 -left-1/4 w-[120%] h-[120%] bg-gradient-to-br from-[#06b6d4]/50 to-[#14b8a6]/10 rounded-full blur-[80px] animate-blob-1" />
+                {/* Blob 2: Emerald/Green */}
+                <div className="absolute -bottom-1/4 -right-1/4 w-[120%] h-[120%] bg-gradient-to-tr from-[#10b981]/50 to-[#06b6d4]/10 rounded-full blur-[80px] animate-blob-2" />
+                {/* Blob 3: Yellow/Amber */}
+                <div className="absolute top-1/4 right-1/4 w-[80%] h-[80%] bg-gradient-to-br from-[#eab308]/40 to-transparent rounded-full blur-[60px] animate-blob-3" />
+              </div>
+
+              {/* Dark overlays for depth & contrast */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70 mix-blend-multiply" />
+              <div className="absolute inset-0 bg-[#090d16]/30 mix-blend-overlay" />
+
               {/* Dot grid */}
               <div
-                className="absolute inset-0 opacity-10 pointer-events-none"
+                className="absolute inset-0 opacity-15 pointer-events-none"
                 style={{
-                  backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)',
+                  backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
                   backgroundSize: '24px 24px',
                 }}
               />
@@ -499,6 +543,23 @@ const Login: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      {/* SVG Liquid Water Wave Filter Definition */}
+      <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
+        <defs>
+          <filter id="liquid-water-wave">
+            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.015" numOctaves="3" result="noise">
+              <animate 
+                attributeName="baseFrequency" 
+                dur="16s" 
+                values="0.01 0.015; 0.014 0.024; 0.01 0.015" 
+                repeatCount="indefinite" 
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   );
 };
