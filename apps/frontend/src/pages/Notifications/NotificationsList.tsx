@@ -11,7 +11,7 @@ const NotificationsList: React.FC = () => {
 
   const { data: notifications, isLoading, isError } = useQuery({
     queryKey: ['notifications'],
-    queryFn: fetchNotificationsApi,
+    queryFn: () => fetchNotificationsApi(),
     retry: 1,
   });
 
@@ -104,7 +104,7 @@ const NotificationsList: React.FC = () => {
                   </Badge>
                 }
                 title={<span style={{ fontWeight: item.isRead ? 500 : 600, color: '#111827', fontSize: 16 }}>{item.title}</span>}
-                description={<span style={{ color: '#4B5563', fontSize: 14, marginTop: 4, display: 'block' }}>{item.content}</span>}
+                description={<span style={{ color: '#4B5563', fontSize: 14, marginTop: 4, display: 'block' }}>{item.body}</span>}
               />
             </List.Item>
           )}

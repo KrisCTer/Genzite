@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:gateway\" \"pnpm run dev:identity\" \"pnpm run dev:site\" \"pnpm run dev:data\" \"pnpm run dev:media\" \"pnpm run dev:notification\" \"pnpm run dev:ai\" \"pnpm run dev:frontend\"",
+    "dev": "concurrently \"pnpm run dev:gateway\" \"pnpm run dev:identity\" \"pnpm run dev:site\" \"pnpm run dev:data\" \"pnpm run dev:media\" \"pnpm run dev:notification\" \"pnpm run dev:ai\" \"pnpm run dev:commerce\" \"pnpm run dev:frontend\"",
     "build:ui": "pnpm --filter ./packages/shared-ui run build",
     "build:types": "pnpm --filter ./packages/shared-types run build",
     "build:utils": "pnpm --filter ./packages/shared-utils run build",
@@ -27,6 +27,7 @@
     "dev:ai": "node scripts/dev.mjs start:dev --service ai-service",
     "dev:commerce": "node scripts/dev.mjs start:dev --service commerce-service",
     "dev:identity": "node scripts/dev.mjs start:dev --service identity-service",
+    "dev:commerce": "node scripts/dev.mjs start:dev --service commerce-service",
     "prisma:migrate": "node scripts/dev.mjs prisma migrate dev --all",
     "prisma:generate": "node scripts/dev.mjs prisma generate --all",
     "prisma:migrate:site": "node scripts/dev.mjs prisma migrate dev --service site-service",
