@@ -170,8 +170,14 @@ export class SitesService {
     const products: any[] = [];
     for (const page of pages) {
       for (const widget of page.widgets) {
-        const config = widget.contentConfig as any;
-        if (config && config.products && Array.isArray(config.products)) {
+        const config = widget.contentConfig;
+        if (
+          config &&
+          typeof config === 'object' &&
+          !Array.isArray(config) &&
+          'products' in config &&
+          Array.isArray(config.products)
+        ) {
           products.push(...config.products);
         }
       }

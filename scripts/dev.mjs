@@ -28,6 +28,7 @@ const SCHEMA_MAP = {
   'media-service': 'media',
   'notification-service': 'notification',
   'ai-service': 'ai',
+  'commerce-service': 'commerce',
 };
 
 // Service name → default port mapping
@@ -39,6 +40,7 @@ const PORT_MAP = {
   'media-service': 3004,
   'notification-service': 3005,
   'ai-service': 3006,
+  'commerce-service': 3007,
 };
 
 // --all only runs on DB services (skip gateway)
@@ -181,7 +183,8 @@ if (!command) {
 ║                                                          ║
 ║  Services:                                               ║
 ║    identity-service, site-service, data-service,         ║
-║    media-service, notification-service, ai-service       ║
+║    media-service, notification-service, ai-service,      ║
+║    commerce-service                                      ║
 ╚══════════════════════════════════════════════════════════╝
 `);
   process.exit(0);

@@ -5,7 +5,24 @@ import { RagService } from './rag.service.js';
 import { GuardrailService } from './guardrail.service.js';
 import { ConfigService } from '@nestjs/config';
 
+export interface GeneratedWidget {
+  type: string;
+  contentConfig?: Record<string, unknown>;
+  sortOrder: number;
+}
+
+export interface GeneratedPage {
+  title: string;
+  slug: string;
+  widgets?: GeneratedWidget[];
+}
+
 export interface GeneratedSite {
+  site: {
+    name: string;
+    subdomain: string;
+  };
+  pages: GeneratedPage[];
   projectId: string;
   screenId: string;
   htmlUrl: string;
