@@ -21,7 +21,7 @@ const WidgetPropertyEditor: React.FC<WidgetPropertyEditorProps> = ({ widget, onC
 
   if (!widget) {
     return (
-      <Card title="Properties" bordered={false} style={{ height: '100%' }}>
+      <Card title="Properties" variant="borderless" style={{ height: '100%' }}>
         <Empty description="Select a widget on the canvas to edit its properties." />
       </Card>
     );
@@ -39,7 +39,7 @@ const WidgetPropertyEditor: React.FC<WidgetPropertyEditorProps> = ({ widget, onC
   };
 
   return (
-    <Card title={`Edit ${widget.type}`} bordered={false} style={{ height: '100%', overflowY: 'auto' }}>
+    <Card title={`Edit ${widget.type}`} variant="borderless" style={{ height: '100%', overflowY: 'auto' }}>
       <Form form={form} layout="vertical" onValuesChange={handleValuesChange}>
         <Form.Item
           name="contentConfig"

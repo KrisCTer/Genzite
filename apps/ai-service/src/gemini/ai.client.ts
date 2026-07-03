@@ -12,11 +12,14 @@ export type AiModelName = GeminiModelName | DeepSeekModelName | GroqModelName;
 
 export type AiProvider = 'gemini' | 'deepseek' | 'groq';
 
+import { type FunctionDeclaration } from '@google/generative-ai';
+
 interface AiGenerateOptions {
   model?: AiModelName;
   systemInstruction?: string;
   temperature?: number;
   maxOutputTokens?: number;
+  tools?: FunctionDeclaration[];
 }
 
 /**

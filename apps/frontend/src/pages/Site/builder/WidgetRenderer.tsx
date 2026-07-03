@@ -27,12 +27,17 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
     boxSizing: 'border-box',
   };
 
+  const sanitizeValue = (val: any, defaultVal: string) => {
+    if (!val) return defaultVal;
+    return String(val).split(';')[0].trim();
+  };
+
   const getStyle = (defaultBg: string, defaultPadding: string): React.CSSProperties => ({
     ...containerStyle,
-    background: config.bgColor || defaultBg,
-    padding: config.padding ? `${config.padding}px` : defaultPadding,
-    borderRadius: config.borderRadius ? `${config.borderRadius}px` : 'var(--radius-sm)',
-    color: config.textColor || 'var(--color-text-primary)'
+    background: sanitizeValue(config.bgColor, defaultBg),
+    padding: config.padding ? sanitizeValue(config.padding, '').replace(/px$/, '') + 'px' : defaultPadding,
+    borderRadius: config.borderRadius ? sanitizeValue(config.borderRadius, '').replace(/px$/, '') + 'px' : 'var(--radius-sm)',
+    color: sanitizeValue(config.textColor, 'var(--color-text-primary)')
   });
 
   const Overlay = () => (

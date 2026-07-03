@@ -21,6 +21,7 @@ interface GenerateOptions {
   systemInstruction?: string;
   temperature?: number;
   maxOutputTokens?: number;
+  tools?: FunctionDeclaration[];
 }
 
 @Injectable()
@@ -78,6 +79,7 @@ export class GeminiClient {
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig,
+        tools: options.tools ? [{ functionDeclarations: options.tools }] : undefined,
       });
 
       const text = result.response.text();
@@ -113,6 +115,7 @@ export class GeminiClient {
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig,
+        tools: options.tools ? [{ functionDeclarations: options.tools }] : undefined,
       });
 
       let text = result.response.text();
@@ -166,6 +169,7 @@ export class GeminiClient {
     return model.startChat({
       history,
       generationConfig,
+      tools: options.tools ? [{ functionDeclarations: options.tools }] : undefined,
     });
   }
 
@@ -210,7 +214,11 @@ export class GeminiClient {
         parts: [{ text: h.content }],
       }));
 
-      const chat = model.startChat({ history: chatHistory, generationConfig });
+      const chat = model.startChat({ 
+        history: chatHistory, 
+        generationConfig,
+        tools: options.tools ? [{ functionDeclarations: options.tools }] : undefined, 
+      });
       const result = await chat.sendMessage(message);
       let text = result.response.text();
 

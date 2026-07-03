@@ -62,6 +62,9 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.4
+      codebase-memory-mcp:
+        specifier: ^0.8.1
+        version: 0.8.1
       openai:
         specifier: ^6.44.0
         version: 6.44.0(ws@8.21.0)(zod@4.4.3)
@@ -762,6 +765,9 @@ importers:
 
   packages/shared-ui:
     dependencies:
+      '@emotion/is-prop-valid':
+        specifier: ^1.2.2
+        version: 1.4.0
       '@radix-ui/react-avatar':
         specifier: ^1.1.10
         version: 1.2.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -3807,6 +3813,13 @@ packages:
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
+
+  codebase-memory-mcp@0.8.1:
+    resolution: {integrity: sha512-QUUqUL1CLT1euLQ2eI6kft+tZmIoC0wZxpCt2B844znzOk90fmDZJbT8z7ec3665imshNzAg7Szdl9vYNoxn+w==}
+    engines: {node: '>=18'}
+    cpu: [x64, arm64]
+    os: [linux, darwin, win32]
+    hasBin: true
 
   collect-v8-coverage@1.0.3:
     resolution: {integrity: sha512-1L5aqIkwPfiodaMgQunkF1zRhNqifHBmtbbbxcr6yVxxBnliw4TDOW6NxpO8DJLgJ16OT+Y4ztZqP6p/FtXnAw==}
@@ -10181,6 +10194,8 @@ snapshots:
   cluster-key-slot@1.1.2: {}
 
   co@4.6.0: {}
+
+  codebase-memory-mcp@0.8.1: {}
 
   collect-v8-coverage@1.0.3: {}
 
