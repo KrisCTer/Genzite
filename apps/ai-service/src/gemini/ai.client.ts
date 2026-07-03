@@ -3,14 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { GeminiClient, type GeminiModelName } from './gemini.client.js';
 import { DeepSeekClient, type DeepSeekModelName } from './deepseek.client.js';
 import { GroqClient, type GroqModelName } from './groq.client.js';
+import { NvidiaClient, type NvidiaModelName } from './nvidia.client.js';
 
 /**
  * All supported model names across providers.
  * The AiClient automatically routes to the correct provider based on model prefix.
  */
-export type AiModelName = GeminiModelName | DeepSeekModelName | GroqModelName;
+export type AiModelName = GeminiModelName | DeepSeekModelName | GroqModelName | NvidiaModelName;
 
-export type AiProvider = 'gemini' | 'deepseek' | 'groq';
+export type AiProvider = 'gemini' | 'deepseek' | 'groq' | 'nvidia';
 
 import { type FunctionDeclaration } from '@google/generative-ai';
 
@@ -44,6 +45,7 @@ export class AiClient {
     private readonly gemini: GeminiClient,
     private readonly deepseek: DeepSeekClient,
     private readonly groq: GroqClient,
+    private readonly nvidia: NvidiaClient,
   ) {
     this.defaultProvider = (this.config.get<string>('AI_DEFAULT_PROVIDER') ?? 'gemini') as AiProvider;
     this.logger.log(`AI Client initialized (default provider: ${this.defaultProvider})`);
@@ -51,6 +53,7 @@ export class AiClient {
 
   private resolveProvider(model?: AiModelName): AiProvider {
     if (!model) return this.defaultProvider;
+    if (model.includes('/')) return 'nvidia'; // NVIDIA NIM format (e.g. deepseek-ai/deepseek-v4-flash)
     if (model.startsWith('deepseek')) return 'deepseek';
     if (model.startsWith('llama') || model.startsWith('mixtral')) return 'groq';
     return 'gemini';
@@ -59,11 +62,24 @@ export class AiClient {
   async generateContent(prompt: string, options: AiGenerateOptions = {}): Promise<string> {
     const provider = this.resolveProvider(options.model);
 
+    if (provider === 'nvidia') {
+      try {
+        return await this.nvidia.generateContent(prompt, { ...options, model: options.model as NvidiaModelName });
+      } catch (error) {
+        this.logger.warn(`NVIDIA API failed, falling back to Groq... (${error})`);
+        return this.groq.generateContent(prompt, { ...options, model: 'llama-3.3-70b-versatile' });
+      }
+    }
     if (provider === 'deepseek') {
       return this.deepseek.generateContent(prompt, { ...options, model: options.model as DeepSeekModelName });
     }
     if (provider === 'groq') {
-      return this.groq.generateContent(prompt, { ...options, model: options.model as GroqModelName });
+      try {
+        return await this.groq.generateContent(prompt, { ...options, model: options.model as GroqModelName });
+      } catch (error) {
+        this.logger.warn(`Groq API failed, falling back to NVIDIA... (${error})`);
+        return this.nvidia.generateContent(prompt, { ...options, model: 'meta/llama-3.3-70b-instruct' });
+      }
     }
 
     try {
@@ -94,11 +110,24 @@ export class AiClient {
   ): Promise<T> {
     const provider = this.resolveProvider(options.model);
 
+    if (provider === 'nvidia') {
+      try {
+        return await this.nvidia.generateJson<T>(prompt, { ...options, model: options.model as NvidiaModelName });
+      } catch (error) {
+        this.logger.warn(`NVIDIA API failed, falling back to Groq... (${error})`);
+        return this.groq.generateJson<T>(prompt, { ...options, model: 'llama-3.3-70b-versatile' });
+      }
+    }
     if (provider === 'deepseek') {
       return this.deepseek.generateJson<T>(prompt, { ...options, model: options.model as DeepSeekModelName });
     }
     if (provider === 'groq') {
-      return this.groq.generateJson<T>(prompt, { ...options, model: options.model as GroqModelName });
+      try {
+        return await this.groq.generateJson<T>(prompt, { ...options, model: options.model as GroqModelName });
+      } catch (error) {
+        this.logger.warn(`Groq API failed, falling back to NVIDIA... (${error})`);
+        return this.nvidia.generateJson<T>(prompt, { ...options, model: 'meta/llama-3.3-70b-instruct' });
+      }
     }
 
     try {
@@ -131,11 +160,24 @@ export class AiClient {
   ): Promise<T> {
     const provider = this.resolveProvider(options.model);
 
+    if (provider === 'nvidia') {
+      try {
+        return await this.nvidia.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as NvidiaModelName });
+      } catch (error) {
+        this.logger.warn(`NVIDIA API failed, falling back to Groq... (${error})`);
+        return this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: 'llama-3.3-70b-versatile' });
+      }
+    }
     if (provider === 'deepseek') {
       return this.deepseek.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as DeepSeekModelName });
     }
     if (provider === 'groq') {
-      return this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as GroqModelName });
+      try {
+        return await this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as GroqModelName });
+      } catch (error) {
+        this.logger.warn(`Groq API failed, falling back to NVIDIA... (${error})`);
+        return this.nvidia.chatJson<T>(systemInstruction, history, message, { ...options, model: 'meta/llama-3.3-70b-instruct' });
+      }
     }
 
     try {
