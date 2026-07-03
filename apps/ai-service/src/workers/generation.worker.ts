@@ -75,7 +75,7 @@ export class SiteGenerationWorker extends WorkerHost {
       model,
     });
 
-    this.logger.log(`Site generated: "${result.projectId}"`);
+    this.logger.log(`Site generated: Project ${result.projectId}, Screen ${result.screenId}`);
     return result;
   }
 }

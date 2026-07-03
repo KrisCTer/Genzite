@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { GeminiModule } from '../gemini/gemini.module.js';
+import { AgentModule } from '../agent/agent.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AI_QUEUES } from '../workers/queue.constants.js';
 import { GenerationController } from './generation.controller.js';
@@ -13,6 +14,7 @@ import { GuardrailService } from './guardrail.service.js';
 @Module({
   imports: [
     GeminiModule,
+    AgentModule,
     PrismaModule,
     BullModule.registerQueue(
       { name: AI_QUEUES.SITE_GENERATION },

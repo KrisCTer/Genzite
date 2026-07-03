@@ -15,6 +15,7 @@ interface GenerateOptions {
   systemInstruction?: string;
   temperature?: number;
   maxOutputTokens?: number;
+  tools?: any[];
 }
 
 @Injectable()

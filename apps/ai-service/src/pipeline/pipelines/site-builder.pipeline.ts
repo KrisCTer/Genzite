@@ -7,7 +7,11 @@ import type { GeneratedCms } from '../../generation/cms-generator.service.js';
 
 export interface GeneratedSiteData {
   site: { name: string; subdomain: string };
-  pages: { title: string; slug: string; widgets: any[] }[];
+  pages: Array<{
+    title: string;
+    slug: string;
+    widgets: any[];
+  }>;
 }
 
 // ── Step Input/Output Types ────────────────────────────────
