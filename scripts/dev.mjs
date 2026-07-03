@@ -134,7 +134,7 @@ function runInService(serviceName, command, sharedEnv) {
       console.log(`\n[SKIP] [${serviceName}] Skipped (no database)`);
       return true;
     }
-    fullCommand = `npx ${command}`;
+    fullCommand = `pnpm exec ${command}`;
   } else {
     fullCommand = `pnpm run ${command}`;
   }

@@ -29,6 +29,8 @@ export default defineConfig({
         'react/jsx-runtime',
         /^@radix-ui\/.*/,
         'lucide-react',
+        'framer-motion',
+        /^framer-motion\/.*/,
       ],
       output: {
         preserveModules: true,

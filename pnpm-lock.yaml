@@ -390,6 +390,9 @@ importers:
       http-proxy-middleware:
         specifier: ^4.1.1
         version: 4.1.1
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -439,6 +442,9 @@ importers:
       '@genzite/kafka':
         specifier: workspace:*
         version: link:../../packages/kafka
+      '@genzite/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.27(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
