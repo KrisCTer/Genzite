@@ -40,68 +40,68 @@ const App: React.FC = () => {
   return (
     <ConfigProvider theme={genziteDarkTheme}>
       <AntdApp>
-      <Toaster>
-        <ErrorBoundary>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/live/:pageId" element={<LiveViewer />} />
-          <Route path="/login" element={<Login />} />
+        <Toaster>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/live/:pageId" element={<LiveViewer />} />
+              <Route path="/login" element={<Login />} />
 
-          {/* Canvas routes — full-bleed, no admin shell */}
-          <Route
-            path="/admin/site/canvas"
-            element={
-              <ProtectedRoute>
-                <CanvasLayout />
-              </ProtectedRoute>
-            }
-          >
-            {/* New unified route: AI Generate + Canvas Builder */}
-            <Route index element={<PageBuilder />} />
-            <Route path=":siteId" element={<PageBuilder />} />
-          </Route>
+              {/* Canvas routes — full-bleed, no admin shell */}
+              <Route
+                path="/admin/site/canvas"
+                element={
+                  <ProtectedRoute>
+                    <CanvasLayout />
+                  </ProtectedRoute>
+                }
+              >
+                {/* New unified route: AI Generate + Canvas Builder */}
+                <Route index element={<PageBuilder />} />
+                <Route path=":siteId" element={<PageBuilder />} />
+              </Route>
 
-          {/* Legacy canvas route — redirect for backwards compatibility */}
-          <Route
-            path="/admin/site/pages/:pageId/builder"
-            element={<LegacyBuilderRedirect />}
-          />
+              {/* Legacy canvas route — redirect for backwards compatibility */}
+              <Route
+                path="/admin/site/pages/:pageId/builder"
+                element={<LegacyBuilderRedirect />}
+              />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="identity" element={<UserManagement />} />
-            <Route path="media" element={<MediaLibrary />} />
-            <Route path="cms">
-              <Route index element={<Collections />} />
-              <Route path=":collectionId" element={<DataGrid />} />
-            </Route>
-            <Route path="site">
-              <Route index element={<SitesList />} />
-              <Route path=":siteId/pages" element={<PagesList />} />
-            </Route>
-            <Route path="notifications" element={<NotificationsList />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="identity" element={<UserManagement />} />
+                <Route path="media" element={<MediaLibrary />} />
+                <Route path="cms">
+                  <Route index element={<Collections />} />
+                  <Route path=":collectionId" element={<DataGrid />} />
+                </Route>
+                <Route path="site">
+                  <Route index element={<SitesList />} />
+                  <Route path=":siteId/pages" element={<PagesList />} />
+                </Route>
+                <Route path="notifications" element={<NotificationsList />} />
 
-            <Route path="ai">
-              <Route path="resume" element={<ResumeBuilder />} />
-              <Route path="interview" element={<InterviewSession />} />
-              {/* AI Generate now redirects to unified canvas */}
-              <Route path="generate" element={<Navigate to="/admin/site/canvas" replace />} />
-              <Route path="agent" element={<AgentWorkspace />} />
-              <Route path="logs" element={<AgentLogs />} />
-            </Route>
-          </Route>
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-        </ErrorBoundary>
-      </Toaster>
+                <Route path="ai">
+                  <Route path="resume" element={<ResumeBuilder />} />
+                  <Route path="interview" element={<InterviewSession />} />
+                  {/* AI Generate now redirects to unified canvas */}
+                  <Route path="generate" element={<Navigate to="/admin/site/canvas" replace />} />
+                  <Route path="agent" element={<AgentWorkspace />} />
+                  <Route path="logs" element={<AgentLogs />} />
+                </Route>
+              </Route>
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </ErrorBoundary>
+        </Toaster>
       </AntdApp>
     </ConfigProvider>
   );

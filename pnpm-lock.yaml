@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@emotion/is-prop-valid':
+        specifier: ^1.4.0
+        version: 1.4.0
       concurrently:
         specifier: ^10.0.3
         version: 10.0.3
