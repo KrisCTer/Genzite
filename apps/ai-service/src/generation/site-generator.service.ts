@@ -1,6 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { AiClient } from '../gemini/ai.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { 
+  SECTION_PLANNER_SYSTEM, 
+  SECTION_PLANNER_PROMPT, 
+  WIDGET_GENERATOR_SYSTEM, 
+  WIDGET_GENERATOR_PROMPT 
+} from '../gemini/prompts/templates.js';
 import { RagService } from './rag.service.js';
 import { GuardrailService } from './guardrail.service.js';
 import { ConfigService } from '@nestjs/config';
@@ -23,12 +29,11 @@ export interface GeneratedSite {
     subdomain: string;
   };
   pages: GeneratedPage[];
-  projectId: string;
-  screenId: string;
-  htmlUrl: string;
-  imageUrl: string;
-  site?: { name: string; subdomain: string };
-  pages?: Array<{ title: string; slug: string; widgets: any[] }>;
+  projectId?: string;
+  screenId?: string;
+  htmlUrl?: string;
+  imageUrl?: string;
+  generationMode?: 'stitch' | 'hybrid';
 }
 
 interface ReflectionResult {
@@ -124,6 +129,13 @@ export class SiteGeneratorService {
         this.rag.retrieveTemplate(prompt)
       ]);
 
+      const genMode = this.config.get<string>('GENERATION_MODE') || 'stitch';
+
+      if (genMode === 'hybrid') {
+        return await this.generateHybrid(prompt, taskLog, siteId, onProgress);
+      }
+
+      // --- STITCH MODE (LEGACY) ---
       const pmPrompt = `User request: "${prompt}"\n\nReference Structure:\n${goldenTemplate}\n\nPlease write a highly detailed design prompt based on this request.`;
 
       // STEP 2: PM (Gemini) writes refined prompt
@@ -178,7 +190,7 @@ export class SiteGeneratorService {
         const auditorPrompt = `Review this generated HTML/Tailwind for UX/UI issues:\n\n\`\`\`html\n${htmlContent.substring(0, 3000)}...\n\`\`\``;
 
         const reflection = await this.ai.generateJson<ReflectionResult>(auditorPrompt, {
-          model: 'llama-3.3-70b-versatile', // Force Groq for speed
+          model: 'meta/llama-3.3-70b-instruct', // Force NVIDIA NIM for speed and accuracy
           systemInstruction: AUDITOR_SYSTEM_INSTRUCTION,
           temperature: 0.1,
         });
@@ -220,7 +232,7 @@ export class SiteGeneratorService {
       let extractionResult: any = { site: { name: "Generated", subdomain: `gen-${Date.now()}` }, pages: [] };
       try {
         extractionResult = await this.ai.generateJson<any>(extractionPrompt, {
-          model: 'llama-3.3-70b-versatile', // Dùng Groq để xử lý JSON siêu tốc độ và tiết kiệm Gemini Quota
+          model: 'meta/llama-3.3-70b-instruct', // Dùng NVIDIA NIM Llama 3.3 70B xử lý JSON siêu tốc độ
           systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION,
           temperature: 0.2,
         });
@@ -261,6 +273,165 @@ export class SiteGeneratorService {
       onProgress?.('Completed!', 100);
       this.logger.log(`Site generation finalized.`);
       return result;
+    } catch (error) {
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          endedAt: new Date(),
+        },
+      });
+      throw error;
+    }
+  }
+
+  private async generateHybrid(
+    prompt: string,
+    taskLog: any,
+    siteId?: string,
+    onProgress?: (step: string, percent: number) => void
+  ): Promise<GeneratedSite> {
+    try {
+      this.logger.log('Starting HYBRID parallel generation mode');
+      onProgress?.('Planner is analyzing sections...', 20);
+
+      // STEP 1: Plan Sections
+      const planPrompt = SECTION_PLANNER_PROMPT.replace('{{PROMPT}}', prompt);
+      const planResult = await this.ai.generateJson<{ sections: any[] }>(planPrompt, {
+        model: 'gemini-2.0-flash',
+        systemInstruction: SECTION_PLANNER_SYSTEM,
+      });
+
+      const sections = planResult.sections || [];
+      this.logger.log(`Planned ${sections.length} sections for parallel generation`);
+
+      // DESIGN TOKENS
+      const DESIGN_TOKENS = `
+        - bgColor: use "var(--gz-dark-1)", "var(--gz-dark-3)", or "var(--gz-dark-4)"
+        - textColor: "var(--color-text-primary)" for titles, "var(--color-text-secondary)" for body
+        - accentColor: "var(--color-accent)"
+        - padding: "24px 24px"
+        - borderRadius: "16px"
+      `;
+
+      onProgress?.('Workers are building sections in parallel...', 40);
+
+      // STEP 2: Execute Parallel Workers
+      const widgetPromises = sections.map(async (sec) => {
+        if (sec.assignTo === 'stitch' || sec.type === 'HEADER' || sec.type === 'HERO') {
+          // Fallback to Stitch for Header/Hero
+          const { stitch } = await import('@google/stitch-sdk');
+          const apiKey = this.config.get<string>('STITCH_API_KEY') || this.config.get<string>('GEMINI_API_KEY');
+          if (apiKey) process.env.STITCH_API_KEY = apiKey;
+          const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
+          const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
+          const htmlUrl = await screen.getHtml();
+          
+          let htmlContent = '';
+          try {
+            const res = await fetch(htmlUrl);
+            htmlContent = await res.text();
+          } catch (e) {
+            htmlContent = '<!-- Failed to fetch -->';
+          }
+          
+          const extractionResult = await this.ai.generateJson<any>(
+            `Convert this HTML to JSON widget format:\n${htmlContent.substring(0, 10000)}`, 
+            { model: 'meta/llama-3.3-70b-instruct', systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION }
+          );
+          
+          return {
+            type: sec.type,
+            sortOrder: sec.sortOrder,
+            contentConfig: extractionResult?.pages?.[0]?.widgets?.[0]?.contentConfig || { title: sec.type }
+          };
+        } else {
+          // LLM JSON Worker
+          const workerPrompt = WIDGET_GENERATOR_PROMPT
+            .replace('{{SECTION_TYPE}}', sec.type)
+            .replace('{{BRIEFING}}', sec.briefing)
+            .replace('{{DESIGN_TOKENS}}', DESIGN_TOKENS);
+            
+          let modelName = 'deepseek-chat';
+          if (sec.assignTo === 'nvidia') modelName = 'meta/llama-3.3-70b-instruct';
+          if (sec.assignTo === 'groq') modelName = 'llama-3.3-70b-versatile';
+          if (sec.assignTo === 'deepseek') modelName = 'deepseek-ai/deepseek-v4-flash';
+          
+          try {
+            const widgetResult = await this.ai.generateJson<any>(workerPrompt, {
+              model: modelName as any,
+              systemInstruction: WIDGET_GENERATOR_SYSTEM,
+              temperature: 0.7
+            });
+            return {
+              type: sec.type,
+              sortOrder: sec.sortOrder,
+              contentConfig: widgetResult.contentConfig || {}
+            };
+          } catch (e) {
+            this.logger.warn(`Worker ${modelName} failed for ${sec.type}, falling back...`);
+            const fallbackResult = await this.ai.generateJson<any>(workerPrompt, {
+              model: 'meta/llama-3.3-70b-instruct',
+              systemInstruction: WIDGET_GENERATOR_SYSTEM,
+            });
+            return {
+              type: sec.type,
+              sortOrder: sec.sortOrder,
+              contentConfig: fallbackResult.contentConfig || {}
+            };
+          }
+        }
+      });
+
+      const generatedWidgets = await Promise.all(widgetPromises);
+      
+      // Sort widgets
+      generatedWidgets.sort((a, b) => a.sortOrder - b.sortOrder);
+      
+      // Calculate geometries
+      let currentY = 0;
+      const widgetsWithGeom = generatedWidgets.map(w => {
+        const height = w.type === 'HERO' ? 600 : w.type === 'HEADER' ? 80 : 400;
+        const finalWidget = {
+          ...w,
+          geometry: { x: 0, y: currentY, width: 1440, height }
+        };
+        // Also inject into contentConfig for backward compatibility
+        finalWidget.contentConfig = {
+          ...finalWidget.contentConfig,
+          geometry: finalWidget.geometry
+        };
+        currentY += height;
+        return finalWidget;
+      });
+
+      onProgress?.('Merging and finalizing UI...', 90);
+
+      const generatedSubdomain = `gen-${Date.now()}`;
+      const result: GeneratedSite = {
+        generationMode: 'hybrid',
+        site: { name: "Hybrid Site", subdomain: generatedSubdomain, ...(siteId ? { id: siteId } : {}) },
+        pages: [{
+          title: "Home",
+          slug: "home",
+          widgets: widgetsWithGeom
+        }]
+      };
+
+      await this.prisma.aiTaskLog.update({
+        where: { id: taskLog.id },
+        data: {
+          status: 'COMPLETED',
+          output: result as unknown as object,
+          endedAt: new Date(),
+        },
+      });
+
+      onProgress?.('Completed!', 100);
+      this.logger.log(`Hybrid generation finalized.`);
+      return result;
+
     } catch (error) {
       await this.prisma.aiTaskLog.update({
         where: { id: taskLog.id },

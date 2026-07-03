@@ -4,9 +4,14 @@ import {
   AppstoreOutlined,
   PictureOutlined,
   StarOutlined,
+  CheckCircleOutlined,
+  MailOutlined,
 } from '@ant-design/icons';
+import { Collapse, Input } from 'antd';
 
 const { Title, Text, Paragraph } = Typography;
+const { Panel } = Collapse;
+const { TextArea } = Input;
 
 interface WidgetRendererProps {
   type: string;
@@ -188,6 +193,72 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
                 <Text style={{ color: config.textColor || 'var(--color-text-muted)' }}>{item.label || item.description || 'Metric'}</Text>
               </div>
             ))}
+          </div>
+        </div>
+      );
+
+    case 'PRICING':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', marginBottom: '32px', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Pricing Plans'}</Title>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
+            {(config.items || []).map((item: any, i: number) => (
+              <Card key={i} variant="borderless" style={{ background: item.isPopular ? 'var(--color-accent-glow)' : 'var(--gz-dark-4)', border: `1px solid ${item.isPopular ? 'var(--color-accent)' : 'var(--color-border-subtle)'}` }}>
+                <Title level={4} style={{ color: config.textColor || 'var(--color-text-primary)' }}>{item.title || 'Plan'}</Title>
+                <Title level={2} style={{ color: config.textColor || 'var(--color-text-primary)', margin: '16px 0' }}>{item.price || '$0'}<Text style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>/mo</Text></Title>
+                <Divider style={{ borderColor: 'var(--color-border-subtle)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                  {(item.features || []).map((feat: string, j: number) => (
+                    <Text key={j} style={{ color: config.textColor || 'var(--color-text-secondary)' }}><CheckCircleOutlined style={{ color: 'var(--color-accent)', marginRight: '8px' }}/>{feat}</Text>
+                  ))}
+                </div>
+                <Button type={item.isPopular ? "primary" : "default"} block size="large" style={item.isPopular ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)' } : {}}>{item.ctaText || 'Choose Plan'}</Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'FAQ':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', marginBottom: '32px', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Frequently Asked Questions'}</Title>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <Collapse ghost expandIconPosition="end">
+              {(config.items || []).map((item: any, i: number) => (
+                <Panel header={<Text style={{ color: config.textColor || 'var(--color-text-primary)', fontSize: '16px', fontWeight: 500 }}>{item.question || 'Question?'}</Text>} key={i}>
+                  <Paragraph style={{ color: config.textColor || 'var(--color-text-secondary)' }}>{item.answer || 'Answer goes here.'}</Paragraph>
+                </Panel>
+              ))}
+            </Collapse>
+          </div>
+        </div>
+      );
+
+    case 'CONTACT':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Contact Us'}</Title>
+          {config.subtitle && <Paragraph style={{ textAlign: 'center', color: config.textColor || 'var(--color-text-muted)', marginBottom: '32px' }}>{config.subtitle}</Paragraph>}
+          <div style={{ maxWidth: '600px', margin: '0 auto', background: 'var(--gz-dark-4)', padding: '32px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border-subtle)' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <div>
+                <Text style={{ color: 'var(--color-text-secondary)' }}>Name</Text>
+                <Input placeholder="Your Name" size="large" style={{ background: 'var(--gz-dark-1)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <div>
+                <Text style={{ color: 'var(--color-text-secondary)' }}>Email</Text>
+                <Input placeholder="your@email.com" size="large" style={{ background: 'var(--gz-dark-1)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <div>
+                <Text style={{ color: 'var(--color-text-secondary)' }}>Message</Text>
+                <TextArea rows={4} placeholder="How can we help you?" style={{ background: 'var(--gz-dark-1)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <Button type="primary" size="large" block icon={<MailOutlined />} style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)' }}>{config.ctaText || 'Send Message'}</Button>
+            </Space>
           </div>
         </div>
       );
