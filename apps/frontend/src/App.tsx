@@ -39,8 +39,8 @@ import '@genzite/shared-ui/styles.css';
 const App: React.FC = () => {
   return (
     <ConfigProvider theme={genziteDarkTheme}>
-      <Toaster />
-      <ErrorBoundary>
+      <Toaster>
+        <ErrorBoundary>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/live/:pageId" element={<LiveViewer />} />
@@ -100,6 +100,7 @@ const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </ErrorBoundary>
+      </Toaster>
     </ConfigProvider>
   );
 };

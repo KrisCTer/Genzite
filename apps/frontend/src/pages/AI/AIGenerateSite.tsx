@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, message, Select } from 'antd';
+import { message, Select } from 'antd';
 import { GlobalOutlined, AppstoreAddOutlined, CheckCircleOutlined, CloseCircleOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { generateSiteApi, generateCmsApi, getSiteJobApi, getCmsJobApi } from '../../api/ai';

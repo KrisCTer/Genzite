@@ -41,6 +41,7 @@
     "prisma:studio:identity": "node scripts/dev.mjs prisma studio --service identity-service"
   },
   "devDependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
     "concurrently": "^10.0.3"
   }
 }
