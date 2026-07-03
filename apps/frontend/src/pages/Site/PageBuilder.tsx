@@ -87,7 +87,7 @@ const PageBuilder: React.FC = () => {
           <div className="canvas-welcome">
             <h1 className="canvas-welcome-title">Build at the speed of AI</h1>
             <p className="canvas-welcome-subtitle">
-              Describe your app or website and Genzite will generate it for you. Drag, drop, and customize every detail.
+              Describe what you want to build with AI.
             </p>
           </div>
         </div>

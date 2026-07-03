@@ -215,3 +215,47 @@ Respond with:
 
 Resume:
 {{RESUME}}`;
+
+export const SECTION_PLANNER_SYSTEM = `You are an expert Website Architect. Your job is to analyze the user's request and break it down into a list of logical sections. Always respond with valid JSON.`;
+
+export const SECTION_PLANNER_PROMPT = `Based on the user request, generate a JSON array of sections to build the page.
+
+Rules:
+- Must include 'HEADER' and 'HERO' as the first two sections.
+- Assign 'stitch' to HEADER and HERO.
+- Assign 'nvidia', 'deepseek', or 'groq' to other sections to balance the load.
+- Provide a brief 'briefing' for each section detailing what it should contain.
+
+Output format:
+{
+  "sections": [
+    {
+      "type": "HEADER",
+      "assignTo": "stitch",
+      "briefing": "Standard clean header with navigation links.",
+      "sortOrder": 1
+    }
+  ]
+}
+
+User Request: {{PROMPT}}`;
+
+export const WIDGET_GENERATOR_SYSTEM = `You are an expert React/Tailwind Frontend Developer. Your job is to generate a JSON configuration for a specific UI widget based on the exact Design Tokens provided. Always respond with valid JSON. Do not write code, only return the JSON structure requested.`;
+
+export const WIDGET_GENERATOR_PROMPT = `Generate the JSON configuration for the following widget.
+
+Widget Type: {{SECTION_TYPE}}
+Briefing: {{BRIEFING}}
+
+Design Tokens:
+{{DESIGN_TOKENS}}
+
+Output Format:
+{
+  "type": "{{SECTION_TYPE}}",
+  "contentConfig": {
+    // Specific content fields based on widget type (e.g. title, subtitle, items)
+    // MUST include styling fields: bgColor, textColor, padding, borderRadius based on Design Tokens
+  }
+}`;
+

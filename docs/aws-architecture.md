@@ -472,3 +472,39 @@ graph LR
 ```
 
 > **Do NOT prematurely split into microservices.** The modular monolith supports the current 6-person team efficiently. Extract services only when measurable bottlenecks emerge (AI CPU saturation, team coordination overhead, or independent scaling requirements).
+
+---
+
+## 5. 17-Step System Traffic Flow
+
+Below is the detailed operational flow of the system when processing a user request, closely following the 17 operations (directional edges) designed in the Draw.io architecture diagram.
+
+### Phase 1: Authentication & Connection Initialization
+* **Step 1 (Sign-in / Sign-up & Get JWT Token):** The user connects to **Amazon Cognito** to log in or register. Cognito authenticates and returns a JWT (JSON Web Token).
+* **Step 2 (Send HTTP/HTTPS Requests):** The user's browser sends web queries (HTTP/HTTPS) to the domain name resolution system.
+* **Step 3 (Dynamic Domain Routing):** The request hits **Amazon Route 53**. This service acts as a dynamic domain router depending on whether the user is calling an API or loading static pages.
+* **Step 4 (Resolve to CDN distribution):** Route 53 resolves the Frontend domain and redirects the data flow (traffic) to **Amazon CloudFront** (Content Delivery Network).
+
+### Phase 2: Edge Computing & Traffic Filtering
+* **Step 5 (Traffic Filtering & Protection):** Before CloudFront processes the request, **AWS WAF** (Web Application Firewall) filters the incoming traffic to block DDoS attacks or malicious bots.
+* **Step 6 (Cache Miss / Fetch Static Assets):** If CloudFront does not have the content cached (Cache Miss), it calls the **Frontend Bucket (S3)** to fetch static resources (HTML, CSS, JS, Images) and returns them to the user.
+* **Step 7 (DNS CNAME Validation):** For API queries, Route 53 routes directly to the Backend via a CNAME record.
+* **Steps 8 & 10 (SSL/TLS Cert):** HTTPS encryption is established. **Certificate Manager (CM)** provisions and validates SSL/TLS certificates for both CloudFront and the Application Load Balancer (ALB).
+
+### Phase 3: Load Balancing & Internal Network (VPC)
+* **Step 9 (Forward Public Request):** The **Internet Gateway (IGW)** opens a port for requests from the external Internet to enter the Public Subnet and hit the **ALB**.
+* **Step 11 (Route Request to Backend):** After receiving the request, the **ALB** load balances these requests to the **EC2** servers located in the secure zone (Private Subnet).
+* **Step 12 (Outbound Internet Traffic):** When the EC2 server needs to call external APIs (like calling AI Gemini/Groq, payment gateways), it goes through the **NAT Gateway** in the Public Subnet to secure the actual IP.
+
+### Phase 4: Logic Processing & Storage (Compute & Database)
+* **Step 13 (JWKS Verification):** The **EC2** server receives the JWT Token from the request, connects to **Cognito** to verify the signature (Verify JWKS) to ensure the Token is valid.
+* **Step 14 (Block Storage - Read/Write):** The EC2 server performs read/write operations for temporary data or log files on the attached **EBS (Elastic Block Store)**.
+   *(Note: Other internal Database/Cache tasks simultaneously interact with RDS and Redis here).*
+* **Step 17 (Generate S3 Presigned URL):** For business logic related to uploading images or media, EC2 generates temporary authenticated links (Presigned URLs) pointing directly to the **Media Bucket (S3)** for clients to upload/download safely.
+
+### Phase 5: Operations & Monitoring
+* **Step 15 (Automated Daily Backup):** **AWS Backup** automatically backs up global data (EBS, RDS) daily from the Private Subnet.
+* **Step 16 (Log Streaming & Monitoring):** All system logs and CPU/RAM metrics from the Private Subnet are continuously streamed to **Amazon CloudWatch** for monitoring and incident alerting.
+
+> [!NOTE]
+> The system strictly adheres to the AWS 2-tier Subnet (Public/Private) security standard.

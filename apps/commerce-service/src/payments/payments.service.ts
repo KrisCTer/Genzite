@@ -83,11 +83,15 @@ export class PaymentsService {
     }
 
     // Verify Signature using @payos/node
-    const PayOS = (await import('@payos/node')).default;
-    const payos = new PayOS(payosConfig.clientId, payosConfig.apiKey, payosConfig.checksumKey);
+    const { PayOS } = await import('@payos/node');
+    const payos = new PayOS({
+      clientId: payosConfig.clientId,
+      apiKey: payosConfig.apiKey,
+      checksumKey: payosConfig.checksumKey,
+    });
     
     try {
-      const webhookData = payos.verifyPaymentWebhookData(body);
+      const webhookData = await payos.webhooks.verify(body);
       this.logger.log(`Webhook Signature Verified for Order: ${webhookData.orderCode}`);
     } catch (error) {
       this.logger.error(`Fake Webhook Detected! Signature verification failed for order ${orderCode}`);
