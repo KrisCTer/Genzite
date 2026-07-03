@@ -22,7 +22,7 @@ const Collections: React.FC = () => {
 
   const { data: collections, isLoading, isError } = useQuery({
     queryKey: ['cms-collections'],
-    queryFn: fetchCollectionsApi,
+    queryFn: () => fetchCollectionsApi(),
     retry: 1,
   });
 
@@ -126,7 +126,7 @@ const Collections: React.FC = () => {
       </div>
 
       <Card 
-        bordered
+        variant="outlined"
         styles={{ body: { padding: 0 } }}
       >
         {isError && (

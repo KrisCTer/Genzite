@@ -107,74 +107,90 @@ const DarkPropertyEditor: React.FC<DarkPropertyEditorProps> = ({ widget, onChang
           ghost 
           expandIconPosition="end"
           className="canvas-props-collapse"
-        >
-          {/* Content Settings */}
-          <Collapse.Panel header={<span className="canvas-props-label">Content</span>} key="content">
-            {contentProps.map(([key, val]) => (
-              <div key={key} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 6, textTransform: 'capitalize' }}>
-                  {key.replace(/([A-Z])/g, ' $1')}
-                </div>
-                {String(val).length > 40 || key.toLowerCase().includes('desc') || key.toLowerCase().includes('subtitle') ? (
+          items={[
+            {
+              key: 'content',
+              label: <span className="canvas-props-label">Content</span>,
+              children: (
+                <>
+                  {contentProps.map(([key, val]) => (
+                    <div key={key} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 6, textTransform: 'capitalize' }}>
+                        {key.replace(/([A-Z])/g, ' $1')}
+                      </div>
+                      {String(val).length > 40 || key.toLowerCase().includes('desc') || key.toLowerCase().includes('subtitle') ? (
+                        <textarea
+                          className="canvas-textarea-dark"
+                          style={{ minHeight: '60px', padding: '8px' }}
+                          value={String(val)}
+                          onChange={(e) => onChange({ ...widget.contentConfig, [key]: e.target.value })}
+                        />
+                      ) : (
+                        <input
+                          className="canvas-input-dark"
+                          type="text"
+                          value={String(val)}
+                          onChange={(e) => onChange({ ...widget.contentConfig, [key]: e.target.value })}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </>
+              )
+            },
+            {
+              key: 'style',
+              label: <span className="canvas-props-label">Style</span>,
+              children: (
+                <>
+                  <ColorPicker 
+                    label="Background Color" 
+                    color={widget.contentConfig.bgColor || 'transparent'} 
+                    onChange={(c) => onChange({ ...widget.contentConfig, bgColor: c })} 
+                  />
+                  <ColorPicker 
+                    label="Text Color" 
+                    color={widget.contentConfig.textColor || '#d4d4d8'} 
+                    onChange={(c) => onChange({ ...widget.contentConfig, textColor: c })} 
+                  />
+                  <SliderControl 
+                    label="Border Radius" 
+                    value={widget.contentConfig.borderRadius || 8} 
+                    max={32} 
+                    onChange={(v) => onChange({ ...widget.contentConfig, borderRadius: v })} 
+                  />
+                </>
+              )
+            },
+            {
+              key: 'layout',
+              label: <span className="canvas-props-label">Layout</span>,
+              children: (
+                <SpacingEditor 
+                  label="Padding" 
+                  value={widget.contentConfig.padding || '24px 24px 24px 24px'} 
+                  onChange={(v) => onChange({ ...widget.contentConfig, padding: v })} 
+                />
+              )
+            },
+            {
+              key: 'advanced',
+              label: <span className="canvas-props-label">Advanced (JSON)</span>,
+              children: (
+                <>
+                  {jsonError && <div style={{ color: 'var(--gz-error)', fontSize: 10, marginBottom: 8 }}>Invalid JSON</div>}
                   <textarea
                     className="canvas-textarea-dark"
-                    style={{ minHeight: '60px', padding: '8px' }}
-                    value={String(val)}
-                    onChange={(e) => onChange({ ...widget.contentConfig, [key]: e.target.value })}
+                    style={{ borderColor: jsonError ? 'var(--gz-error)' : undefined, minHeight: 180 }}
+                    value={jsonText}
+                    onChange={handleJsonChange}
+                    spellCheck={false}
                   />
-                ) : (
-                  <input
-                    className="canvas-input-dark"
-                    type="text"
-                    value={String(val)}
-                    onChange={(e) => onChange({ ...widget.contentConfig, [key]: e.target.value })}
-                  />
-                )}
-              </div>
-            ))}
-          </Collapse.Panel>
-
-          {/* Style Controls (Mocked visually for now) */}
-          <Collapse.Panel header={<span className="canvas-props-label">Style</span>} key="style">
-            <ColorPicker 
-              label="Background Color" 
-              color={widget.contentConfig.bgColor || 'transparent'} 
-              onChange={(c) => onChange({ ...widget.contentConfig, bgColor: c })} 
-            />
-            <ColorPicker 
-              label="Text Color" 
-              color={widget.contentConfig.textColor || '#d4d4d8'} 
-              onChange={(c) => onChange({ ...widget.contentConfig, textColor: c })} 
-            />
-            <SliderControl 
-              label="Border Radius" 
-              value={widget.contentConfig.borderRadius || 8} 
-              max={32} 
-              onChange={(v) => onChange({ ...widget.contentConfig, borderRadius: v })} 
-            />
-          </Collapse.Panel>
-
-          {/* Layout Controls */}
-          <Collapse.Panel header={<span className="canvas-props-label">Layout</span>} key="layout">
-            <SpacingEditor 
-              label="Padding" 
-              value={widget.contentConfig.padding || '24px 24px 24px 24px'} 
-              onChange={(v) => onChange({ ...widget.contentConfig, padding: v })} 
-            />
-          </Collapse.Panel>
-
-          {/* Advanced / JSON */}
-          <Collapse.Panel header={<span className="canvas-props-label">Advanced (JSON)</span>} key="advanced">
-            {jsonError && <div style={{ color: 'var(--gz-error)', fontSize: 10, marginBottom: 8 }}>Invalid JSON</div>}
-            <textarea
-              className="canvas-textarea-dark"
-              style={{ borderColor: jsonError ? 'var(--gz-error)' : undefined, minHeight: 180 }}
-              value={jsonText}
-              onChange={handleJsonChange}
-              spellCheck={false}
-            />
-          </Collapse.Panel>
-        </Collapse>
+                </>
+              )
+            }
+          ]}
+        />
       </div>
     </>
   );

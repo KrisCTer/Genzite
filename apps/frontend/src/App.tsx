@@ -21,6 +21,8 @@ import AgentLogs from './pages/AI/AgentLogs';
 import AgentWorkspace from './pages/AI/AgentWorkspace';
 import LandingPage from './pages/Public/LandingPage';
 import LiveViewer from './pages/Public/LiveViewer';
+import { WorkspaceLayout } from './workspace/WorkspaceLayout';
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Temporary bypass for UI redesign testing
   return children;
@@ -44,7 +46,7 @@ const App: React.FC = () => {
         <ErrorBoundary>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/live/:pageId" element={<LiveViewer />} />
+          <Route path="/live/:siteId" element={<LiveViewer />} />
           <Route path="/login" element={<Login />} />
 
           {/* Canvas routes — full-bleed, no admin shell */}
@@ -60,6 +62,9 @@ const App: React.FC = () => {
             <Route index element={<PageBuilder />} />
             <Route path=":siteId" element={<PageBuilder />} />
           </Route>
+
+          {/* New Stitch-like AI UI Builder Workspace */}
+          <Route path="/workspace" element={<WorkspaceLayout />} />
 
           {/* Legacy canvas route — redirect for backwards compatibility */}
           <Route

@@ -16,13 +16,16 @@ export interface RecordData {
 }
 
 // ================= Collections API =================
-export const fetchCollectionsApi = async () => {
-  const response = await apiClient.get<Collection[]>('/cms/collections');
+export const fetchCollectionsApi = async (siteId: string = 'default-site-id') => {
+  const response = await apiClient.get<Collection[]>(`/cms/collections?siteId=${siteId}`);
   return response.data;
 };
 
-export const createCollectionApi = async (data: { name: string; slug: string; schema: any }) => {
-  const response = await apiClient.post<Collection>('/cms/collections', data);
+export const createCollectionApi = async (data: { name: string; slug: string; schema: any; siteId?: string }) => {
+  const response = await apiClient.post<Collection>('/cms/collections', {
+    ...data,
+    siteId: data.siteId || 'default-site-id'
+  });
   return response.data;
 };
 

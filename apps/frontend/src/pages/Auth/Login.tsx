@@ -30,7 +30,7 @@ const Login: React.FC = () => {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#FAFAFB' }}>
       <Card 
-        bordered
+        variant="outlined"
         style={{ width: 440 }}
         styles={{ body: { padding: '48px 40px' } }}
       >

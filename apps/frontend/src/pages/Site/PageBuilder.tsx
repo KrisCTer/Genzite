@@ -116,7 +116,7 @@ const PageBuilder: React.FC = () => {
         </div>
 
         <div className="canvas-toolbar-right">
-          <button className="canvas-tool-btn" onClick={() => window.open(`https://${siteId}.genzite.com`, '_blank')} title="View Live"><GlobalOutlined /></button>
+          <button className="canvas-tool-btn" onClick={() => window.open(window.location.hostname === 'localhost' ? `/live/${siteId}` : `https://${siteId}.genzite.com`, '_blank')} title="View Live"><GlobalOutlined /></button>
         </div>
       </div>
 

@@ -161,12 +161,12 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   };
 
   const updateWidgetGeometry = (id: string, x: number, y: number, width: number, height: number) => {
-    setWidgets(prev => {
-      const next = prev.map(w => w._id === id ? { ...w, x, y, width, height } : w);
-      const updated = next.find(w => w._id === id);
-      if (updated) onUpdateWidget(updated);
-      return next;
-    });
+    setWidgets(prev => prev.map(w => w._id === id ? { ...w, x, y, width, height } : w));
+    
+    const current = widgets.find(w => w._id === id);
+    if (current) {
+      onUpdateWidget({ ...current, x, y, width, height });
+    }
     setHasUnsaved(true);
   };
 

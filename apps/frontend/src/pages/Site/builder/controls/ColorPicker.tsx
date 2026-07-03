@@ -56,7 +56,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ label, color, onChange }) => 
         onOpenChange={setOpen}
         placement="bottomRight"
         arrow={false}
-        overlayInnerStyle={{ padding: 12 }}
+        styles={{ body: { padding: 12 } }}
       >
         <div className="canvas-color-trigger">
           <div 

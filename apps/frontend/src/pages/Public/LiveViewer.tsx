@@ -1,31 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
-import { fetchWidgetsApi, type Widget } from '../../api/sites';
+import { fetchWidgetsApi, type Widget, fetchPagesApi } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 
 const LiveViewer: React.FC = () => {
-  const { pageId } = useParams<{ pageId: string }>();
+  const { siteId } = useParams<{ siteId: string }>();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (pageId) {
+    if (siteId) {
       setLoading(true);
-      fetchWidgetsApi(pageId)
+      fetchPagesApi(siteId)
+        .then(pages => {
+          if (pages.length === 0) return [];
+          const homePage = pages.sort((a, b) => a.sortOrder - b.sortOrder)[0];
+          return fetchWidgetsApi(homePage.id);
+        })
         .then(data => {
           setWidgets(data);
           setError(false);
         })
         .catch(err => {
-          console.error('Failed to load page:', err);
+          console.error('Failed to load site:', err);
           setError(true);
         })
         .finally(() => setLoading(false));
     }
-  }, [pageId]);
+  }, [siteId]);
 
   if (loading) {
     return (
@@ -82,7 +87,7 @@ const LiveViewer: React.FC = () => {
       overflowX: 'hidden' 
     }}>
       {/* Return button for preview purpose */}
-      <Link to={`/admin/site/pages/${pageId}/builder`} style={{
+      <Link to={`/admin/site/canvas/${siteId}`} style={{
         position: 'fixed',
         bottom: 24,
         left: 24,

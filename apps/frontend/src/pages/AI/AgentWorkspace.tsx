@@ -104,7 +104,7 @@ const AgentWorkspace: React.FC = () => {
       </div>
 
       <Card 
-        bordered
+        variant="outlined"
         title={
           <Space>
             <span>Agent Mode:</span>

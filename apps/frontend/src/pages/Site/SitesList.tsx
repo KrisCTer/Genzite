@@ -127,8 +127,8 @@ const SitesList: React.FC = () => {
                   </div>
                   <div>
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary)' }}>{site.name}</h4>
-                    <a href={`https://${site.subdomain}.genzite.com`} target="_blank" rel="noreferrer" style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
-                      {site.subdomain}.genzite.com
+                    <a href={window.location.hostname === 'localhost' ? `/live/${site.id}` : `https://${site.subdomain}.genzite.com`} target="_blank" rel="noreferrer" style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
+                      {window.location.hostname === 'localhost' ? `localhost:5173/live/${site.id}` : `${site.subdomain}.genzite.com`}
                     </a>
                   </div>
                 </Space>

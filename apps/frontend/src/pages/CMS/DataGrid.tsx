@@ -17,7 +17,7 @@ const DataGrid: React.FC = () => {
   // Fetch Collections to get Schema
   const { data: collections } = useQuery({
     queryKey: ['cms-collections'],
-    queryFn: fetchCollectionsApi,
+    queryFn: () => fetchCollectionsApi(),
   });
 
   const activeCollection = collections?.find(c => c.id === collectionId);
@@ -102,7 +102,7 @@ const DataGrid: React.FC = () => {
       </div>
 
       <Card 
-        bordered
+        variant="outlined"
         styles={{ body: { padding: 0 } }}
       >
         {isError && (
