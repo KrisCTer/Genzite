@@ -26,12 +26,18 @@ import { EventsModule } from './events/events.module.js';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('REDIS_HOST', '127.0.0.1');
+        const port = config.get<number>('REDIS_PORT', 6379);
+        console.log(`[BullMQ] Connecting to Redis at ${host}:${port}`);
+        return {
+          connection: {
+            host,
+            port,
+            maxRetriesPerRequest: null,
+          },
+        };
+      },
     }),
     GenerationModule,
     RecruitmentModule,

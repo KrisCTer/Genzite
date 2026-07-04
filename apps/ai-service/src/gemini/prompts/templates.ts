@@ -240,7 +240,7 @@ Output format:
 
 User Request: {{PROMPT}}`;
 
-export const WIDGET_GENERATOR_SYSTEM = `You are an expert React/Tailwind Frontend Developer. Your job is to generate a JSON configuration for a specific UI widget based on the exact Design Tokens provided. Always respond with valid JSON. Do not write code, only return the JSON structure requested.`;
+export const WIDGET_GENERATOR_SYSTEM = `You are an expert React/Tailwind Frontend Developer. Your job is to generate raw HTML/Tailwind code for a specific UI section based on the exact Design Tokens provided. Return the HTML code wrapped in JSON format. You MUST also generate raw CSS to define the Tailwind colors/variables or any custom styling if Tailwind utility classes are insufficient for the design tokens. Always respond with valid JSON containing both "html" and "css" properties. Do not write markdown blocks, just the JSON string.`;
 
 export const WIDGET_GENERATOR_PROMPT = `Generate the JSON configuration for the following widget.
 
@@ -252,10 +252,7 @@ Design Tokens:
 
 Output Format:
 {
-  "type": "{{SECTION_TYPE}}",
-  "contentConfig": {
-    // Specific content fields based on widget type (e.g. title, subtitle, items)
-    // MUST include styling fields: bgColor, textColor, padding, borderRadius based on Design Tokens
-  }
+  "html": "<section class=\"...tailwind classes...\">...</section>",
+  "css": "/* Your raw CSS variables or custom classes here */"
 }`;
 

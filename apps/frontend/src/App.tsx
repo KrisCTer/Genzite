@@ -37,6 +37,37 @@ import { Toaster } from '@genzite/shared-ui';
 import '@genzite/shared-ui/styles.css';
 
 const App: React.FC = () => {
+  const hostname = window.location.hostname;
+  
+  let subdomain: string | null = null;
+  if (hostname.endsWith('.genzite.com')) {
+    const potentialSubdomain = hostname.replace('.genzite.com', '');
+    if (potentialSubdomain && potentialSubdomain !== 'www' && potentialSubdomain !== 'app') {
+      subdomain = potentialSubdomain;
+    }
+  } else if (hostname.includes('localhost')) {
+    const domainParts = hostname.split('.');
+    if (domainParts.length >= 2 && domainParts[0] !== 'www' && domainParts[0] !== 'app' && domainParts[0] !== 'localhost') {
+      subdomain = domainParts[0];
+    }
+  }
+
+  if (subdomain) {
+    return (
+      <ConfigProvider theme={genziteDarkTheme}>
+        <AntdApp>
+          <Toaster>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="*" element={<LiveViewer siteId={subdomain} />} />
+              </Routes>
+            </ErrorBoundary>
+          </Toaster>
+        </AntdApp>
+      </ConfigProvider>
+    );
+  }
+
   return (
     <ConfigProvider theme={genziteDarkTheme}>
       <AntdApp>

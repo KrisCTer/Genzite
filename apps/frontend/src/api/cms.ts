@@ -5,6 +5,7 @@ export interface Collection {
   name: string;
   slug: string;
   schema: Record<string, any>; // JSON schema
+  schemaDefinition?: Record<string, any>;
   createdAt: string;
 }
 
@@ -16,12 +17,17 @@ export interface RecordData {
 }
 
 // ================= Collections API =================
-export const fetchCollectionsApi = async () => {
-  const response = await apiClient.get<Collection[]>('/cms/collections');
+export const fetchCollectionsApi = async (siteId: string) => {
+  const response = await apiClient.get<Collection[]>(`/cms/collections?siteId=${siteId}`);
   return response.data;
 };
 
-export const createCollectionApi = async (data: { name: string; slug: string; schema: any }) => {
+export const fetchCollectionByIdApi = async (id: string) => {
+  const response = await apiClient.get<Collection>(`/cms/collections/${id}`);
+  return response.data;
+};
+
+export const createCollectionApi = async (data: { siteId: string; name: string; slug: string; schemaDefinition: any }) => {
   const response = await apiClient.post<Collection>('/cms/collections', data);
   return response.data;
 };

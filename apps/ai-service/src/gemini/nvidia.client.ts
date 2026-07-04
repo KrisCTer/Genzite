@@ -31,6 +31,7 @@ export class NvidiaClient {
     this.client = new OpenAI({
       baseURL: NVIDIA_NIM_BASE_URL,
       apiKey,
+      timeout: 15000,
     });
     this.defaultModel = (this.config.get<string>('NVIDIA_NIM_MODEL') ?? 'deepseek-ai/deepseek-v4-flash') as NvidiaModelName;
     
