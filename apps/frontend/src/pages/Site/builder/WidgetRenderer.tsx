@@ -269,6 +269,15 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
         </div>
       );
 
+    case 'GRAPESJS':
+      return (
+        <div style={{ ...containerStyle, padding: 0 }}>
+          <Overlay />
+          {config.css && <style dangerouslySetInnerHTML={{ __html: config.css }} />}
+          <div dangerouslySetInnerHTML={{ __html: config.html || '' }} />
+        </div>
+      );
+
     case 'PRODUCT_GRID':
     case 'PRODUCTGRID':
       return (

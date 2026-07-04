@@ -1,21 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
-import { fetchWidgetsApi, type Widget } from '../../api/sites';
+import { fetchWidgetsApi, fetchPagesApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import CartDrawer from '../../components/CartDrawer';
 
-const LiveViewer: React.FC = () => {
-  const { pageId } = useParams<{ pageId: string }>();
+interface LiveViewerProps {
+  siteId?: string;
+}
+
+const LiveViewer: React.FC<LiveViewerProps> = ({ siteId }) => {
+  const { pageId: paramPageId } = useParams<{ pageId: string }>();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [resolvedPageId, setResolvedPageId] = useState<string | null>(paramPageId || null);
 
   useEffect(() => {
-    if (pageId) {
+    // Dynamically inject Tailwind CDN so that AI-generated classes work at runtime in Live View
+    if (!document.querySelector('script#tailwind-cdn-runtime')) {
+      const script = document.createElement('script');
+      script.id = 'tailwind-cdn-runtime';
+      script.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (siteId && !resolvedPageId) {
       setLoading(true);
-      fetchWidgetsApi(pageId)
+      fetchPagesApi(siteId)
+        .then(pages => {
+          if (pages && pages.length > 0) {
+            const homePage = pages.find(p => p.slug === 'home' || p.slug === '/') || pages[0];
+            setResolvedPageId(homePage.id);
+          } else {
+            setError(true);
+            setLoading(false);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load site pages:', err);
+          setError(true);
+          setLoading(false);
+        });
+    }
+  }, [siteId, resolvedPageId]);
+
+  useEffect(() => {
+    const targetPageId = resolvedPageId || paramPageId;
+    if (targetPageId) {
+      setLoading(true);
+      fetchWidgetsApi(targetPageId)
         .then(data => {
           setWidgets(data);
           setError(false);
@@ -26,7 +63,7 @@ const LiveViewer: React.FC = () => {
         })
         .finally(() => setLoading(false));
     }
-  }, [pageId]);
+  }, [resolvedPageId, paramPageId]);
 
   if (loading) {
     return (
@@ -82,22 +119,24 @@ const LiveViewer: React.FC = () => {
       position: 'relative', 
       overflowX: 'hidden' 
     }}>
-      {/* Return button for preview purpose */}
-      <Link to={`/admin/site/pages/${pageId}/builder`} style={{
-        position: 'fixed',
-        bottom: 24,
-        left: 24,
-        zIndex: 1000,
-      }}>
-        <Button 
-          type="primary" 
-          shape="round" 
-          icon={<ArrowLeftOutlined />}
-          style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}
-        >
-          Back to Editor
-        </Button>
-      </Link>
+      {/* Return button for preview purpose (only if not viewing via subdomain) */}
+      {!siteId && (resolvedPageId || paramPageId) && (
+        <Link to={`/admin/site/pages/${resolvedPageId || paramPageId}/builder`} style={{
+          position: 'fixed',
+          bottom: 24,
+          left: 24,
+          zIndex: 1000,
+        }}>
+          <Button 
+            type="primary" 
+            shape="round" 
+            icon={<ArrowLeftOutlined />}
+            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}
+          >
+            Back to Editor
+          </Button>
+        </Link>
+      )}
 
       <div style={{ position: 'relative', width: '1440px', margin: '0 auto', minHeight: `${Math.max(yOffset, 1000)}px` }}>
         {mappedWidgets.map(widget => (

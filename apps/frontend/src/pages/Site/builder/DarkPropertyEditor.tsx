@@ -56,6 +56,9 @@ const DarkPropertyEditor: React.FC<DarkPropertyEditorProps> = ({ widget, onChang
           <div className="canvas-props-empty-icon">✦</div>
           <div>Select a widget on the canvas to edit its properties.</div>
         </div>
+        {/* Hidden containers for GrapesJS initialization */}
+        <div id="gjs-traits" style={{ display: 'none' }}></div>
+        <div id="gjs-styles" style={{ display: 'none' }}></div>
       </>
     );
   }
@@ -71,7 +74,26 @@ const DarkPropertyEditor: React.FC<DarkPropertyEditorProps> = ({ widget, onChang
         Properties
         <span className="canvas-props-type">{widget.type}</span>
       </div>
-      <div className="canvas-props-body">
+      
+      {widget.type === 'GRAPESJS' ? (
+        <div className="canvas-props-body gjs-custom-panels" style={{ padding: 0 }}>
+          <style>
+            {`
+              .gjs-custom-panels .gjs-sm-sector { background: transparent; border-bottom: 1px solid var(--color-border-subtle); }
+              .gjs-custom-panels .gjs-sm-title { color: var(--color-text-primary); font-size: 12px; }
+              .gjs-custom-panels .gjs-sm-property { color: var(--color-text-secondary); }
+              .gjs-custom-panels .gjs-field { background: var(--color-bg-hover); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+              .gjs-custom-panels .gjs-radio-item { background: var(--color-bg-hover); color: var(--color-text-primary); }
+              .gjs-custom-panels .gjs-radio-item.gjs-on { background: var(--color-accent); color: #fff; }
+              .gjs-custom-panels .gjs-clm-tags { display: none; } /* Hide selectors for simpler UI */
+            `}
+          </style>
+          {/* GrapesJS will mount its managers here */}
+          <div id="gjs-traits"></div>
+          <div id="gjs-styles"></div>
+        </div>
+      ) : (
+        <div className="canvas-props-body">
         
         {/* Layout & Size */}
         <div style={{ marginBottom: 24 }}>
@@ -175,7 +197,11 @@ const DarkPropertyEditor: React.FC<DarkPropertyEditorProps> = ({ widget, onChang
             />
           </Collapse.Panel>
         </Collapse>
+        {/* Hidden containers when editing standard widgets */}
+        <div id="gjs-traits" style={{ display: 'none' }}></div>
+        <div id="gjs-styles" style={{ display: 'none' }}></div>
       </div>
+      )}
     </>
   );
 };

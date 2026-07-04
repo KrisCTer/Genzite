@@ -1,10 +1,14 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Spin } from 'antd';
 import {
   ZoomInOutlined,
   ZoomOutOutlined,
   FullscreenOutlined,
   GlobalOutlined,
+  CodeOutlined,
+  ThunderboltOutlined,
+  EyeOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPagesApi } from '../../api/sites';
@@ -30,6 +34,13 @@ const PageBuilder: React.FC = () => {
   const [pan, setPan] = useState({ x: 100, y: 100 });
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+  const [isGrapesSelected, setIsGrapesSelected] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => setIsGrapesSelected(e.detail);
+    window.addEventListener('grapes:selected', handler);
+    return () => window.removeEventListener('grapes:selected', handler);
+  }, []);
 
   const { data: pages, isLoading, isError } = useQuery({
     queryKey: ['site-pages', siteId],
@@ -46,7 +57,6 @@ const PageBuilder: React.FC = () => {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
       const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
       setZoom(z => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, parseFloat((z + delta).toFixed(2)))));
     }
@@ -103,8 +113,7 @@ const PageBuilder: React.FC = () => {
     <div className="canvas-builder">
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="canvas-toolbar">
-        <div className="canvas-toolbar-left">
-          <span className="canvas-page-title">✦ Infinite Canvas Builder</span>
+        <div className="canvas-toolbar-left" style={{ paddingLeft: 120 }}>
         </div>
 
         <div className="canvas-toolbar-center">
@@ -113,23 +122,43 @@ const PageBuilder: React.FC = () => {
           <button className="canvas-tool-btn" onClick={zoomIn} title="Zoom In"><ZoomInOutlined /></button>
           <div className="canvas-divider" />
           <button className="canvas-tool-btn" onClick={resetZoom} title="Fit to Screen"><FullscreenOutlined /></button>
+          <div className="canvas-divider" />
+          
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button className="canvas-tool-btn canvas-tool-btn-text" title="Generate with AI"><ThunderboltOutlined /> Generate</button>
+            <button className="canvas-tool-btn canvas-tool-btn-text" title="Modify with AI"><CodeOutlined /> Modify</button>
+          </div>
+          <div className="canvas-divider" />
+          
+          <div id="portal-toolbar" style={{ display: 'inline-flex', alignItems: 'center' }}></div>
         </div>
 
-        <div className="canvas-toolbar-right">
-          <button className="canvas-tool-btn" onClick={() => window.open(`https://${siteId}.genzite.com`, '_blank')} title="View Live"><GlobalOutlined /></button>
+        <div className="canvas-toolbar-right" style={{ display: 'flex', gap: 8 }}>
+          <button 
+            className="canvas-tool-btn canvas-tool-btn-text" 
+            title="Preview"
+            onClick={() => {
+              const homePage = pages?.find((p: any) => p.slug === 'home' || p.slug === '/') || pages?.[0];
+              if (homePage) {
+                window.open(`/live/${homePage.id}`, '_blank');
+              }
+            }}
+          >
+            <EyeOutlined /> Preview
+          </button>
+          <button className="canvas-tool-btn canvas-tool-btn-text" title="Share"><ShareAltOutlined /> Share</button>
+          <button className="canvas-tool-btn canvas-tool-btn-text" style={{ background: 'var(--color-accent)', color: '#fff' }} onClick={() => window.open(`https://${siteId}.genzite.com`, '_blank')} title="View Live"><GlobalOutlined /> Publish</button>
         </div>
       </div>
 
       {/* ── Body ───────────────────────────────────────────────── */}
-      <div className="canvas-body">
-        {/* Left: Component Library */}
-        <div className="canvas-sidebar-left">
-          <div className="canvas-sidebar-section-title">Instructions</div>
-          <p style={{ color: 'var(--color-text-secondary)', padding: '16px', fontSize: '14px', lineHeight: 1.6 }}>
-            Use the <b>AI Prompt Bar</b> below to add new pages or generate components.<br /><br />
-            Hold <b>Alt/Option</b> or <b>Middle Mouse</b> and drag to pan around the infinite canvas.<br /><br />
-            Hold <b>Ctrl/Cmd</b> and scroll to zoom in and out.
-          </p>
+      <div className="canvas-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+        
+        {/* Left: Layers & Structure (Floating) */}
+        <div className="canvas-sidebar-left" style={{ position: 'absolute', left: 24, top: 24, bottom: 120, width: 280, background: '#111827', borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #1E293B' }}>
+          <div id="portal-left-sidebar" style={{ width: '100%', height: '100%', overflowY: 'auto' }}>
+            {/* Portaled from GrapesEditor */}
+          </div>
         </div>
 
         {/* Center: Infinite Canvas */}
@@ -181,17 +210,28 @@ const PageBuilder: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Property Editor */}
-        <div className="canvas-sidebar-right">
-          <DarkPropertyEditor
-            widget={selectedWidgetObj}
-            onChange={() => {}} // Config change requires lifting state up or handling in CanvasPageFrame. Since this is an MVP of infinite canvas, we skip deep property editing here or it will require more refactoring.
-            onSizeChange={() => {}} 
-          />
+        {/* Right: Property Editor (Floating) */}
+        <div className="canvas-sidebar-right" style={{ position: 'absolute', right: 24, top: 24, bottom: 120, width: 320, background: '#111827', borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.5)', zIndex: 50, transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #1E293B' }}>
+          
+          <div id="portal-right-sidebar" style={{ width: '100%', height: '100%', overflowY: 'auto', display: isGrapesSelected ? 'block' : 'none' }}>
+            {/* Portaled from GrapesEditor */}
+          </div>
+
+
+
+          <div style={{ display: selectedWidgetObj && selectedWidgetObj.type !== 'GRAPESJS' ? 'block' : 'none', padding: 16 }}>
+            <DarkPropertyEditor
+              widget={selectedWidgetObj}
+              onChange={() => {}}
+              onSizeChange={() => {}} 
+            />
+          </div>
+        </div>
+        
+        <div className="canvas-prompt-wrapper">
+          <AIPromptBar compact onGenerated={handleAIGenerated} siteId={siteId} />
         </div>
       </div>
-
-      <AIPromptBar compact onGenerated={handleAIGenerated} siteId={siteId} />
     </div>
   );
 };
