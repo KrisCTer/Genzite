@@ -14,7 +14,6 @@ import Profile from './pages/Identity/Profile';
 import SitesList from './pages/Site/SitesList';
 import PagesList from './pages/Site/PagesList';
 import PageBuilder from './pages/Site/PageBuilder';
-import NotificationsList from './pages/Notifications/NotificationsList';
 import ResumeBuilder from './pages/AI/ResumeBuilder';
 import InterviewSession from './pages/AI/InterviewSession';
 import AgentLogs from './pages/AI/AgentLogs';
@@ -120,7 +119,7 @@ const App: React.FC = () => {
                   <Route index element={<SitesList />} />
                   <Route path=":siteId/pages" element={<PagesList />} />
                 </Route>
-                <Route path="notifications" element={<NotificationsList />} />
+
 
                 <Route path="ai">
                   <Route path="resume" element={<ResumeBuilder />} />
