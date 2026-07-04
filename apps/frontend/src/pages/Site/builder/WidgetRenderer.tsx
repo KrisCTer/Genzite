@@ -6,8 +6,10 @@ import {
   StarOutlined,
   CheckCircleOutlined,
   MailOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
-import { Collapse, Input } from 'antd';
+import { Collapse, Input, message } from 'antd';
+import { useCartStore } from '../../../store/cart';
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -20,6 +22,9 @@ interface WidgetRendererProps {
 }
 
 const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isActive }) => {
+  const { addItem } = useCartStore();
+  const [messageApi, contextHolder] = message.useMessage();
+
   const containerStyle: React.CSSProperties = {
     border: `2px solid ${isActive ? 'var(--color-accent)' : 'transparent'}`,
     boxShadow: isActive ? '0 4px 12px var(--color-accent-glow)' : 'none',
@@ -64,6 +69,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
     case 'HEADER':
       return (
         <div style={{ ...getStyle('var(--gz-dark-3)', '16px 24px'), display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)' }}>
+          {contextHolder}
           <Overlay />
           <Title level={4} style={{ margin: 0, color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Brand Name'}</Title>
           <Space size="large">
@@ -272,9 +278,60 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
         </div>
       );
 
+    case 'PRODUCT_GRID':
+    case 'PRODUCTGRID':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          {contextHolder}
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', marginBottom: '32px', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Our Products'}</Title>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '24px' }}>
+            {(config.products || []).map((product: any, i: number) => (
+              <Card 
+                key={product.id || i} 
+                hoverable
+                variant="borderless" 
+                style={{ background: 'var(--gz-dark-4)', border: '1px solid var(--color-border-subtle)', overflow: 'hidden' }}
+                cover={
+                  <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gz-dark-2)' }}>
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <PictureOutlined style={{ fontSize: '48px', color: 'var(--color-border)' }} />
+                    )}
+                  </div>
+                }
+              >
+                <Title level={5} style={{ color: config.textColor || 'var(--color-text-primary)', marginBottom: '8px' }}>{product.name || 'Product Name'}</Title>
+                <Title level={4} style={{ color: 'var(--color-accent)', margin: '0 0 16px 0' }}>{Number(product.price || 0).toLocaleString()}đ</Title>
+                <Button 
+                  type="primary" 
+                  block 
+                  icon={<ShoppingCartOutlined />}
+                  style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)' }}
+                  onClick={() => {
+                    addItem({
+                      id: product.id || `temp-${i}`,
+                      name: product.name || 'Product',
+                      price: Number(product.price || 0),
+                      quantity: 1,
+                      imageUrl: product.image
+                    });
+                    messageApi.success(`Đã thêm ${product.name || 'sản phẩm'} vào giỏ!`);
+                  }}
+                >
+                  Thêm vào giỏ
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+
     default:
       return (
         <div style={getStyle('transparent', '24px')}>
+          {contextHolder}
           <Overlay />
           <Space>
             <AppstoreOutlined style={{ fontSize: '24px', color: 'var(--color-accent)' }} />

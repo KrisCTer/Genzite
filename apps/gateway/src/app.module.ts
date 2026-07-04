@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ProxyController } from './proxy/proxy.controller.js';
 import { AuthMiddleware } from './auth/auth.middleware.js';
+import { RateLimitMiddleware } from './rate-limit/rate-limit.middleware.js';
 
 @Module({
   imports: [],
@@ -9,6 +10,6 @@ import { AuthMiddleware } from './auth/auth.middleware.js';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes('*');
+    consumer.apply(RateLimitMiddleware, AuthMiddleware).forRoutes('*');
   }
 }

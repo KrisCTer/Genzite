@@ -54,7 +54,7 @@ export class ProxyController {
 
   @All('api/v1/*path')
   proxy(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
-    const path = req.url.replace('/api/v1/', '');
+    const path = (req.path || req.url).replace('/api/v1/', '');
     const serviceKey = path.split('/')[0];
     
     const proxyHandler = this.proxies[serviceKey];

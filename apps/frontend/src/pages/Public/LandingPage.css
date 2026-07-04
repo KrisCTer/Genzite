@@ -270,6 +270,7 @@
 .LandingPageNav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 32px;
 }
 
@@ -284,6 +285,11 @@
 
 .LandingPageNav button:hover {
   color: #FFFFFF;
+}
+
+.LandingPageNav button.is-active {
+  color: #FFFFFF;
+  text-shadow: 0 0 22px rgba(34, 211, 238, 0.35);
 }
 
 .LandingPageSignIn {
@@ -414,6 +420,15 @@
   padding: 32px;
 }
 
+.feature-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 0;
+  padding-left: 0;
+  margin-bottom: 14px;
+}
+
 .glass-card {
   border-radius: 28px;
   border: 1px solid rgba(255,255,255,0.08);
@@ -430,18 +445,36 @@
 }
 
 .feature-icon {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  border-radius: 18px;
-  margin-bottom: 24px;
-  color: #F8FAFC;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0;
+  color: rgba(255, 255, 255, 0.96);
+  padding: 0;
+}
+
+.feature-icon svg {
+  width: 32px;
+  height: 32px;
+  display: block;
+  transition: transform 200ms ease, filter 200ms ease;
+}
+
+.feature-card:hover .feature-icon svg {
+  transform: scale(1.05);
+  filter: brightness(1.1);
 }
 
 .feature-card h3,
 .feature-card span {
   margin: 0 0 14px;
+}
+
+.feature-heading h3 {
+  margin: 0;
 }
 
 .feature-card h3 {
@@ -688,6 +721,8 @@
 
 .footer-links {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 22px;
 }
 

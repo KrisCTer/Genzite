@@ -1,0 +1,79 @@
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.showcase-grid--three-col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.showcase-card {
+  overflow: hidden;
+}
+
+.showcase-image-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  height: 248px;
+}
+
+.showcase-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 360ms ease;
+}
+
+.showcase-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 20%, rgba(2, 6, 23, 0.62) 100%);
+}
+
+.showcase-card:hover .showcase-image-wrap img {
+  transform: scale(1.06);
+}
+
+.showcase-copy {
+  padding: 22px 4px 4px;
+}
+
+.showcase-copy h3 {
+  margin: 0 0 10px;
+  color: #F8FAFC;
+}
+
+.showcase-copy p {
+  margin: 0 0 16px;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.75;
+}
+
+.showcase-copy span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(125, 211, 252, 0.92);
+  font-weight: 600;
+}
+
+@media (max-width: 1200px) {
+  .showcase-grid--three-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .showcase-grid,
+  .showcase-grid--three-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .showcase-image-wrap {
+    height: 220px;
+  }
+}

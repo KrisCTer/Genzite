@@ -306,8 +306,59 @@ export class SiteGeneratorService {
       const sections = planResult.sections || [];
       this.logger.log(`Planned ${sections.length} sections for parallel generation`);
 
-      // DESIGN TOKENS
+      // STAGE 1: Split Sections
+      const stitchSections = sections.filter(sec => sec.assignTo === 'stitch' || sec.type === 'HEADER' || sec.type === 'HERO');
+      const llmSections = sections.filter(sec => !(sec.assignTo === 'stitch' || sec.type === 'HEADER' || sec.type === 'HERO'));
+
+      onProgress?.('Generating primary design (Stitch)...', 30);
+
+      // STAGE 1: Execute Stitch Workers
+      const stitchPromises = stitchSections.map(async (sec) => {
+        // Fallback to Stitch for Header/Hero
+        const { stitch } = await import('@google/stitch-sdk');
+        const apiKey = this.config.get<string>('STITCH_API_KEY') || this.config.get<string>('GEMINI_API_KEY');
+        if (apiKey) process.env.STITCH_API_KEY = apiKey;
+        const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
+        const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
+        const htmlUrl = await screen.getHtml();
+        
+        let htmlContent = '';
+        try {
+          const res = await fetch(htmlUrl);
+          htmlContent = await res.text();
+        } catch (e) {
+          htmlContent = '<!-- Failed to fetch -->';
+        }
+        
+        const extractionResult = await this.ai.generateJson<any>(
+          `Convert this HTML to JSON widget format:\n${htmlContent.substring(0, 10000)}`, 
+          { model: 'meta/llama-3.3-70b-instruct', systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION }
+        );
+        
+        return {
+          type: sec.type,
+          sortOrder: sec.sortOrder,
+          contentConfig: extractionResult?.pages?.[0]?.widgets?.[0]?.contentConfig || { title: sec.type }
+        };
+      });
+
+      const stitchWidgets = await Promise.all(stitchPromises);
+
+      // Extract colors from Stitch to build Dynamic Design Tokens
+      let extractedBg = "var(--gz-dark-1)";
+      let extractedText = "var(--color-text-primary)";
+      
+      const heroWidget = stitchWidgets.find(w => w.type === 'HERO') || stitchWidgets[0];
+      if (heroWidget?.contentConfig?.bgColor) {
+         extractedBg = heroWidget.contentConfig.bgColor;
+      }
+      if (heroWidget?.contentConfig?.textColor) {
+         extractedText = heroWidget.contentConfig.textColor;
+      }
+
+      // DYNAMIC DESIGN TOKENS
       const DESIGN_TOKENS = `
+<<<<<<< HEAD
         MANDATORY: You MUST ONLY use valid Tailwind CSS classes. Do NOT use string interpolation like \`\${...}\` or raw CSS variables like \`var(...)\` in class names.
         Use the following custom Tailwind theme values:
         - Background Colors: bg-surface-container-lowest, bg-surface-container, bg-surface-container-high
@@ -315,11 +366,26 @@ export class SiteGeneratorService {
         - Accent Colors: text-primary, bg-primary
         - Padding: p-6, py-12, px-4
         - Border Radius: rounded-xl, rounded-2xl
+=======
+        - Primary Background (from Designer): "${extractedBg}"
+        - Primary Text Color (from Designer): "${extractedText}"
+        - bgColor: use "${extractedBg}" or complementary dark/light variants (e.g. "var(--gz-dark-3)")
+        - textColor: use "${extractedText}" for titles, or "var(--color-text-secondary)" for body
+        - accentColor: "var(--color-accent)"
+        - padding: "24px 24px"
+        - borderRadius: "16px"
+>>>>>>> main
       `;
 
-      onProgress?.('Workers are building sections in parallel...', 40);
+      onProgress?.('Workers are building sections to match theme...', 60);
 
+<<<<<<< HEAD
       const runLlmWorker = async (sec: any) => {
+=======
+      // STAGE 2: Execute LLM Workers
+      const llmPromises = llmSections.map(async (sec) => {
+        // LLM JSON Worker
+>>>>>>> main
         const workerPrompt = WIDGET_GENERATOR_PROMPT
           .replace('{{SECTION_TYPE}}', sec.type)
           .replace('{{BRIEFING}}', sec.briefing)
@@ -331,7 +397,11 @@ export class SiteGeneratorService {
         if (sec.assignTo === 'deepseek') modelName = 'deepseek-ai/deepseek-v4-flash';
         
         try {
+<<<<<<< HEAD
           const widgetResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
+=======
+          const widgetResult = await this.ai.generateJson<any>(workerPrompt, {
+>>>>>>> main
             model: modelName as any,
             systemInstruction: WIDGET_GENERATOR_SYSTEM,
             temperature: 0.7
@@ -339,6 +409,7 @@ export class SiteGeneratorService {
           return {
             type: sec.type,
             sortOrder: sec.sortOrder,
+<<<<<<< HEAD
             htmlContent: widgetResult.html || `<!-- Missing HTML for ${sec.type} -->`,
             cssContent: widgetResult.css || ''
           };
@@ -401,10 +472,27 @@ export class SiteGeneratorService {
           }
         } else {
           return await runLlmWorker(sec);
+=======
+            contentConfig: widgetResult.contentConfig || {}
+          };
+        } catch (e) {
+          this.logger.warn(`Worker ${modelName} failed for ${sec.type}, falling back...`);
+          const fallbackResult = await this.ai.generateJson<any>(workerPrompt, {
+            model: 'meta/llama-3.3-70b-instruct',
+            systemInstruction: WIDGET_GENERATOR_SYSTEM,
+          });
+          return {
+            type: sec.type,
+            sortOrder: sec.sortOrder,
+            contentConfig: fallbackResult.contentConfig || {}
+          };
+>>>>>>> main
         }
       });
 
-      const generatedWidgets = await Promise.all(widgetPromises);
+      const llmWidgets = await Promise.all(llmPromises);
+
+      const generatedWidgets = [...stitchWidgets, ...llmWidgets];
       
       // Sort widgets
       generatedWidgets.sort((a, b) => a.sortOrder - b.sortOrder);

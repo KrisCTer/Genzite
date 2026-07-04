@@ -15,15 +15,15 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: localStorage.getItem('jwt_token') || null,
+  token: localStorage.getItem('gz_token') || null,
   user: JSON.parse(localStorage.getItem('user_data') || 'null'),
   setAuth: (token, user) => {
-    localStorage.setItem('jwt_token', token);
+    localStorage.setItem('gz_token', token);
     localStorage.setItem('user_data', JSON.stringify(user));
     set({ token, user });
   },
   logout: () => {
-    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('gz_token');
     localStorage.removeItem('user_data');
     set({ token: null, user: null });
   },
