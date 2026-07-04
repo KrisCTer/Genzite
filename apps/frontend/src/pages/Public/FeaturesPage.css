@@ -1,0 +1,237 @@
+.FeaturesPageContainer {
+  padding-top: 40px;
+}
+
+.FeaturesHeroSection {
+  padding-top: 70px;
+}
+
+.features-hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.features-hero-copy {
+  max-width: 700px;
+}
+
+.features-hero-description {
+  max-width: 100%;
+}
+
+.features-hero-actions {
+  justify-content: flex-start;
+}
+
+.features-hero-visual {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 32px;
+  position: relative;
+}
+
+.features-tech-shape {
+  position: absolute;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.features-tech-shape--one {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle at 30% 20%, rgba(34, 211, 238, 0.2), transparent 62%);
+}
+
+.features-tech-shape--two {
+  width: 190px;
+  height: 190px;
+  border-color: rgba(167, 139, 250, 0.24);
+  background: radial-gradient(circle at 70% 80%, rgba(167, 139, 250, 0.16), transparent 62%);
+}
+
+.features-tech-orb {
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #E0F2FE;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(139, 92, 246, 0.2));
+  box-shadow: 0 20px 50px rgba(59, 130, 246, 0.22);
+}
+
+.capabilities-grid {
+  padding: 22px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.capabilities-image-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  min-height: 320px;
+}
+
+.capabilities-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.capabilities-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 24%, rgba(2, 6, 23, 0.6) 100%);
+}
+
+.capabilities-copy h2 {
+  margin: 0 0 14px;
+  font-size: clamp(2rem, 2.2vw, 2.6rem);
+  color: #F8FAFC;
+}
+
+.capabilities-copy p {
+  margin: 0 0 22px;
+  color: rgba(226, 232, 240, 0.74);
+  line-height: 1.82;
+}
+
+.features-section-head {
+  margin-bottom: 22px;
+}
+
+.features-section-head h2 {
+  margin: 0;
+  font-size: clamp(2rem, 2.3vw, 2.7rem);
+  color: #F8FAFC;
+}
+
+.feature-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.feature-highlight-card {
+  padding: 28px;
+}
+
+.feature-highlight-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #7DD3FC;
+  background: rgba(59, 130, 246, 0.14);
+  margin-bottom: 14px;
+}
+
+.feature-highlight-card h3 {
+  margin: 0 0 10px;
+  color: #F8FAFC;
+}
+
+.feature-highlight-card p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.7;
+}
+
+.image-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.image-showcase-card {
+  overflow: hidden;
+}
+
+.image-showcase-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  height: 300px;
+}
+
+.image-showcase-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 360ms ease;
+}
+
+.image-showcase-card:hover .image-showcase-wrap img {
+  transform: scale(1.05);
+}
+
+.image-showcase-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 24%, rgba(2, 6, 23, 0.6) 100%);
+}
+
+.image-showcase-copy {
+  padding: 18px 4px 4px;
+}
+
+.image-showcase-copy h3 {
+  margin: 0;
+  color: #F8FAFC;
+}
+
+.cta-banner p {
+  margin: 12px 0 0;
+  color: rgba(226, 232, 240, 0.75);
+  line-height: 1.7;
+}
+
+@media (max-width: 1200px) {
+  .feature-highlights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .features-hero-grid,
+  .capabilities-grid,
+  .image-showcase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .features-hero-actions {
+    justify-content: flex-start;
+  }
+
+  .features-hero-visual {
+    min-height: 300px;
+  }
+
+  .feature-highlights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .FeaturesPageContainer {
+    padding-top: 20px;
+  }
+
+  .FeaturesHeroSection {
+    padding-top: 30px;
+  }
+
+  .image-showcase-wrap {
+    height: 230px;
+  }
+}

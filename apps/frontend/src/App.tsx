@@ -20,6 +20,8 @@ import InterviewSession from './pages/AI/InterviewSession';
 import AgentLogs from './pages/AI/AgentLogs';
 import AgentWorkspace from './pages/AI/AgentWorkspace';
 import LandingPage from './pages/Public/LandingPage';
+import ContactPage from './pages/Public/ContactPage';
+import FeaturesPage from './pages/Public/FeaturesPage';
 import LiveViewer from './pages/Public/LiveViewer';
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Temporary bypass for UI redesign testing
@@ -44,6 +46,8 @@ const App: React.FC = () => {
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="/live/:pageId" element={<LiveViewer />} />
               <Route path="/login" element={<Login />} />
 
