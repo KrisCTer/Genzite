@@ -4,6 +4,7 @@ import { Spin, Result, Button } from 'antd';
 import { fetchWidgetsApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import CartDrawer from '../../components/CartDrawer';
 
 const LiveViewer: React.FC = () => {
   const { pageId } = useParams<{ pageId: string }>();
@@ -115,6 +116,11 @@ const LiveViewer: React.FC = () => {
           </div>
         ))}
       </div>
+      
+      {/* Cart Drawer for E-commerce flow */}
+      {widgets.length > 0 && (
+        <CartDrawer siteId={(widgets[0] as any)?.page?.siteId} />
+      )}
     </div>
   );
 };

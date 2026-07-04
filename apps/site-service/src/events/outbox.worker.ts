@@ -31,7 +31,7 @@ export class OutboxWorker implements OnModuleInit, OnModuleDestroy {
     
     this.isProcessing = true;
     try {
-      const pendingEvents = await (this.prisma as any).outboxEvent.findMany({
+      const pendingEvents = await this.prisma.outboxEvent.findMany({
         where: { status: 'PENDING' },
         take: 50,
         orderBy: { createdAt: 'asc' },
@@ -48,7 +48,12 @@ export class OutboxWorker implements OnModuleInit, OnModuleDestroy {
         try {
           // Route by event type
           if (event.eventType === 'WIDGET_CONFIG_CHANGED') {
-            const payload = event.payload as any;
+            interface WidgetConfigPayload {
+              pageId: string;
+              siteId: string;
+              widgetCount: number;
+            }
+            const payload = event.payload as unknown as WidgetConfigPayload;
             await this.siteProducer.emitWidgetConfigChanged({
               pageId: payload.pageId,
               siteId: payload.siteId,
@@ -57,7 +62,7 @@ export class OutboxWorker implements OnModuleInit, OnModuleDestroy {
           }
 
           // If successful (no throw), mark as COMPLETED
-          await (this.prisma as any).outboxEvent.update({
+          await this.prisma.outboxEvent.update({
             where: { id: event.id },
             data: { status: 'COMPLETED' },
           });

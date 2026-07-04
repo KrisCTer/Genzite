@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommerceProducer } from '../events/commerce.producer.js';
 
@@ -16,13 +16,21 @@ export class OrdersService {
     // --- SECURITY PATCH: Server-Side Price Calculation ---
     // Fetch products from site-service
     const siteServiceUrl = process.env.SITE_SERVICE_URL || 'http://localhost:3002';
-    const response = await fetch(`${siteServiceUrl}/sites/internal/${siteId}/products`);
+    const response = await fetch(`${siteServiceUrl}/sites/internal/${siteId}/products`, {
+      headers: {
+        'x-internal-token': process.env.INTERNAL_SERVICE_TOKEN || 'dev-internal-token',
+      }
+    });
     if (!response.ok) throw new Error('Failed to fetch site products');
     const availableProducts = await response.json();
 
     // Calculate subtotal
     let calculatedSubtotal = 0;
     const validatedItems: any[] = [];
+
+    if (!Array.isArray(dto.items) || dto.items.length === 0) {
+      throw new BadRequestException('Order must contain at least one item');
+    }
 
     for (const item of dto.items) {
       const product = availableProducts.find((p: any) => p.id === item.id);
@@ -76,6 +84,11 @@ export class OrdersService {
   }
 
   async updateOrderStatus(id: string, siteId: string, status: string) {
+    const VALID_STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'PAID', 'REFUNDED'];
+    if (!VALID_STATUSES.includes(status)) {
+      throw new BadRequestException(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`);
+    }
+
     const order = await this.prisma.order.findFirst({ where: { id, siteId } });
     if (!order) throw new NotFoundException('Order not found');
 

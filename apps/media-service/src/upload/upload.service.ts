@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from "@nestjs/common";
+import { Injectable, ConflictException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -51,6 +51,10 @@ export class UploadService {
       sizeBytes: number;
     },
   ) {
+    if (!dto.s3Key.startsWith(`uploads/${ownerId}/`)) {
+      throw new ForbiddenException("You can only confirm media files uploaded to your own directory prefix");
+    }
+
     // Check file confirmed or not by s3Key
     const existing = await this.prisma.mediaFile.findUnique({
       where: {

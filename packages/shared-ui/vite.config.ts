@@ -29,6 +29,9 @@ export default defineConfig({
         'react/jsx-runtime',
         /^@radix-ui\/.*/,
         'lucide-react',
+        'framer-motion',
+        /^framer-motion\/.*/,
+        '@emotion/is-prop-valid',
       ],
       output: {
         preserveModules: true,

@@ -4,9 +4,16 @@ import {
   AppstoreOutlined,
   PictureOutlined,
   StarOutlined,
+  CheckCircleOutlined,
+  MailOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
+import { Collapse, Input, message } from 'antd';
+import { useCartStore } from '../../../store/cart';
 
 const { Title, Text, Paragraph } = Typography;
+const { Panel } = Collapse;
+const { TextArea } = Input;
 
 interface WidgetRendererProps {
   type: string;
@@ -15,6 +22,9 @@ interface WidgetRendererProps {
 }
 
 const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isActive }) => {
+  const { addItem } = useCartStore();
+  const [messageApi, contextHolder] = message.useMessage();
+
   const containerStyle: React.CSSProperties = {
     border: `2px solid ${isActive ? 'var(--color-accent)' : 'transparent'}`,
     boxShadow: isActive ? '0 4px 12px var(--color-accent-glow)' : 'none',
@@ -59,6 +69,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
     case 'HEADER':
       return (
         <div style={{ ...getStyle('var(--gz-dark-3)', '16px 24px'), display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)' }}>
+          {contextHolder}
           <Overlay />
           <Title level={4} style={{ margin: 0, color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Brand Name'}</Title>
           <Space size="large">
@@ -192,9 +203,126 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ type, config = {}, isAc
         </div>
       );
 
+    case 'PRICING':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', marginBottom: '32px', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Pricing Plans'}</Title>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
+            {(config.items || []).map((item: any, i: number) => (
+              <Card key={i} variant="borderless" style={{ background: item.isPopular ? 'var(--color-accent-glow)' : 'var(--gz-dark-4)', border: `1px solid ${item.isPopular ? 'var(--color-accent)' : 'var(--color-border-subtle)'}` }}>
+                <Title level={4} style={{ color: config.textColor || 'var(--color-text-primary)' }}>{item.title || 'Plan'}</Title>
+                <Title level={2} style={{ color: config.textColor || 'var(--color-text-primary)', margin: '16px 0' }}>{item.price || '$0'}<Text style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>/mo</Text></Title>
+                <Divider style={{ borderColor: 'var(--color-border-subtle)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                  {(item.features || []).map((feat: string, j: number) => (
+                    <Text key={j} style={{ color: config.textColor || 'var(--color-text-secondary)' }}><CheckCircleOutlined style={{ color: 'var(--color-accent)', marginRight: '8px' }}/>{feat}</Text>
+                  ))}
+                </div>
+                <Button type={item.isPopular ? "primary" : "default"} block size="large" style={item.isPopular ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)' } : {}}>{item.ctaText || 'Choose Plan'}</Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'FAQ':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', marginBottom: '32px', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Frequently Asked Questions'}</Title>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <Collapse ghost expandIconPosition="end">
+              {(config.items || []).map((item: any, i: number) => (
+                <Panel header={<Text style={{ color: config.textColor || 'var(--color-text-primary)', fontSize: '16px', fontWeight: 500 }}>{item.question || 'Question?'}</Text>} key={i}>
+                  <Paragraph style={{ color: config.textColor || 'var(--color-text-secondary)' }}>{item.answer || 'Answer goes here.'}</Paragraph>
+                </Panel>
+              ))}
+            </Collapse>
+          </div>
+        </div>
+      );
+
+    case 'CONTACT':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Contact Us'}</Title>
+          {config.subtitle && <Paragraph style={{ textAlign: 'center', color: config.textColor || 'var(--color-text-muted)', marginBottom: '32px' }}>{config.subtitle}</Paragraph>}
+          <div style={{ maxWidth: '600px', margin: '0 auto', background: 'var(--gz-dark-4)', padding: '32px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border-subtle)' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <div>
+                <Text style={{ color: 'var(--color-text-secondary)' }}>Name</Text>
+                <Input placeholder="Your Name" size="large" style={{ background: 'var(--gz-dark-1)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <div>
+                <Text style={{ color: 'var(--color-text-secondary)' }}>Email</Text>
+                <Input placeholder="your@email.com" size="large" style={{ background: 'var(--gz-dark-1)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <div>
+                <Text style={{ color: 'var(--color-text-secondary)' }}>Message</Text>
+                <TextArea rows={4} placeholder="How can we help you?" style={{ background: 'var(--gz-dark-1)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+              </div>
+              <Button type="primary" size="large" block icon={<MailOutlined />} style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)' }}>{config.ctaText || 'Send Message'}</Button>
+            </Space>
+          </div>
+        </div>
+      );
+
+    case 'PRODUCT_GRID':
+    case 'PRODUCTGRID':
+      return (
+        <div style={getStyle('transparent', '24px')}>
+          {contextHolder}
+          <Overlay />
+          <Title level={3} style={{ textAlign: 'center', marginBottom: '32px', color: config.textColor || 'var(--color-text-primary)' }}>{config.title || 'Our Products'}</Title>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '24px' }}>
+            {(config.products || []).map((product: any, i: number) => (
+              <Card 
+                key={product.id || i} 
+                hoverable
+                variant="borderless" 
+                style={{ background: 'var(--gz-dark-4)', border: '1px solid var(--color-border-subtle)', overflow: 'hidden' }}
+                cover={
+                  <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gz-dark-2)' }}>
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <PictureOutlined style={{ fontSize: '48px', color: 'var(--color-border)' }} />
+                    )}
+                  </div>
+                }
+              >
+                <Title level={5} style={{ color: config.textColor || 'var(--color-text-primary)', marginBottom: '8px' }}>{product.name || 'Product Name'}</Title>
+                <Title level={4} style={{ color: 'var(--color-accent)', margin: '0 0 16px 0' }}>{Number(product.price || 0).toLocaleString()}đ</Title>
+                <Button 
+                  type="primary" 
+                  block 
+                  icon={<ShoppingCartOutlined />}
+                  style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)' }}
+                  onClick={() => {
+                    addItem({
+                      id: product.id || `temp-${i}`,
+                      name: product.name || 'Product',
+                      price: Number(product.price || 0),
+                      quantity: 1,
+                      imageUrl: product.image
+                    });
+                    messageApi.success(`Đã thêm ${product.name || 'sản phẩm'} vào giỏ!`);
+                  }}
+                >
+                  Thêm vào giỏ
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+
     default:
       return (
         <div style={getStyle('transparent', '24px')}>
+          {contextHolder}
           <Overlay />
           <Space>
             <AppstoreOutlined style={{ fontSize: '24px', color: 'var(--color-accent)' }} />

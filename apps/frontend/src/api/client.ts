@@ -10,7 +10,8 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('jwt_token');
+  // Read token from localStorage (now standardized on gz_token)
+  const token = localStorage.getItem('gz_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

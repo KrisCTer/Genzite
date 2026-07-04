@@ -55,4 +55,12 @@ export class UsersService {
 
     return { success: true, deducted: amount };
   }
+
+  async refundCredits(id: string, amount: number) {
+    await this.prisma.user.update({
+      where: { id },
+      data: { credits: { increment: amount } },
+    });
+    return { success: true, refunded: amount };
+  }
 }

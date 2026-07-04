@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '@prisma/client-data';
@@ -132,9 +133,14 @@ export class RecordsService {
   }
 
   /** 4.13 — Delete a record */
-  async remove(recordId: string) {
+  async remove(recordId: string, userId: string) {
     // Verify record exists
     const record = await this.findById(recordId);
+
+    // Ownership check: verify the user created this record
+    if (record.createdBy !== userId) {
+      throw new ForbiddenException('You do not own this record');
+    }
 
     await this.prisma.cmsRecord.delete({ where: { id: recordId } });
 

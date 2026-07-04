@@ -16,6 +16,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedToken = localStorage.getItem('gz_token');
     if (storedToken) {
       setToken(storedToken);
+    } else {
+      // Auto-login for local development (AUTH_BYPASS=true on backend)
+      const devToken = btoa(`admin@genzite.local:${Date.now()}`);
+      setToken(devToken);
+      localStorage.setItem('gz_token', devToken);
     }
   }, []);
 

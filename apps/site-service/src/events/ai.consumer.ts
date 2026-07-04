@@ -47,14 +47,19 @@ export class AiConsumer implements OnModuleInit {
         this.logger.log(`Created Site ID: ${site.id} for subdomain ${site.subdomain}`);
       }
 
-      // 2. Iterate pages and create them
+      // 2. Iterate pages and create or update them
       for (const pageDef of siteData.pages) {
-        const page = await this.pagesService.create(site.id, {
-          title: pageDef.title,
-          slug: pageDef.slug,
-        }, ownerId);
+        let page = await this.pagesService.findBySlug(site.id, pageDef.slug, ownerId);
+        if (!page) {
+          page = await this.pagesService.create(site.id, {
+            title: pageDef.title,
+            slug: pageDef.slug,
+          }, ownerId);
+        } else {
+          this.logger.log(`Page ${pageDef.slug} already exists in site ${site.subdomain}, updating widgets...`);
+        }
 
-        // 3. Create widgets for the page
+        // 3. Create/Replace widgets for the page
         if (pageDef.widgets && pageDef.widgets.length > 0) {
           await this.widgetsService.replaceWidgets(
             page.id,
@@ -74,10 +79,13 @@ export class AiConsumer implements OnModuleInit {
         this.logger.log(`E-commerce intent detected. Generating hybrid commerce pages for site: ${site.subdomain}`);
         
         // Auto-generate Admin Panel
-        const adminPage = await this.pagesService.create(site.id, {
-          title: 'Admin Dashboard',
-          slug: 'admin',
-        }, ownerId);
+        let adminPage = await this.pagesService.findBySlug(site.id, 'admin', ownerId);
+        if (!adminPage) {
+          adminPage = await this.pagesService.create(site.id, {
+            title: 'Admin Dashboard',
+            slug: 'admin',
+          }, ownerId);
+        }
         
         await this.widgetsService.replaceWidgets(adminPage.id, [
           { type: 'ADMIN_PANEL', contentConfig: { heading: 'Dashboard Overview' }, sortOrder: 1 },
@@ -85,10 +93,13 @@ export class AiConsumer implements OnModuleInit {
         ], ownerId);
 
         // Auto-generate Payment Status
-        const paymentPage = await this.pagesService.create(site.id, {
-          title: 'Payment Result',
-          slug: 'payment-result',
-        }, ownerId);
+        let paymentPage = await this.pagesService.findBySlug(site.id, 'payment-result', ownerId);
+        if (!paymentPage) {
+          paymentPage = await this.pagesService.create(site.id, {
+            title: 'Payment Result',
+            slug: 'payment-result',
+          }, ownerId);
+        }
 
         await this.widgetsService.replaceWidgets(paymentPage.id, [
           { type: 'PAYMENT_STATUS', contentConfig: { heading: 'Payment Status' }, sortOrder: 1 }

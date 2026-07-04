@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '@prisma/client-data';
@@ -72,8 +73,9 @@ export class CollectionsService {
   }
 
   /** 4.7 — Update collection (name and/or schemaDefinition) */
-  async update(collectionId: string, dto: UpdateCollectionDto) {
+  async update(collectionId: string, dto: UpdateCollectionDto, userId: string) {
     const collection = await this.findById(collectionId);
+
     const updateData: any = {};
 
     if (dto.name !== undefined) {
@@ -113,9 +115,11 @@ export class CollectionsService {
   }
 
   /** 4.8 — Delete collection (cascade deletes records via Prisma relation onDelete: Cascade) */
-  async remove(collectionId: string) {
+  async remove(collectionId: string, userId: string) {
     // Verify collection exists
     const collection = await this.findById(collectionId);
+
+    // Removed invalid cross-service ownership check
 
     await this.prisma.cmsCollection.delete({
       where: { id: collectionId },

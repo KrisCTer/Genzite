@@ -99,7 +99,7 @@ describe('CollectionsService', () => {
       jest.spyOn(prisma.cmsCollection, 'findUnique').mockResolvedValue({ id: 'col-1', siteId: 'site-1' } as any);
       jest.spyOn(prisma.cmsCollection, 'delete').mockResolvedValue({} as any);
 
-      await service.remove('col-1');
+      await service.remove('col-1', 'user-1');
 
       expect(prisma.cmsCollection.delete).toHaveBeenCalledWith({ where: { id: 'col-1' } });
       expect(dataProducer.emitCollectionDeleted).toHaveBeenCalledWith({ collectionId: 'col-1', siteId: 'site-1' });
