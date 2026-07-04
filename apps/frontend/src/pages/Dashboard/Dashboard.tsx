@@ -90,7 +90,7 @@ export const Dashboard: React.FC = () => {
   const [simulatedSitesCount, setSimulatedSitesCount] = useState<number | null>(null);
 
   // Sync real backend sites count
-  const baseSiteCount = Array.isArray(sites) ? sites.length : 3;
+  const baseSiteCount = Array.isArray(sites) ? sites.length : 0;
   const activeSitesCount = simulatedSitesCount !== null ? simulatedSitesCount : baseSiteCount;
 
   // Timers for clock and simulation
@@ -191,8 +191,8 @@ export const Dashboard: React.FC = () => {
     return simulatedNotifications.slice(0, 5);
   }, [simulatedNotifications]);
 
-  const userCount = Array.isArray(users) ? users.length : 12;
-  const collectionCount = Array.isArray(collections) ? collections.length : 4;
+  const userCount = Array.isArray(users) ? users.length : 0;
+  const collectionCount = Array.isArray(collections) ? collections.length : 0;
 
   // SVGs sizes
   const chartW = 350;

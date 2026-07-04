@@ -82,7 +82,11 @@ export class RecordsController {
   @Delete('cms/records/:recordId')
   async remove(
     @Param('recordId', ParseUUIDPipe) recordId: string,
+    @Headers('x-user-id') userId: string,
   ) {
-    return this.recordsService.remove(recordId);
+    if (!userId) {
+      throw new BadRequestException('Header x-user-id is required');
+    }
+    return this.recordsService.remove(recordId, userId);
   }
 }

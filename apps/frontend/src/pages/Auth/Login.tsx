@@ -229,6 +229,7 @@ const Login: React.FC = () => {
                 {/* Form fields */}
                 <Form<LoginValues>
                   name="sign_in_form"
+                  initialValues={{ email: 'admin@genzite.com', password: 'admin@genzite.com' }}
                   onFinish={handleSignIn}
                   layout="vertical"
                   requiredMark={false}
@@ -253,7 +254,7 @@ const Login: React.FC = () => {
 
                   {/* Forgot password centered below inputs */}
                   <div className="text-center mt-2">
-                    <span 
+                    <span
                       onClick={() => message.info('Reset password simulation')}
                       className="text-xs font-medium text-slate-400 hover:text-[#06b6d4] cursor-pointer transition-colors"
                     >
@@ -362,7 +363,7 @@ const Login: React.FC = () => {
               {/* Marbled background image with transition shift & water wave filter */}
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 ease-in-out"
-                style={{ 
+                style={{
                   backgroundImage: "url('/login_cover_art.png')",
                   transform: isSignUp ? 'scale(1.05) rotate(-1deg)' : 'scale(1) rotate(0deg)',
                   filter: 'url(#liquid-water-wave)'
@@ -427,6 +428,7 @@ const Login: React.FC = () => {
                 </div>
                 <Form<LoginValues>
                   name="sign_in_form_mobile"
+                  initialValues={{ email: 'admin@genzite.com', password: 'admin@genzite.com' }}
                   onFinish={handleSignIn}
                   layout="vertical"
                   requiredMark={false}
@@ -549,11 +551,11 @@ const Login: React.FC = () => {
         <defs>
           <filter id="liquid-water-wave">
             <feTurbulence type="fractalNoise" baseFrequency="0.01 0.015" numOctaves="3" result="noise">
-              <animate 
-                attributeName="baseFrequency" 
-                dur="16s" 
-                values="0.01 0.015; 0.014 0.024; 0.01 0.015" 
-                repeatCount="indefinite" 
+              <animate
+                attributeName="baseFrequency"
+                dur="16s"
+                values="0.01 0.015; 0.014 0.024; 0.01 0.015"
+                repeatCount="indefinite"
               />
             </feTurbulence>
             <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" />

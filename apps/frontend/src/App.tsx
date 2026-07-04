@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { genziteDarkTheme } from './styles/theme';
 import AdminLayout from './layouts/AdminLayout';
 import CanvasLayout from './layouts/CanvasLayout';
-import { LoginPage } from './pages/LoginPage';
+import Login from './pages/Auth/Login';
 import UserManagement from './pages/Identity/UserManagement';
 import MediaLibrary from './pages/Media/MediaLibrary';
 import Collections from './pages/CMS/Collections';
@@ -55,7 +55,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/live/:pageId" element={<LiveViewer />} />
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login" element={<Login />} />
 
               {/* Canvas routes — full-bleed, no admin shell */}
               <Route

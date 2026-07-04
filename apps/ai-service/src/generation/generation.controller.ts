@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent, Get, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent, Get, NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
@@ -72,10 +72,17 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
 
   @SkipThrottle()
   @Get('site/job/:jobId')
-  async getSiteJobStatus(@Param('jobId') jobId: string) {
+  async getSiteJobStatus(
+    @Param('jobId') jobId: string,
+    @Headers('x-user-id') userId?: string,
+  ) {
     const job = await this.siteQueue.getJob(jobId);
     if (!job) {
       throw new NotFoundException('Job not found');
+    }
+    // Ownership check: ensure requester owns this job
+    if (userId && job.data?.ownerId && job.data.ownerId !== userId && job.data.ownerId !== 'anonymous') {
+      throw new ForbiddenException('You do not own this job');
     }
     const state = await job.getState();
     return {
@@ -89,10 +96,17 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
 
   @SkipThrottle()
   @Get('cms/job/:jobId')
-  async getCmsJobStatus(@Param('jobId') jobId: string) {
+  async getCmsJobStatus(
+    @Param('jobId') jobId: string,
+    @Headers('x-user-id') userId?: string,
+  ) {
     const job = await this.cmsQueue.getJob(jobId);
     if (!job) {
       throw new NotFoundException('Job not found');
+    }
+    // Ownership check
+    if (userId && job.data?.ownerId && job.data.ownerId !== userId && job.data.ownerId !== 'anonymous') {
+      throw new ForbiddenException('You do not own this job');
     }
     const state = await job.getState();
     return {
@@ -124,7 +138,12 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
             } else if (returnvalue) {
                subdomain = returnvalue?.site?.subdomain;
             }
-          } catch(e) {}
+          } catch(e: any) {
+            Logger.error(`Failed to parse AI generation return value: ${e?.message || e}`, e?.stack, 'GenerationController');
+            subscriber.next({ data: JSON.stringify({ step: 'System error', error: 'Invalid response from AI generation', done: true }) });
+            subscriber.complete();
+            return;
+          }
           
           subscriber.next({ data: JSON.stringify({ step: 'Completed!', percent: 100, done: true, subdomain }) });
           subscriber.complete();
