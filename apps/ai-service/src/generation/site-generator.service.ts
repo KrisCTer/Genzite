@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { AiClient } from '../gemini/ai.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { 
@@ -101,6 +101,7 @@ export class SiteGeneratorService {
     private readonly rag: RagService,
     private readonly guardrail: GuardrailService,
     private readonly config: ConfigService,
+    @Inject(forwardRef(() => ToolRegistry))
     private readonly toolRegistry: ToolRegistry,
   ) { }
 
@@ -134,7 +135,8 @@ export class SiteGeneratorService {
         this.rag.retrieveTemplate(prompt)
       ]);
 
-      const genMode = this.config.get<string>('GENERATION_MODE') || 'stitch';
+      const genMode = this.config.get<string>('GENERATION_MODE')?.replace(/['"]/g, '') || 'stitch';
+      this.logger.log(`Current GENERATION_MODE from config: ${this.config.get<string>('GENERATION_MODE')} -> Parsed: ${genMode}`);
 
       if (genMode === 'hybrid') {
         return await this.generateHybrid(prompt, taskLog, siteId, onProgress);
@@ -180,6 +182,7 @@ export class SiteGeneratorService {
       while (attempt <= MAX_ATTEMPTS) {
         // Fetch HTML from Stitch for QA auditing with error handling
         try {
+          if (!htmlUrl) throw new Error("Stitch returned empty HTML URL");
           const res = await fetch(htmlUrl);
           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
           htmlContent = await res.text();
@@ -228,34 +231,25 @@ export class SiteGeneratorService {
         }
       }
 
-      // STEP 6: Extract Widgets (AI Translation)
-      onProgress?.('Extracting editable widgets...', 90);
-      this.logger.log(`Calling AI to extract JSON widgets from HTML...`);
+      // STEP 6: Bypass Widget Extraction for GrapesJS
+      onProgress?.('Preparing visual editor...', 90);
+      this.logger.log(`Skipping JSON extraction, saving raw HTML for GrapesJS...`);
       
-      const extractionPrompt = `Convert this HTML into Genzite Canvas JSON format:\n\n\`\`\`html\n${htmlContent.substring(0, 80000)}...\n\`\`\``;
-      
-      let extractionResult: any = { site: { name: "Generated", subdomain: `gen-${Date.now()}` }, pages: [] };
-      try {
-        extractionResult = await this.ai.generateJson<any>(extractionPrompt, {
-          model: 'meta/llama-3.3-70b-instruct', // Dùng NVIDIA NIM Llama 3.3 70B xử lý JSON siêu tốc độ
-          systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION,
-          temperature: 0.2,
-        });
-        
-        // Ensure subdomain is safe and unique or use existing siteId
-        if (siteId) {
-          extractionResult.site.id = siteId;
-          extractionResult.site.subdomain = siteId;
-        } else if (extractionResult?.site) {
-          extractionResult.site.subdomain = (extractionResult.site.subdomain || 'site').toLowerCase().replace(/[^a-z0-9-]/g, '') + '-' + Math.floor(Math.random() * 10000);
-        }
-      } catch (e) {
-        this.logger.error(`Widget extraction failed: ${e}`);
-        // Fallback to basic structure if extraction fails so the site doesn't crash downstream
-        extractionResult = {
-          site: { id: siteId, name: "Generated Site", subdomain: `gen-${Date.now()}` },
-          pages: [{ title: "Home", slug: "home", widgets: [{ type: "HERO", contentConfig: { title: "Generated Site" } }] }]
-        };
+      const extractionResult = {
+        site: { name: "Generated Site", subdomain: siteId || `gen-${Date.now()}` },
+        pages: [{
+          title: "Home",
+          slug: "home",
+          widgets: [{ 
+            type: "GRAPESJS", 
+            contentConfig: { html: htmlContent },
+            sortOrder: 1
+          }]
+        }]
+      };
+
+      if (siteId) {
+        extractionResult.site['id'] = siteId;
       }
 
       const result: GeneratedSite = {
@@ -364,20 +358,18 @@ export class SiteGeneratorService {
 
       // DYNAMIC DESIGN TOKENS
       const DESIGN_TOKENS = `
-        - Primary Background (from Designer): "${extractedBg}"
-        - Primary Text Color (from Designer): "${extractedText}"
-        - bgColor: use "${extractedBg}" or complementary dark/light variants (e.g. "var(--gz-dark-3)")
-        - textColor: use "${extractedText}" for titles, or "var(--color-text-secondary)" for body
-        - accentColor: "var(--color-accent)"
-        - padding: "24px 24px"
-        - borderRadius: "16px"
+        MANDATORY: You MUST ONLY use valid Tailwind CSS classes. Do NOT use string interpolation like \`\${...}\` or raw CSS variables like \`var(...)\` in class names.
+        Use the following custom Tailwind theme values:
+        - Background Colors: bg-surface-container-lowest, bg-surface-container, bg-surface-container-high
+        - Text Colors: text-on-surface (for headings), text-on-surface-variant (for body)
+        - Accent Colors: text-primary, bg-primary
+        - Padding: p-6, py-12, px-4
+        - Border Radius: rounded-xl, rounded-2xl
       `;
 
       onProgress?.('Workers are building sections to match theme...', 60);
 
-      // STAGE 2: Execute LLM Workers
-      const llmPromises = llmSections.map(async (sec) => {
-        // LLM JSON Worker
+      const runLlmWorker = async (sec: any) => {
         const workerPrompt = WIDGET_GENERATOR_PROMPT
           .replace('{{SECTION_TYPE}}', sec.type)
           .replace('{{BRIEFING}}', sec.briefing)
@@ -389,7 +381,7 @@ export class SiteGeneratorService {
         if (sec.assignTo === 'deepseek') modelName = 'deepseek-ai/deepseek-v4-flash';
         
         try {
-          const widgetResult = await this.ai.generateJson<any>(workerPrompt, {
+          const widgetResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
             model: modelName as any,
             systemInstruction: WIDGET_GENERATOR_SYSTEM,
             temperature: 0.7
@@ -397,19 +389,68 @@ export class SiteGeneratorService {
           return {
             type: sec.type,
             sortOrder: sec.sortOrder,
-            contentConfig: widgetResult.contentConfig || {}
+            htmlContent: widgetResult.html || `<!-- Missing HTML for ${sec.type} -->`,
+            cssContent: widgetResult.css || ''
           };
         } catch (e) {
           this.logger.warn(`Worker ${modelName} failed for ${sec.type}, falling back...`);
-          const fallbackResult = await this.ai.generateJson<any>(workerPrompt, {
+          const fallbackResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
             model: 'meta/llama-3.3-70b-instruct',
             systemInstruction: WIDGET_GENERATOR_SYSTEM,
           });
           return {
             type: sec.type,
             sortOrder: sec.sortOrder,
-            contentConfig: fallbackResult.contentConfig || {}
+            htmlContent: fallbackResult.html || `<!-- Missing HTML for ${sec.type} -->`,
+            cssContent: fallbackResult.css || ''
           };
+        }
+      };
+
+      // STEP 2: Execute Parallel Workers
+      const widgetPromises = sections.map(async (sec) => {
+        if (sec.assignTo === 'stitch' || sec.type === 'HEADER' || sec.type === 'HERO') {
+          try {
+            // Fallback to Stitch for Header/Hero
+            const { stitch } = await import('@google/stitch-sdk');
+            const apiKey = this.config.get<string>('STITCH_API_KEY') || this.config.get<string>('GEMINI_API_KEY');
+            if (apiKey) process.env.STITCH_API_KEY = apiKey;
+            const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
+            const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
+            const htmlUrl = await screen.getHtml();
+            
+            if (!htmlUrl) throw new Error("Stitch returned empty HTML URL");
+            const res = await fetch(htmlUrl);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            
+            let rawHtml = await res.text();
+            let parsedHtml = '';
+            
+            const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+            let match;
+            while ((match = styleRegex.exec(rawHtml)) !== null) {
+              parsedHtml += `<style>${match[1]}</style>\n`;
+            }
+            
+            const bodyMatch = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            if (bodyMatch && bodyMatch[1]) {
+              parsedHtml += bodyMatch[1];
+            } else {
+              parsedHtml += rawHtml;
+            }
+            
+            return {
+              type: sec.type,
+              sortOrder: sec.sortOrder,
+              htmlContent: parsedHtml.trim(),
+              cssContent: ''
+            };
+          } catch (e) {
+            this.logger.warn(`Failed to fetch Stitch section ${sec.type}: ${e}. Falling back to LLM generation...`);
+            return await runLlmWorker(sec);
+          }
+        } else {
+          return await runLlmWorker(sec);
         }
       });
 
@@ -420,22 +461,8 @@ export class SiteGeneratorService {
       // Sort widgets
       generatedWidgets.sort((a, b) => a.sortOrder - b.sortOrder);
       
-      // Calculate geometries
-      let currentY = 0;
-      const widgetsWithGeom = generatedWidgets.map(w => {
-        const height = w.type === 'HERO' ? 600 : w.type === 'HEADER' ? 80 : 400;
-        const finalWidget = {
-          ...w,
-          geometry: { x: 0, y: currentY, width: 1440, height }
-        };
-        // Also inject into contentConfig for backward compatibility
-        finalWidget.contentConfig = {
-          ...finalWidget.contentConfig,
-          geometry: finalWidget.geometry
-        };
-        currentY += height;
-        return finalWidget;
-      });
+      const fullHtml = generatedWidgets.map(w => w.htmlContent).join('\n\n');
+      const fullCss = generatedWidgets.map(w => w.cssContent).filter(css => !!css).join('\n\n');
 
       onProgress?.('Merging and finalizing UI...', 90);
 
@@ -446,7 +473,11 @@ export class SiteGeneratorService {
         pages: [{
           title: "Home",
           slug: "home",
-          widgets: widgetsWithGeom
+          widgets: [{
+            type: "GRAPESJS",
+            contentConfig: { html: fullHtml, css: fullCss },
+            sortOrder: 1
+          }]
         }]
       };
 
