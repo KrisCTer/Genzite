@@ -5,6 +5,7 @@ import { DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWidgetsApi, replaceWidgetsApi } from '../../../api/sites';
 import WidgetRenderer from './WidgetRenderer';
+import GrapesEditor from './GrapesEditor';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 interface CanvasWidget {
@@ -29,6 +30,7 @@ const WIDGET_DEFAULTS: Record<string, { w: number; h: number }> = {
   STATS: { w: 1440, h: 200 },
   CTA: { w: 1440, h: 240 },
   FOOTER: { w: 1440, h: 120 },
+  GRAPESJS: { w: 1440, h: 1000 },
 };
 
 interface CanvasPageFrameProps {
@@ -63,13 +65,14 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
       const mapped: CanvasWidget[] = sorted.map((w: any, i: number) => {
         const defaults = WIDGET_DEFAULTS[w.type?.toUpperCase()] || { w: 760, h: 200 };
         const geom = w.contentConfig?.geometry || {};
+        const isGrapes = w.type === 'GRAPESJS';
         const widget: CanvasWidget = {
           ...w,
           _id: `widget-${pageId}-${i}-${Date.now()}`,
           x: geom.x ?? 0,
           y: geom.y ?? yOffset,
-          width: geom.width ?? defaults.w,
-          height: geom.height ?? defaults.h,
+          width: isGrapes ? Math.max(geom.width ?? defaults.w, 1440) : (geom.width ?? defaults.w),
+          height: isGrapes ? Math.max(geom.height ?? defaults.h, 1000) : (geom.height ?? defaults.h),
         };
         if (geom.y === undefined) yOffset += defaults.h;
         return widget;
@@ -136,6 +139,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     body { margin: 0; padding: 0; background: var(--color-bg-app); color: var(--color-text-primary); font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
     * { box-sizing: border-box; }
   </style>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 </head>
 <body>
   <div style="position: relative; width: 1440px; margin: 0 auto; min-height: 100vh;">
@@ -161,13 +165,12 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   };
 
   const updateWidgetGeometry = (id: string, x: number, y: number, width: number, height: number) => {
-    setWidgets(prev => {
-      const next = prev.map(w => w._id === id ? { ...w, x, y, width, height } : w);
-      const updated = next.find(w => w._id === id);
-      if (updated) onUpdateWidget(updated);
-      return next;
-    });
+    setWidgets(prev => prev.map(w => w._id === id ? { ...w, x, y, width, height } : w));
     setHasUnsaved(true);
+    const updated = widgets.find(w => w._id === id);
+    if (updated) {
+      onUpdateWidget({ ...updated, x, y, width, height });
+    }
   };
 
   const deleteWidget = (id: string) => {
@@ -176,7 +179,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     setHasUnsaved(true);
   };
 
-  const canvasHeight = Math.max(2000, widgets.reduce((max, w) => Math.max(max, w.y + w.height + 200), 2000));
+  const canvasHeight = Math.max(600, widgets.reduce((max, w) => Math.max(max, w.y + w.height), 600));
 
   return (
     <div style={{ position: 'relative', width: 1440, height: canvasHeight, background: '#111827', border: '2px solid #1E293B', borderRadius: 8, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
@@ -202,6 +205,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           onDragStop={(_e, d) => updateWidgetGeometry(widget._id, d.x, d.y, widget.width, widget.height)}
           onResizeStop={(_e, _dir, ref, _delta, pos) => updateWidgetGeometry(widget._id, pos.x, pos.y, ref.offsetWidth, ref.offsetHeight)}
           minWidth={120} minHeight={60} bounds="parent" dragGrid={[10, 10]} resizeGrid={[10, 10]} cancel=".canvas-widget-delete"
+          dragHandleClassName={widget.type === 'GRAPESJS' ? 'canvas-widget-label' : undefined}
           enableResizing={{ top: true, right: true, bottom: true, left: true, topRight: true, bottomRight: true, bottomLeft: true, topLeft: true }}
           resizeHandleStyles={{
             right: { width: 4, right: -2, background: globalSelectedId === widget._id ? 'var(--color-accent)' : 'transparent' },
@@ -213,8 +217,12 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
             onClick={(e) => { e.stopPropagation(); onSelectWidget(widget._id); onUpdateWidget(widget); }}
           >
             <span className="canvas-widget-label">{widget.type}</span>
-            <div style={{ width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
-              <WidgetRenderer type={widget.type} config={widget.contentConfig} isActive={globalSelectedId === widget._id} />
+            <div style={{ width: '100%', height: '100%', overflow: 'hidden', pointerEvents: widget.type === 'GRAPESJS' ? 'auto' : 'none' }}>
+              {widget.type === 'GRAPESJS' ? (
+                <GrapesEditor htmlContent={widget.contentConfig.html} />
+              ) : (
+                <WidgetRenderer type={widget.type} config={widget.contentConfig} isActive={globalSelectedId === widget._id} />
+              )}
             </div>
             <button className="canvas-widget-delete" onClick={(e) => { e.stopPropagation(); deleteWidget(widget._id); }}>
               <DeleteOutlined style={{ fontSize: 10 }} />

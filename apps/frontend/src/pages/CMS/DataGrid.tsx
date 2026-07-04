@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, Button, Card, Typography, Space, Modal, Form, Input, message } from 'antd';
 import { PlusOutlined, ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchRecordsApi, createRecordApi, deleteRecordApi, type RecordData, fetchCollectionsApi } from '../../api/cms';
+import { fetchRecordsApi, createRecordApi, deleteRecordApi, type RecordData, fetchCollectionByIdApi } from '../../api/cms';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -15,13 +15,13 @@ const DataGrid: React.FC = () => {
   const [form] = Form.useForm();
 
   // Fetch Collections to get Schema
-  const { data: collections } = useQuery({
-    queryKey: ['cms-collections'],
-    queryFn: fetchCollectionsApi,
+  const { data: activeCollection } = useQuery({
+    queryKey: ['cms-collection', collectionId],
+    queryFn: () => fetchCollectionByIdApi(collectionId!),
+    enabled: !!collectionId,
   });
 
-  const activeCollection = collections?.find(c => c.id === collectionId);
-  const schema = activeCollection?.schema || {};
+  const schema = activeCollection?.schemaDefinition || activeCollection?.schema || {};
 
   // Fetch Records
   const { data: records, isLoading, isError } = useQuery({

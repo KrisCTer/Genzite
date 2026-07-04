@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { SchemaType, type FunctionDeclaration } from '@google/generative-ai';
 import type { AiTool } from '../tool.interface.js';
 import { SiteGeneratorService } from '../../../generation/site-generator.service.js';
 
 @Injectable()
 export class GenerateSiteTool implements AiTool {
-  constructor(private readonly siteGenerator: SiteGeneratorService) {}
+  constructor(
+    @Inject(forwardRef(() => SiteGeneratorService))
+    private readonly siteGenerator: SiteGeneratorService
+  ) {}
 
   readonly declaration: FunctionDeclaration = {
     name: 'generate_site',

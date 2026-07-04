@@ -22,8 +22,9 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
     // Initialize QueueEvents with a dedicated connection to avoid blocking the main queue connection
     this.queueEvents = new QueueEvents(AI_QUEUES.SITE_GENERATION, {
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
+        host: process.env.REDIS_HOST || '127.0.0.1',
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        maxRetriesPerRequest: null,
       },
     });
   }

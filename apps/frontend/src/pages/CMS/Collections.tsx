@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Table, Button, Card, Typography, Space, Modal, Form, Input, message } from 'antd';
+import { Table, Button, Card, Typography, Space, Modal, Form, Input, message, Select } from 'antd';
 import { PlusOutlined, DatabaseOutlined, EditOutlined, DeleteOutlined, RightOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchCollectionsApi, createCollectionApi, deleteCollectionApi, type Collection } from '../../api/cms';
+import { fetchSitesApi } from '../../api/sites';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
@@ -20,9 +21,23 @@ const Collections: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+
+  const { data: sites, isLoading: isLoadingSites } = useQuery({
+    queryKey: ['sites-list'],
+    queryFn: fetchSitesApi,
+  });
+
+  React.useEffect(() => {
+    if (sites && sites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites[0].id);
+    }
+  }, [sites, selectedSiteId]);
+
   const { data: collections, isLoading, isError } = useQuery({
-    queryKey: ['cms-collections'],
-    queryFn: fetchCollectionsApi,
+    queryKey: ['cms-collections', selectedSiteId],
+    queryFn: () => fetchCollectionsApi(selectedSiteId!),
+    enabled: !!selectedSiteId,
     retry: 1,
   });
 
@@ -32,7 +47,7 @@ const Collections: React.FC = () => {
       message.success('Collection created successfully');
       setIsModalOpen(false);
       form.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['cms-collections'] });
+      queryClient.invalidateQueries({ queryKey: ['cms-collections', selectedSiteId] });
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Failed to create collection');
@@ -43,7 +58,7 @@ const Collections: React.FC = () => {
     mutationFn: deleteCollectionApi,
     onSuccess: () => {
       message.success('Collection deleted');
-      queryClient.invalidateQueries({ queryKey: ['cms-collections'] });
+      queryClient.invalidateQueries({ queryKey: ['cms-collections', selectedSiteId] });
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Failed to delete collection');
@@ -54,9 +69,10 @@ const Collections: React.FC = () => {
     try {
       const schemaObj = JSON.parse(values.schema);
       createMutation.mutate({
+        siteId: selectedSiteId!,
         name: values.name,
         slug: values.slug,
-        schema: schemaObj,
+        schemaDefinition: schemaObj,
       });
     } catch (e) {
       message.error('Invalid JSON Schema format');
@@ -120,13 +136,23 @@ const Collections: React.FC = () => {
           <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: 32 }}>CMS Collections</Title>
           <div style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>Manage your dynamic database schemas (Headless CMS)</div>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large" style={{ fontWeight: 500 }} onClick={() => setIsModalOpen(true)}>
-          Create Collection
-        </Button>
+        <Space size="large">
+          <Select
+            value={selectedSiteId}
+            onChange={(value) => setSelectedSiteId(value)}
+            style={{ width: 250 }}
+            placeholder="Select a site"
+            loading={isLoadingSites}
+            options={sites?.map(s => ({ label: s.name, value: s.id }))}
+          />
+          <Button type="primary" icon={<PlusOutlined />} size="large" style={{ fontWeight: 500 }} onClick={() => setIsModalOpen(true)} disabled={!selectedSiteId}>
+            Create Collection
+          </Button>
+        </Space>
       </div>
 
       <Card 
-        bordered
+        variant="outlined"
         styles={{ body: { padding: 0 } }}
       >
         {isError && (
