@@ -404,7 +404,6 @@ export class SiteGeneratorService {
             htmlContent: fallbackResult.html || `<!-- Missing HTML for ${sec.type} -->`,
             cssContent: fallbackResult.css || ''
           };
->>>>>>> main
         }
       };
 
