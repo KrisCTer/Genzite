@@ -1,15 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import { Layout, Typography, Button } from 'antd';
-import { RocketOutlined, CodeOutlined, CloudOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { SquareTerminal, Workflow, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
 import './LandingPage.css';
+import PublicHeader from './components/PublicHeader';
+import PublicFooter from './components/PublicFooter';
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Paragraph } = Typography;
 
 import useSEO from '../../hooks/useSEO';
 
+const SmartAutomationCloudIcon: React.FC = () => (
+  <Workflow
+    size={30}
+    strokeWidth={2}
+    color="#06B6D4"
+  />
+);
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -57,23 +65,7 @@ const LandingPage: React.FC = () => {
           <span className="section-spotlight section-spotlight--cta" />
         </div>
       </div>
-      <Header className="LandingPageHeader">
-        <div className="LandingPageHeaderInner">
-          <div className="LandingPageLogo">
-            <RocketOutlined className="logo-icon" />
-            <span>Genzite</span>
-          </div>
-          <div className="LandingPageNav">
-            <button>Home</button>
-            <button>Features</button>
-            <button>Pricing</button>
-            <button>Contact</button>
-          </div>
-          <Button type="primary" size="large" className="LandingPageSignIn" onClick={() => navigate('/login')}>
-            Sign In
-          </Button>
-        </div>
-      </Header>
+      <PublicHeader />
 
       <Content className="LandingPageHeroSection">
         <div className="hero-content">
@@ -102,24 +94,30 @@ const LandingPage: React.FC = () => {
       <Content className="LandingPageContainer">
         <section className="feature-grid section-section feature-bg">
           <div className="feature-card glass-card hover-glow">
-            <div className="feature-icon" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.24), rgba(14,165,233,0.2))' }}>
-              <CodeOutlined />
+            <div className="feature-heading">
+              <div className="feature-icon">
+                <SquareTerminal size={32} strokeWidth={2.25} color="#06B6D4" absoluteStrokeWidth />
+              </div>
+              <h3>Unified Content Hub</h3>
             </div>
-            <h3>Unified Content Hub</h3>
             <p>Manage dynamic pages, models, and AI-powered content across every channel with a single source of truth.</p>
           </div>
           <div className="feature-card glass-card hover-glow">
-            <div className="feature-icon" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.22), rgba(59,130,246,0.16))' }}>
-              <CloudOutlined />
+            <div className="feature-heading">
+              <div className="feature-icon">
+                <SmartAutomationCloudIcon />
+              </div>
+              <h3>Smart Automation</h3>
             </div>
-            <h3>Smart Automation</h3>
             <p>Use AI rules and auto-generated workflows to move from idea to launch faster, with fewer manual steps.</p>
           </div>
           <div className="feature-card glass-card hover-glow">
-            <div className="feature-icon" style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.18), rgba(59,130,246,0.26))' }}>
-              <ThunderboltOutlined />
+            <div className="feature-heading">
+              <div className="feature-icon">
+                <Zap size={30} strokeWidth={2} color="#06B6D4" strokeLinecap="round" strokeLinejoin="round" />
+              </div>
+              <h3>Real-Time Insights</h3>
             </div>
-            <h3>Real-Time Insights</h3>
             <p>Track performance metrics, content health, and engagement trends in a clean, modern analytics workspace.</p>
           </div>
         </section>
@@ -221,20 +219,7 @@ const LandingPage: React.FC = () => {
         </section>
       </Content>
 
-      <Footer className="LandingPageFooter">
-        <div className="footer-inner">
-          <div className="footer-logo">
-            <RocketOutlined className="logo-icon" />
-            <span>Genzite</span>
-          </div>
-          <div className="footer-links">
-            <a>Product</a>
-            <a>Pricing</a>
-            <a>Contact</a>
-          </div>
-          <div className="footer-copy">© {new Date().getFullYear()} Genzite. Built for modern AI teams.</div>
-        </div>
-      </Footer>
+      <PublicFooter />
     </Layout>
   );
 };
