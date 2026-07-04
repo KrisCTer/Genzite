@@ -20,15 +20,16 @@ export class NotificationsController {
     );
   }
 
+  @Put("read-all")
+  async markAllAsRead(@Headers("x-user-id") userId: string) {
+    return this.notificationsService.markAllAsRead(userId);
+  }
+
   @Put(":id/read")
   async markAsRead(
     @Headers("x-user-id") userId: string,
     @Param("id") id: string,
   ) {
     return this.notificationsService.markAsRead(id, userId);
-  }
-  @Put("read-all")
-  async markAllAsRead(@Headers("x-user-id") userId: string) {
-    return this.notificationsService.markAllAsRead(userId);
   }
 }

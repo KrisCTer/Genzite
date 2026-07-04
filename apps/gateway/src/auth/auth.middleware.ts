@@ -33,8 +33,7 @@ export class AuthMiddleware implements NestMiddleware {
   ];
 
   constructor() {
-    this.isAuthBypassed = true; // Forced bypass as per user request to bypass auth without touching .env
-    // process.env.AUTH_BYPASS === 'true' || !process.env.JWT_SECRET;
+    this.isAuthBypassed = process.env.AUTH_BYPASS === 'true' || !process.env.JWT_SECRET;
 
     if (this.isAuthBypassed) {
       console.log(
@@ -45,6 +44,11 @@ export class AuthMiddleware implements NestMiddleware {
   }
 
   use(req: Request, _res: Response, next: NextFunction) {
+    // SECURITY: Strip any x-user-* headers sent by the client to prevent spoofing
+    delete req.headers['x-user-id'];
+    delete req.headers['x-user-email'];
+    delete req.headers['x-user-roles'];
+
     // Public routes always pass through
     if (
       this.publicRoutes.some(

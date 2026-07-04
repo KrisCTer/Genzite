@@ -63,7 +63,7 @@ export class WidgetsService {
           sortOrder: widget.sortOrder,
         })),
       }),
-      (this.prisma as any).outboxEvent.create({
+      this.prisma.outboxEvent.create({
         data: {
           eventType: 'WIDGET_CONFIG_CHANGED',
           payload: {
@@ -91,6 +91,11 @@ export class WidgetsService {
     return this.prisma.widget.findMany({
       where: {
         pageId,
+      },
+      include: {
+        page: {
+          select: { siteId: true },
+        },
       },
       orderBy: {
         sortOrder: "asc",

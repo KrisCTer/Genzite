@@ -19,51 +19,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const { Option } = Select;
 
-// Premium Tactical Mock Data matching Genzite schema
-const MOCK_USERS: User[] = [
-  {
-    id: 'mock-1',
-    name: 'Stitch Designer',
-    email: 'admin@genzite.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
-    roles: ['ADMIN'],
-    isActive: true,
-    createdAt: new Date(2026, 0, 15).toISOString(),
-  },
-  {
-    id: 'mock-2',
-    name: 'Sarah Connor',
-    email: 'sarah.c@genzite.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
-    roles: ['EDITOR'],
-    isActive: true,
-    createdAt: new Date(2026, 2, 8).toISOString(),
-  },
-  {
-    id: 'mock-3',
-    name: 'James Carter',
-    email: 'james.carter@genzite.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-    roles: ['MEMBER'],
-    isActive: false,
-    createdAt: new Date(2026, 4, 20).toISOString(),
-  },
-  {
-    id: 'mock-4',
-    name: 'Elena Rostova',
-    email: 'elena.r@genzite.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80',
-    roles: ['MEMBER', 'EDITOR'],
-    isActive: true,
-    createdAt: new Date(2026, 5, 12).toISOString(),
-  }
-];
+// Remove MOCK_USERS
 
 const getLastActiveString = (userId: string) => {
-  if (userId === 'mock-1') return 'Active now';
-  if (userId === 'mock-2') return '2 hours ago';
-  if (userId === 'mock-3') return '3 days ago';
-  if (userId === 'mock-4') return '1 day ago';
   return 'Recently';
 };
 
@@ -95,8 +53,7 @@ const DEFAULT_PERMISSIONS = {
 
 const UserManagement: React.FC = () => {
   const queryClient = useQueryClient();
-  const [localUsers, setLocalUsers] = useState<User[]>(MOCK_USERS);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(() => MOCK_USERS[0]?.id || null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();
   
@@ -110,23 +67,29 @@ const UserManagement: React.FC = () => {
     retry: false,
   });
 
-  const displayUsers = (serverUsers && serverUsers.length > 0) ? serverUsers : localUsers;
+  const displayUsers = serverUsers || [];
 
   // Granular Permissions Matrix State
-  const [permissionsMatrix, setPermissionsMatrix] = useState<Record<string, ModulePermissions>>(() => {
-    const initial: Record<string, ModulePermissions> = {};
-    MOCK_USERS.forEach(user => {
-      const isAdmin = user.roles.includes('ADMIN');
-      const isEditor = user.roles.includes('EDITOR');
-      initial[user.id] = {
-        cms: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-        siteBuilder: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-        aiServices: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-        identity: { read: isAdmin, write: isAdmin, delete: isAdmin }
-      };
-    });
-    return initial;
-  });
+  const [permissionsMatrix, setPermissionsMatrix] = useState<Record<string, ModulePermissions>>({});
+
+  // Sync matrix when users load
+  React.useEffect(() => {
+    if (displayUsers.length > 0 && Object.keys(permissionsMatrix).length === 0) {
+      const initial: Record<string, ModulePermissions> = {};
+      displayUsers.forEach(user => {
+        const isAdmin = user.roles.includes('ADMIN');
+        const isEditor = user.roles.includes('EDITOR');
+        initial[user.id] = {
+          cms: { read: true, write: isAdmin || isEditor, delete: isAdmin },
+          siteBuilder: { read: true, write: isAdmin || isEditor, delete: isAdmin },
+          aiServices: { read: true, write: isAdmin || isEditor, delete: isAdmin },
+          identity: { read: isAdmin, write: isAdmin, delete: isAdmin }
+        };
+      });
+      setPermissionsMatrix(initial);
+      if (!selectedUserId) setSelectedUserId(displayUsers[0].id);
+    }
+  }, [displayUsers, permissionsMatrix, selectedUserId]);
 
   // Filter list based on search and status filters
   const filteredUsers = displayUsers.filter(u => {
@@ -142,20 +105,20 @@ const UserManagement: React.FC = () => {
   const selectedUser = displayUsers.find(u => u.id === selectedUserId) || filteredUsers[0] || null;
 
   // Matrix Temporary Edit State
-  const [tempPermissions, setTempPermissions] = useState<ModulePermissions | null>(() => {
-    const firstUser = MOCK_USERS[0];
-    if (firstUser) {
-      const isAdmin = firstUser.roles.includes('ADMIN');
-      const isEditor = firstUser.roles.includes('EDITOR');
-      return {
+  const [tempPermissions, setTempPermissions] = useState<ModulePermissions | null>(null);
+
+  React.useEffect(() => {
+    if (selectedUser && !tempPermissions) {
+      const isAdmin = selectedUser.roles.includes('ADMIN');
+      const isEditor = selectedUser.roles.includes('EDITOR');
+      setTempPermissions({
         cms: { read: true, write: isAdmin || isEditor, delete: isAdmin },
         siteBuilder: { read: true, write: isAdmin || isEditor, delete: isAdmin },
         aiServices: { read: true, write: isAdmin || isEditor, delete: isAdmin },
         identity: { read: isAdmin, write: isAdmin, delete: isAdmin }
-      };
+      });
     }
-    return null;
-  });
+  }, [selectedUser]);
 
   const handleSelectUser = (id: string) => {
     setSelectedUserId(id);
@@ -184,66 +147,17 @@ const UserManagement: React.FC = () => {
   };
 
   const handleSaveUser = (values: FormValues) => {
-    const newId = `mock-${Date.now()}`;
-    const newUser: User = {
-      id: newId,
-      name: values.name,
-      email: values.email,
-      roles: values.roles,
-      isActive: values.isActive,
-      createdAt: new Date().toISOString(),
-      avatarUrl: null,
-    };
-
-    setLocalUsers(prev => [...prev, newUser]);
-    
-    // Set default permissions for new user
-    const isAdmin = values.roles.includes('ADMIN');
-    const isEditor = values.roles.includes('EDITOR');
-    const newPerms = {
-      cms: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-      siteBuilder: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-      aiServices: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-      identity: { read: isAdmin, write: isAdmin, delete: isAdmin }
-    };
-
-    setPermissionsMatrix(prev => ({
-      ...prev,
-      [newId]: newPerms
-    }));
-
-    setSelectedUserId(newId);
-    setTempPermissions(newPerms);
-    message.success(`User ${values.name} registered successfully!`);
+    message.info('Backend API for user mutation is not implemented yet.');
     handleCloseDrawer();
   };
 
   const handleDeleteUser = (id: string, name: string) => {
-    const nextUsers = localUsers.filter(u => u.id !== id);
-    setLocalUsers(nextUsers);
-    
-    if (selectedUserId === id) {
-      const nextSelected = nextUsers[0]?.id || null;
-      setSelectedUserId(nextSelected);
-      if (nextSelected) {
-        const nextPerms = permissionsMatrix[nextSelected] || {
-          cms: { ...DEFAULT_PERMISSIONS },
-          siteBuilder: { ...DEFAULT_PERMISSIONS },
-          aiServices: { ...DEFAULT_PERMISSIONS },
-          identity: { ...DEFAULT_PERMISSIONS }
-        };
-        setTempPermissions(JSON.parse(JSON.stringify(nextPerms)));
-      } else {
-        setTempPermissions(null);
-      }
-    }
-    message.success(`Revoked all access credentials for ${name}`);
+    message.info(`Backend API for deleting user is not implemented yet. Cannot delete ${name}.`);
   };
 
   const handleToggleUserActive = (checked: boolean) => {
     if (!selectedUser) return;
-    setLocalUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, isActive: checked } : u));
-    message.info(`Account status updated for ${selectedUser.name}`);
+    message.info(`Backend API for updating status is not implemented yet.`);
   };
 
   const handlePermissionChange = (module: keyof ModulePermissions, action: keyof Permission, value: boolean) => {

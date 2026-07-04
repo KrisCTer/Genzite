@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { GeminiModule } from '../gemini/gemini.module.js';
 import { GenerationModule } from '../generation/generation.module.js';
 import { RecruitmentModule } from '../recruitment/recruitment.module.js';
@@ -39,7 +39,7 @@ const TOOL_PROVIDERS = [
 @Module({
   imports: [
     GeminiModule,
-    GenerationModule,
+    forwardRef(() => GenerationModule),
     RecruitmentModule,
     PipelineModule,
     BullModule.registerQueue({ name: AI_QUEUES.AGENT_TASKS }),

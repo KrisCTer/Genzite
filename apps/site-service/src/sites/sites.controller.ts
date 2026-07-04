@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Headers, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Headers, Put, Delete, ForbiddenException } from '@nestjs/common';
 import { SitesService } from './sites.service.js';
 
 @Controller('sites')
@@ -74,12 +74,24 @@ export class SitesController {
   // --- INTERNAL ENDPOINTS FOR MICROSERVICES ---
   // In production, secure this with an API Gateway Internal token or VPC
   @Get('internal/:id/config')
-  async getInternalConfig(@Param('id') id: string) {
+  async getInternalConfig(
+    @Param('id') id: string,
+    @Headers('x-internal-token') internalToken: string
+  ) {
+    if (internalToken !== (process.env.INTERNAL_SERVICE_TOKEN || 'dev-internal-token')) {
+      throw new ForbiddenException('Invalid internal service token');
+    }
     return this.sitesService.getInternalConfig(id);
   }
 
   @Get('internal/:id/products')
-  async getInternalProducts(@Param('id') id: string) {
+  async getInternalProducts(
+    @Param('id') id: string,
+    @Headers('x-internal-token') internalToken: string
+  ) {
+    if (internalToken !== (process.env.INTERNAL_SERVICE_TOKEN || 'dev-internal-token')) {
+      throw new ForbiddenException('Invalid internal service token');
+    }
     return this.sitesService.getInternalProducts(id);
   }
 }

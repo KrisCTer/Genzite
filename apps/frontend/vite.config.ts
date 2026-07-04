@@ -12,6 +12,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   optimizeDeps: {
-    include: ['framer-motion']
+    include: ['framer-motion', '@emotion/is-prop-valid']
   }
 })

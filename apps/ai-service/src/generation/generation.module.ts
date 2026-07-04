@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { GeminiModule } from '../gemini/gemini.module.js';
 import { AgentModule } from '../agent/agent.module.js';
@@ -14,7 +14,7 @@ import { GuardrailService } from './guardrail.service.js';
 @Module({
   imports: [
     GeminiModule,
-    AgentModule,
+    forwardRef(() => AgentModule),
     PrismaModule,
     BullModule.registerQueue(
       { name: AI_QUEUES.SITE_GENERATION },

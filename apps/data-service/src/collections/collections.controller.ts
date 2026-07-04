@@ -52,15 +52,23 @@ export class CollectionsController {
   async update(
     @Param('collectionId', ParseUUIDPipe) collectionId: string,
     @Body() dto: UpdateCollectionDto,
+    @Headers('x-user-id') userId: string,
   ) {
-    return this.collectionsService.update(collectionId, dto);
+    if (!userId) {
+      throw new BadRequestException('Header x-user-id is required');
+    }
+    return this.collectionsService.update(collectionId, dto, userId);
   }
 
   /** 4.8 — DELETE /api/v1/cms/collections/:collectionId */
   @Delete(':collectionId')
   async remove(
     @Param('collectionId', ParseUUIDPipe) collectionId: string,
+    @Headers('x-user-id') userId: string,
   ) {
-    return this.collectionsService.remove(collectionId);
+    if (!userId) {
+      throw new BadRequestException('Header x-user-id is required');
+    }
+    return this.collectionsService.remove(collectionId, userId);
   }
 }
