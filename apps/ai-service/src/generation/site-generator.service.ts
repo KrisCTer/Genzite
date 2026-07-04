@@ -358,7 +358,6 @@ export class SiteGeneratorService {
 
       // DYNAMIC DESIGN TOKENS
       const DESIGN_TOKENS = `
-<<<<<<< HEAD
         MANDATORY: You MUST ONLY use valid Tailwind CSS classes. Do NOT use string interpolation like \`\${...}\` or raw CSS variables like \`var(...)\` in class names.
         Use the following custom Tailwind theme values:
         - Background Colors: bg-surface-container-lowest, bg-surface-container, bg-surface-container-high
@@ -366,26 +365,11 @@ export class SiteGeneratorService {
         - Accent Colors: text-primary, bg-primary
         - Padding: p-6, py-12, px-4
         - Border Radius: rounded-xl, rounded-2xl
-=======
-        - Primary Background (from Designer): "${extractedBg}"
-        - Primary Text Color (from Designer): "${extractedText}"
-        - bgColor: use "${extractedBg}" or complementary dark/light variants (e.g. "var(--gz-dark-3)")
-        - textColor: use "${extractedText}" for titles, or "var(--color-text-secondary)" for body
-        - accentColor: "var(--color-accent)"
-        - padding: "24px 24px"
-        - borderRadius: "16px"
->>>>>>> main
       `;
 
       onProgress?.('Workers are building sections to match theme...', 60);
 
-<<<<<<< HEAD
       const runLlmWorker = async (sec: any) => {
-=======
-      // STAGE 2: Execute LLM Workers
-      const llmPromises = llmSections.map(async (sec) => {
-        // LLM JSON Worker
->>>>>>> main
         const workerPrompt = WIDGET_GENERATOR_PROMPT
           .replace('{{SECTION_TYPE}}', sec.type)
           .replace('{{BRIEFING}}', sec.briefing)
@@ -397,11 +381,7 @@ export class SiteGeneratorService {
         if (sec.assignTo === 'deepseek') modelName = 'deepseek-ai/deepseek-v4-flash';
         
         try {
-<<<<<<< HEAD
           const widgetResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
-=======
-          const widgetResult = await this.ai.generateJson<any>(workerPrompt, {
->>>>>>> main
             model: modelName as any,
             systemInstruction: WIDGET_GENERATOR_SYSTEM,
             temperature: 0.7
@@ -409,7 +389,6 @@ export class SiteGeneratorService {
           return {
             type: sec.type,
             sortOrder: sec.sortOrder,
-<<<<<<< HEAD
             htmlContent: widgetResult.html || `<!-- Missing HTML for ${sec.type} -->`,
             cssContent: widgetResult.css || ''
           };
@@ -425,6 +404,7 @@ export class SiteGeneratorService {
             htmlContent: fallbackResult.html || `<!-- Missing HTML for ${sec.type} -->`,
             cssContent: fallbackResult.css || ''
           };
+>>>>>>> main
         }
       };
 
@@ -472,27 +452,10 @@ export class SiteGeneratorService {
           }
         } else {
           return await runLlmWorker(sec);
-=======
-            contentConfig: widgetResult.contentConfig || {}
-          };
-        } catch (e) {
-          this.logger.warn(`Worker ${modelName} failed for ${sec.type}, falling back...`);
-          const fallbackResult = await this.ai.generateJson<any>(workerPrompt, {
-            model: 'meta/llama-3.3-70b-instruct',
-            systemInstruction: WIDGET_GENERATOR_SYSTEM,
-          });
-          return {
-            type: sec.type,
-            sortOrder: sec.sortOrder,
-            contentConfig: fallbackResult.contentConfig || {}
-          };
->>>>>>> main
         }
       });
 
-      const llmWidgets = await Promise.all(llmPromises);
-
-      const generatedWidgets = [...stitchWidgets, ...llmWidgets];
+      const generatedWidgets = await Promise.all(widgetPromises);
       
       // Sort widgets
       generatedWidgets.sort((a, b) => a.sortOrder - b.sortOrder);
