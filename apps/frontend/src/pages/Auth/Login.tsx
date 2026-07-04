@@ -99,13 +99,13 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       message.success('Login successful!');
       setAuth(data.accessToken, data.user);
-      navigate('/admin');
+      navigate('/admin/site/canvas');
     },
     onError: (err: unknown) => {
       console.warn('API offline — using mock credentials', err);
       message.success('Backend offline. Signed in with mock credentials.');
       setAuth('mock-jwt-token', MOCK_USER);
-      navigate('/admin/identity');
+      navigate('/admin/site/canvas');
     },
   });
 
@@ -123,7 +123,7 @@ const Login: React.FC = () => {
   const handleSocialLogin = (platform: 'Google' | 'GitHub'): void => {
     message.success(`Signing in via ${platform}…`);
     setAuth('mock-jwt-token', MOCK_USER);
-    navigate('/admin/identity');
+    navigate('/admin/site/canvas');
   };
 
   // ── shared styles ──────────────────────────────────────────────────────────
