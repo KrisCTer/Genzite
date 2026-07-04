@@ -1,10 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ConfigProvider, App as AntdApp } from 'antd';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { genziteDarkTheme } from './styles/theme';
 import AdminLayout from './layouts/AdminLayout';
 import CanvasLayout from './layouts/CanvasLayout';
-import Login from './pages/Auth/Login';
+import { LoginPage } from './pages/LoginPage';
 import UserManagement from './pages/Identity/UserManagement';
 import MediaLibrary from './pages/Media/MediaLibrary';
 import Collections from './pages/CMS/Collections';
@@ -14,7 +15,7 @@ import Profile from './pages/Identity/Profile';
 import SitesList from './pages/Site/SitesList';
 import PagesList from './pages/Site/PagesList';
 import PageBuilder from './pages/Site/PageBuilder';
-import NotificationsList from './pages/Notifications/NotificationsList';
+import { AdminNotificationsPage } from './pages/AdminNotificationsPage';
 import ResumeBuilder from './pages/AI/ResumeBuilder';
 import InterviewSession from './pages/AI/InterviewSession';
 import AgentLogs from './pages/AI/AgentLogs';
@@ -23,6 +24,8 @@ import LandingPage from './pages/Public/LandingPage';
 import ContactPage from './pages/Public/ContactPage';
 import FeaturesPage from './pages/Public/FeaturesPage';
 import LiveViewer from './pages/Public/LiveViewer';
+import { AuthProvider } from './contexts/AuthContext';
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Temporary bypass for UI redesign testing
   return children;
@@ -38,10 +41,17 @@ const LegacyBuilderRedirect = () => {
 import { Toaster } from '@genzite/shared-ui';
 import '@genzite/shared-ui/styles.css';
 
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+});
+
 const App: React.FC = () => {
   return (
+    <QueryClientProvider client={queryClient}>
     <ConfigProvider theme={genziteDarkTheme}>
       <AntdApp>
+      <AuthProvider>
         <Toaster>
           <ErrorBoundary>
             <Routes>
@@ -49,7 +59,7 @@ const App: React.FC = () => {
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/live/:pageId" element={<LiveViewer />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<LoginPage />} />
 
               {/* Canvas routes — full-bleed, no admin shell */}
               <Route
@@ -91,7 +101,7 @@ const App: React.FC = () => {
                   <Route index element={<SitesList />} />
                   <Route path=":siteId/pages" element={<PagesList />} />
                 </Route>
-                <Route path="notifications" element={<NotificationsList />} />
+                <Route path="notifications" element={<AdminNotificationsPage />} />
 
                 <Route path="ai">
                   <Route path="resume" element={<ResumeBuilder />} />
@@ -106,8 +116,10 @@ const App: React.FC = () => {
             </Routes>
           </ErrorBoundary>
         </Toaster>
+      </AuthProvider>
       </AntdApp>
     </ConfigProvider>
+    </QueryClientProvider>
   );
 };
 

@@ -60,8 +60,10 @@ export class SiteGenerationWorker extends WorkerHost {
       }
     );
 
+    const resolvedSiteId = siteId || result.projectId || result.site?.subdomain || `gen-${Date.now()}`;
+
     await this.aiProducer.emitSiteGenerated({
-      siteId: result.projectId,
+      siteId: resolvedSiteId,
       prompt,
       ownerId,
       siteData: result,
@@ -69,13 +71,13 @@ export class SiteGenerationWorker extends WorkerHost {
 
     // Auto-trigger CMS Generation for dynamic data-binding
     await this.cmsQueue.add('generate', {
-      siteId: result.projectId,
+      siteId: resolvedSiteId,
       prompt,
       ownerId,
       model,
     });
 
-    this.logger.log(`Site generated: Project ${result.projectId}, Screen ${result.screenId}`);
+    this.logger.log(`Site generated: Project/Site ${resolvedSiteId}`);
     return result;
   }
 }
