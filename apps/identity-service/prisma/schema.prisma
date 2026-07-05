@@ -18,19 +18,24 @@ datasource db {
 // ======================== USER ========================
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  passwordHash    String    @map("password_hash")
-  name            String
-  avatarUrl       String?   @map("avatar_url")
-  isActive        Boolean   @default(true) @map("is_active")
-  credits         Int       @default(0)    // SaaS Billing Wallet
-  emailVerifiedAt DateTime? @map("email_verified_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  name                String?
+  avatarUrl           String?   @map("avatar_url")
+  metadata            Json?     // Lưu fields động (company, phone, preferences...)
+  status              String    @default("ACTIVE") // ACTIVE, INACTIVE, LOCKED
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  lastLoginAt         DateTime? @map("last_login_at")
+  credits             Int       @default(0)    // SaaS Billing Wallet
+  emailVerifiedAt     DateTime? @map("email_verified_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   roles         UserRole[]
   refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
 
   @@map("users")
   @@schema("identity")
@@ -116,5 +121,23 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+  @@schema("identity")
+}
+
+// ======================== AUDIT LOG ========================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String   // 'LOGIN_SUCCESS', 'LOGIN_FAILED', 'PASSWORD_CHANGED', 'PROFILE_UPDATED'
+  ipAddress String?  @map("ip_address")
+  details   Json?    // Lưu state bổ sung
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@map("audit_logs")
   @@schema("identity")
 }

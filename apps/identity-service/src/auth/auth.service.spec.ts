@@ -97,19 +97,31 @@ describe('AuthService', () => {
 
     it('should login successfully and return token', async () => {
       // Arrange
-      const user = { id: 'uuid-123', email: dto.email, passwordHash: 'mock-hash' };
+      const user = { 
+        id: 'uuid-123', 
+        email: dto.email, 
+        passwordHash: 'mock-hash',
+        roles: [{ role: { name: 'admin' } }]
+      };
       jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(user as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       jest.spyOn(jwtService, 'signAsync').mockResolvedValue('mock-jwt-token');
+      process.env.JWT_ACCESS_EXPIRES_IN = '15m';
 
       // Act
       const result = await service.login(dto);
 
       // Assert
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: dto.email } });
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({ 
+        where: { email: dto.email },
+        include: { roles: { include: { role: true } } }
+      });
       expect(bcrypt.compare).toHaveBeenCalledWith(dto.password, user.passwordHash);
-      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: user.id, email: user.email });
-      expect(result).toEqual({ accessToken: 'mock-jwt-token', expiresIn: 86400 });
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        { sub: user.id, email: user.email, roles: ['admin'] },
+        { expiresIn: '15m' }
+      );
+      expect(result).toEqual({ accessToken: 'mock-jwt-token', expiresIn: 900 });
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
