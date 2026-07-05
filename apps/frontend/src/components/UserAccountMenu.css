@@ -1,0 +1,79 @@
+.user-account-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 999px;
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.user-account-menu__trigger--landing {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.user-account-menu__trigger--landing:hover,
+.user-account-menu__trigger--landing:focus-visible {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.35), 0 12px 32px rgba(6, 182, 212, 0.18);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.user-account-menu__avatar {
+  background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%) !important;
+}
+
+.user-account-menu__dropdown .ant-dropdown-menu {
+  min-width: 220px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(12, 18, 32, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.user-account-menu__dropdown .ant-dropdown-menu-item {
+  border-radius: 8px;
+  color: rgba(226, 232, 240, 0.92) !important;
+}
+
+.user-account-menu__dropdown .ant-dropdown-menu-item-disabled {
+  cursor: default;
+  opacity: 1 !important;
+}
+
+.user-account-menu__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 2px;
+  max-width: 240px;
+}
+
+.user-account-menu__name {
+  font-weight: 700;
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.user-account-menu__email {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.95);
+  word-break: break-all;
+}
+
+.user-account-menu__roles {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #22d3ee;
+}

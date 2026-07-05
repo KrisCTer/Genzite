@@ -22,7 +22,7 @@ export class UsersService {
     }
 
     // Map roles to a flat array of role names
-    const roleNames = user.roles.map((ur) => ur.role.name);
+    const roleNames = user.roles.map((ur) => ur.role.name.toUpperCase());
 
     return {
       id: user.id,
@@ -72,6 +72,7 @@ export class UsersService {
         email: true,
         name: true,
         status: true,
+        credits: true,
         createdAt: true,
         roles: { include: { role: true } }
       },
@@ -124,6 +125,36 @@ export class UsersService {
   }
 
   // --- INTERNAL METHODS ---
+  async updateRoles(id: string, roleNames: string[]) {
+    if (!roleNames || roleNames.length === 0) {
+      throw new BadRequestException('User must have at least one role');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.$transaction([
+      this.prisma.userRole.deleteMany({ where: { userId: id } }),
+      ...roleNames.map(roleName => 
+        this.prisma.userRole.create({
+          data: {
+            user: { connect: { id } },
+            role: {
+              connectOrCreate: {
+                where: { name: roleName },
+                create: { name: roleName, description: 'Created via admin role update' }
+              }
+            }
+          }
+        })
+      ),
+      this.prisma.auditLog.create({
+        data: { userId: id, action: 'ROLES_UPDATED_BY_ADMIN', details: { roles: roleNames } }
+      })
+    ]);
+
+    return { message: 'Roles updated successfully', roles: roleNames };
+  }
   async deductCredits(id: string, amount: number) {
     // SECURITY PATCH: Atomic decrement to prevent Race Condition (negative credits)
     const result = await this.prisma.user.updateMany({
@@ -151,5 +182,35 @@ export class UsersService {
       data: { credits: { increment: amount } },
     });
     return { success: true, refunded: amount };
+  }
+
+  async adjustCredits(id: string, amount: number, adminId: string) {
+    if (!amount || amount === 0) {
+      throw new BadRequestException('Amount must be a non-zero integer');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (amount > 0) {
+      await this.refundCredits(id, amount);
+    } else {
+      await this.deductCredits(id, Math.abs(amount));
+    }
+
+    const updated = await this.prisma.user.findUnique({
+      where: { id },
+      select: { credits: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: id,
+        action: 'CREDITS_ADJUSTED_BY_ADMIN',
+        details: { amount, adminId, newBalance: updated?.credits },
+      },
+    });
+
+    return { success: true, adjusted: amount, credits: updated?.credits ?? 0 };
   }
 }

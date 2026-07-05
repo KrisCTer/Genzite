@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, App } from 'antd';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { loginApi } from '../../api/auth';
+import { useNavigate, Link } from 'react-router-dom';
+import { loginApi, registerApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
-import { useAuth } from '../../contexts/AuthContext';
+import { getPostLoginPath, normalizeRoles } from '../../utils/userNav';
+import { resolveUserRoles } from '../../utils/jwt';
+
 import { motion } from 'framer-motion';
 
 // ---------------------------------------------------------------------------
@@ -24,12 +26,6 @@ interface SignUpValues {
   acceptTerms: boolean;
 }
 
-interface MockUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
 
 // ---------------------------------------------------------------------------
 // Sub-icons
@@ -51,31 +47,44 @@ const GithubIcon: React.FC = () => (
 );
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MOCK_USER: MockUser = {
-  id: 'mock-id-admin',
-  name: 'Stitch Designer',
-  email: 'admin@genzite.com',
-  role: 'ADMIN',
-};
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const { login: setContextAuth } = useAuth();
+
 
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
-  const [isDesktop, setIsDesktop] = useState<boolean>(() => window.innerWidth >= 768);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 850);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const { message } = App.useApp();
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    if (!token) return;
+    const roles = resolveUserRoles(user?.roles, token);
+    if (roles.length) {
+      navigate(getPostLoginPath(roles), { replace: true });
+    }
+  }, [token, user, navigate]);
 
   useEffect(() => {
     const onResize = (): void => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', onResize);
+    
+    // SEO setup
+    document.title = "Sign In | Genzite Identity";
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.setAttribute('name', 'description');
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.setAttribute('content', 'Sign in to access your Genzite dashboard, identity management, and AI services.');
+    
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
@@ -84,17 +93,44 @@ const Login: React.FC = () => {
   const loginMutation = useMutation({
     mutationFn: loginApi,
     onSuccess: (data) => {
-      message.success('Login successful!');
-      setAuth(data.accessToken, data.user);
-      setContextAuth(data.accessToken);
-      navigate('/admin');
+      setLoginError(null);
+      message.success('Đăng nhập thành công!');
+      const roles = normalizeRoles(resolveUserRoles(data.user.roles, data.accessToken));
+      const normalizedUser = {
+        ...data.user,
+        roles,
+        createdAt: data.user.createdAt ?? new Date().toISOString(),
+      };
+      setAuth(data.accessToken, normalizedUser, data.refreshToken);
+      navigate(getPostLoginPath(roles), { replace: true });
     },
-    onError: (err: unknown) => {
-      console.warn('API offline — using mock credentials', err);
-      message.success('Backend offline. Signed in with mock credentials.');
-      setAuth('mock-jwt-token', MOCK_USER);
-      setContextAuth('mock-jwt-token');
-      navigate('/admin/identity');
+    onError: (err: any) => {
+      console.error('Login error', err);
+      const errorCode = err.response?.data?.errorCode;
+      let errMsg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      
+      if (errorCode === 'AUTH_INVALID_CREDENTIALS') {
+        errMsg = 'Tài khoản hoặc mật khẩu không chính xác.';
+      } else if (errorCode === 'AUTH_ACCOUNT_LOCKED') {
+        errMsg = 'Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.';
+      } else if (err.response?.data?.message) {
+        errMsg = err.response.data.message;
+      }
+      
+      setLoginError(errMsg);
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: registerApi,
+    onSuccess: (data) => {
+      setRegisterError(null);
+      message.success(data.message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
+      setIsSignUp(false);
+    },
+    onError: (err: any) => {
+      console.error('Registration error', err);
+      setRegisterError(err.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
     },
   });
 
@@ -104,16 +140,16 @@ const Login: React.FC = () => {
     loginMutation.mutate(values);
   };
 
-  const handleSignUp = (_values: SignUpValues): void => {
-    message.success('Account created! Please sign in.');
-    setIsSignUp(false);
+  const handleSignUp = (values: SignUpValues): void => {
+    registerMutation.mutate({
+      email: values.email,
+      password: values.password,
+      name: `${values.firstName} ${values.lastName}`.trim(),
+    });
   };
 
   const handleSocialLogin = (platform: 'Google' | 'GitHub'): void => {
-    message.success(`Signing in via ${platform}…`);
-    setAuth('mock-jwt-token', MOCK_USER);
-    setContextAuth('mock-jwt-token');
-    navigate('/admin/identity');
+    message.info(`OAuth login via ${platform} is not fully implemented yet.`);
   };
 
   // ── shared styles ──────────────────────────────────────────────────────────
@@ -136,9 +172,8 @@ const Login: React.FC = () => {
     >
       {/* ── ANT DESIGN overrides to support beautiful centering ── */}
       <style>{`
-        .gz-login .ant-form-item { margin-bottom: 0 !important; }
         .gz-login .ant-form-item-control-input { min-height: auto; }
-        .gz-login .ant-form-item-explain-error { font-size: 11px; margin-top: 4px; text-align: center; }
+        .gz-login .ant-form-item-explain-error { font-size: 11px; margin-top: 2px; text-align: left; padding-left: 8px; }
 
         @keyframes float-blob-1 {
           0% { transform: translate(0px, 0px) scale(1) rotate(0deg); }
@@ -197,8 +232,13 @@ const Login: React.FC = () => {
             <div className="gz-login w-1/2 h-full flex flex-col justify-center items-center p-12 text-center">
               <div className="w-full max-w-[320px] h-[296px] flex flex-col justify-start text-left">
                 {/* Header */}
-                <div className="text-center animate-fade-in-down">
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-8">Sign In</h2>
+                <div className="text-center animate-fade-in-down mb-6">
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Sign In</h2>
+                  {loginError && (
+                    <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20">
+                      {loginError}
+                    </div>
+                  )}
                 </div>
 
                 {/* Form fields */}
@@ -216,24 +256,24 @@ const Login: React.FC = () => {
                       { type: 'email', message: 'Enter a valid email' },
                     ]}
                   >
-                    <Input placeholder="Email address" className={inputCls} />
+                    <Input placeholder="Email address" className={inputCls} autoComplete="email" />
                   </Form.Item>
 
                   <Form.Item
                     name="password"
                     rules={[{ required: true, message: 'Password is required' }]}
                   >
-                    <Input.Password placeholder="Password" className={inputCls} />
+                    <Input.Password placeholder="Password" className={inputCls} autoComplete="current-password" />
                   </Form.Item>
 
                   {/* Forgot password centered below inputs */}
                   <div className="text-center mt-2">
-                    <span
-                      onClick={() => message.info('Reset password simulation')}
+                    <Link
+                      to="/forgot-password"
                       className="text-xs font-medium text-slate-400 hover:text-[#06b6d4] cursor-pointer transition-colors"
                     >
                       Forgot Password?
-                    </span>
+                    </Link>
                   </div>
 
                   {/* CTA — Centered Sign In Button */}
@@ -273,8 +313,13 @@ const Login: React.FC = () => {
             <div className="gz-login w-1/2 h-full flex flex-col justify-center items-center p-12 text-center">
               <div className="w-full max-w-[320px] h-[296px] flex flex-col justify-start text-left">
                 {/* Header */}
-                <div className="text-center animate-fade-in-down">
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-8">Sign Up</h2>
+                <div className="text-center animate-fade-in-down mb-6">
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Sign Up</h2>
+                  {registerError && (
+                    <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20">
+                      {registerError}
+                    </div>
+                  )}
                 </div>
 
                 {/* Form fields */}
@@ -307,7 +352,7 @@ const Login: React.FC = () => {
                       { type: 'email', message: 'Enter a valid email' },
                     ]}
                   >
-                    <Input placeholder="Email address" className={inputCls} />
+                    <Input placeholder="Email address" className={inputCls} autoComplete="email" />
                   </Form.Item>
 
                   <Form.Item
@@ -317,7 +362,7 @@ const Login: React.FC = () => {
                       { min: 8, message: 'Minimum 8 characters' },
                     ]}
                   >
-                    <Input.Password placeholder="Password" className={inputCls} />
+                    <Input.Password placeholder="Password" className={inputCls} autoComplete="new-password" />
                   </Form.Item>
 
                   <Form.Item
@@ -434,16 +479,18 @@ const Login: React.FC = () => {
                     name="email"
                     rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}
                   >
-                    <Input placeholder="Email address" className={inputCls} />
+                    <Input placeholder="Email address" className={inputCls} autoComplete="email" />
                   </Form.Item>
                   <Form.Item
                     name="password"
                     rules={[{ required: true, message: 'Password is required' }]}
                   >
-                    <Input.Password placeholder="Password" className={inputCls} />
+                    <Input.Password placeholder="Password" className={inputCls} autoComplete="current-password" />
                   </Form.Item>
                   <div className="text-center">
-                    <span className="text-xs text-slate-400 hover:text-[#06b6d4] cursor-pointer">Forgot Password?</span>
+                    <Link to="/forgot-password" className="text-xs text-slate-400 hover:text-[#06b6d4] cursor-pointer">
+                      Forgot Password?
+                    </Link>
                   </div>
 
                   {/* CTA — Centered Sign In Button */}
@@ -514,13 +561,13 @@ const Login: React.FC = () => {
                     name="email"
                     rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}
                   >
-                    <Input placeholder="Email address" className={inputCls} />
+                    <Input placeholder="Email address" className={inputCls} autoComplete="email" />
                   </Form.Item>
                   <Form.Item
                     name="password"
                     rules={[{ required: true, message: 'Password is required' }, { min: 8, message: 'Min. 8 characters' }]}
                   >
-                    <Input.Password placeholder="Password" className={inputCls} />
+                    <Input.Password placeholder="Password" className={inputCls} autoComplete="new-password" />
                   </Form.Item>
                   <Form.Item
                     name="acceptTerms"

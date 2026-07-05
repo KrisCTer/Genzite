@@ -1,7 +1,8 @@
 import React from 'react';
-import { Button, Layout } from 'antd';
+import { Layout } from 'antd';
 import { RocketOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import UserAccountMenu from '../../../components/UserAccountMenu';
 
 const { Header } = Layout;
 
@@ -11,13 +12,15 @@ const PublicHeader: React.FC = () => {
   return (
     <Header className="LandingPageHeader">
       <div className="LandingPageHeaderInner">
-        <div className="LandingPageLogo">
+        <button
+          type="button"
+          className="LandingPageLogo LandingPageLogo--button"
+          onClick={() => navigate('/')}
+        >
           <RocketOutlined className="logo-icon" />
           <span>Genzite</span>
-        </div>
-        <Button type="primary" size="large" className="LandingPageSignIn" onClick={() => navigate('/login')}>
-          Sign In
-        </Button>
+        </button>
+        <UserAccountMenu signInClassName="LandingPageSignIn" variant="landing" />
       </div>
     </Header>
   );
