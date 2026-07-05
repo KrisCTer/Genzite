@@ -7,22 +7,54 @@ import { AuthService } from './auth/auth.service.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
 import { IdentityProducer } from './events/identity.producer.js';
+import { JwtStrategy } from './auth/jwt.strategy.js';
 
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { MailModule } from './mail/mail.module.js';
+
+import * as Joi from 'joi';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: Joi.object({
+        JWT_SECRET: Joi.string().min(32).required(),
+        JWT_REFRESH_SECRET: Joi.string().min(32).required(),
+      }),
+    }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100, // 100 requests per minute
+    }]),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    MailModule,
     KafkaModule.forRoot(),
     PrismaModule,
-    JwtModule.register({
+    JwtModule.registerAsync({
       global: true,
-      secret: process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production-please',
-      signOptions: { expiresIn: '1d' },
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m') as any },
+      }),
     }),
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, UsersService, IdentityProducer],
+  providers: [
+    AuthService, 
+    UsersService, 
+    IdentityProducer, 
+    JwtStrategy,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
 

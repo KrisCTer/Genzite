@@ -44,7 +44,7 @@ describe('AuthController', () => {
   describe('login', () => {
     it('should call authService.login and return the result', async () => {
       const dto = { email: 'test@test.com', password: 'password' };
-      const expectedResult = { accessToken: 'token', expiresIn: 3600 };
+      const expectedResult = { accessToken: 'token', expiresIn: 900 };
       jest.spyOn(authService, 'login').mockResolvedValue(expectedResult);
 
       const result = await controller.login(dto);
