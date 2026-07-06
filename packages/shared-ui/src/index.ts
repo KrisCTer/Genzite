@@ -21,6 +21,7 @@ export { Toaster, useToast } from './components/Toast'
 export { SearchInput } from './components/SearchInput'
 export { PageWrapper } from './components/PageWrapper'
 export { AppShell } from './components/AppShell'
+export { UserPopover } from './components/UserPopover'
 
 // Utilities
 export { cn } from './utils/cn'
@@ -40,6 +41,7 @@ export type { DropdownMenuProps, DropdownItemProps } from './components/Dropdown
 export type { SearchInputProps } from './components/SearchInput'
 export type { PageWrapperProps } from './components/PageWrapper'
 export type { AppShellProps } from './components/AppShell'
+export type { UserPopoverProps } from './components/UserPopover'
 
 // Widgets
 export { HeroSection } from './widgets/HeroSection'

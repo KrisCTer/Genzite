@@ -49,7 +49,7 @@ const items: MenuItem[] = [
   getItem('AI Services', 'sub1', <RobotOutlined />, [
     getItem('Resume Builder', '/admin/ai/resume'),
     getItem('AI Interview', '/admin/ai/interview'),
-    getItem('AI Canvas', '/admin/site/canvas'),
+    getItem('AI Canvas', '/'),
     getItem('Agent Workspace', '/admin/ai/agent'),
     getItem('Agent Logs', '/admin/ai/logs'),
   ]),

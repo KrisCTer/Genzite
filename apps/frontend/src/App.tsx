@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { useAuthStore } from './store/auth';
 import { ConfigProvider, App as AntdApp } from 'antd';
 import { genziteDarkTheme } from './styles/theme';
 import AdminLayout from './layouts/AdminLayout';
@@ -14,6 +15,7 @@ import Profile from './pages/Identity/Profile';
 import SitesList from './pages/Site/SitesList';
 import PagesList from './pages/Site/PagesList';
 import PageBuilder from './pages/Site/PageBuilder';
+import PreviewViewer from './pages/Site/PreviewViewer';
 import ResumeBuilder from './pages/AI/ResumeBuilder';
 import InterviewSession from './pages/AI/InterviewSession';
 import AgentLogs from './pages/AI/AgentLogs';
@@ -25,11 +27,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
+const HomeRoute = () => {
+  const token = useAuthStore((state) => state.token);
+  if (token) {
+    return (
+      <ProtectedRoute>
+        <CanvasLayout>
+          <PageBuilder />
+        </CanvasLayout>
+      </ProtectedRoute>
+    );
+  }
+  return <LandingPage />;
+};
+
 import ErrorBoundary from './components/ErrorBoundary';
 
 const LegacyBuilderRedirect = () => {
-  const { pageId } = useParams();
-  return <Navigate to={`/admin/site/canvas/${pageId}`} replace />;
+  const { pageId, siteId } = useParams();
+  const id = siteId || pageId;
+  return <Navigate to={id ? `/project/${id}` : '/project'} replace />;
 };
 
 import { Toaster } from '@genzite/shared-ui';
@@ -73,15 +90,17 @@ const App: React.FC = () => {
         <Toaster>
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<LandingPage />} />
+              <Route path="/" element={<HomeRoute />} />
+              <Route path="/home" element={<LandingPage />} />
               <Route path="/features" element={<LandingPage />} />
               <Route path="/contact" element={<LandingPage />} />
               <Route path="/live/:pageId" element={<LiveViewer />} />
+              <Route path="/preview/:siteId" element={<PreviewViewer />} />
               <Route path="/login" element={<Login />} />
 
-              {/* Canvas routes — full-bleed, no admin shell */}
+              {/* Project routes — full-bleed, no admin shell */}
               <Route
-                path="/admin/site/canvas"
+                path="/project"
                 element={
                   <ProtectedRoute>
                     <CanvasLayout />
@@ -94,6 +113,8 @@ const App: React.FC = () => {
               </Route>
 
               {/* Legacy canvas route — redirect for backwards compatibility */}
+              <Route path="/canvas" element={<Navigate to="/project" replace />} />
+              <Route path="/canvas/:siteId" element={<LegacyBuilderRedirect />} />
               <Route
                 path="/admin/site/pages/:pageId/builder"
                 element={<LegacyBuilderRedirect />}
@@ -124,8 +145,8 @@ const App: React.FC = () => {
                 <Route path="ai">
                   <Route path="resume" element={<ResumeBuilder />} />
                   <Route path="interview" element={<InterviewSession />} />
-                  {/* AI Generate now redirects to unified canvas */}
-                  <Route path="generate" element={<Navigate to="/admin/site/canvas" replace />} />
+                  {/* AI Generate now redirects to unified project workspace */}
+                  <Route path="generate" element={<Navigate to="/project" replace />} />
                   <Route path="agent" element={<AgentWorkspace />} />
                   <Route path="logs" element={<AgentLogs />} />
                 </Route>

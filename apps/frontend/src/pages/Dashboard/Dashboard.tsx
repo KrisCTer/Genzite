@@ -609,7 +609,7 @@ export const Dashboard: React.FC = () => {
 
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={() => navigate('/admin/site/canvas')}
+                  onClick={() => navigate('/project')}
                   className="flex items-center justify-between p-3.5 bg-slate-950 border border-slate-800 hover:bg-gradient-to-r hover:from-cyan-500 hover:to-teal-500 hover:text-slate-950 hover:border-transparent transition-all duration-300 font-bold text-xs text-left cursor-pointer rounded-2xl group shadow-sm text-slate-200"
                 >
                   <span className="flex items-center gap-2">

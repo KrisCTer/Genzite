@@ -142,9 +142,9 @@ const SitesList: React.FC = () => {
                   type="primary" 
                   ghost 
                   size="small" 
-                  onClick={() => navigate(`/admin/site/canvas/${site.id}`)}
+                  onClick={() => navigate(`/project/${site.id}`)}
                 >
-                  Open Canvas
+                  Open Project
                 </Button>
               </div>
             </Card>

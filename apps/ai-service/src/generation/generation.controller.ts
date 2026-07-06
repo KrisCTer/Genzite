@@ -169,6 +169,18 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
         this.queueEvents.off('progress', onProgress);
         this.queueEvents.off('completed', onCompleted);
         this.queueEvents.off('failed', onFailed);
+        
+        // Ensure job is removed from queue if the user disconnects before it starts
+        this.siteQueue.getJob(jobId).then((job) => {
+          if (job) {
+             job.getState().then((state) => {
+               if (state === 'waiting' || state === 'delayed') {
+                 job.remove().catch((e) => Logger.error(`Error removing job ${jobId}`, e, 'GenerationController'));
+                 Logger.log(`Job ${jobId} removed from queue because client disconnected`, 'GenerationController');
+               }
+             }).catch(() => {});
+          }
+        }).catch(() => {});
       };
     });
   }

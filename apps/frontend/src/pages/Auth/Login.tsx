@@ -99,13 +99,12 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       message.success('Login successful!');
       setAuth(data.accessToken, data.user);
-      navigate('/admin/site/canvas');
+      navigate('/');
     },
-    onError: (err: unknown) => {
-      console.warn('API offline — using mock credentials', err);
-      message.success('Backend offline. Signed in with mock credentials.');
-      setAuth('mock-jwt-token', MOCK_USER);
-      navigate('/admin/site/canvas');
+    onError: (err: any) => {
+      console.error('Login error:', err);
+      const errorMsg = err.response?.data?.message || 'Invalid credentials or server offline.';
+      message.error(errorMsg);
     },
   });
 

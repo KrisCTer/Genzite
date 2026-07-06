@@ -58,6 +58,15 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     const accessToken = await this.jwtService.signAsync(payload);
 
-    return { accessToken, expiresIn: 86400 };
+    return { 
+      accessToken, 
+      expiresIn: 86400,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: 'admin' // Or query from roles
+      }
+    };
   }
 }

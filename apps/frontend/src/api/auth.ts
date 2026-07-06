@@ -1,6 +1,6 @@
 import apiClient from './client';
 
-export interface LoginResponse {
+interface LoginResponse {
   accessToken: string;
   user: {
     id: string;
@@ -16,6 +16,6 @@ export const loginApi = async (data: { email: string; password: string }) => {
 };
 
 export const registerApi = async (data: { email: string; password: string; name: string }) => {
-  const response = await apiClient.post<{ message: string }>('/auth/register', data);
+  const response = await apiClient.post<LoginResponse>('/auth/register', data);
   return response.data;
 };

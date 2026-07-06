@@ -6,21 +6,6 @@ export const generateSiteApi = async (data: { prompt: string; model?: string; si
   return response.data;
 };
 
-export const getSiteJobApi = async (jobId: string) => {
-  const response = await apiClient.get<any>(`/ai/site/job/${jobId}`);
-  return response.data;
-};
-
-export const generateCmsApi = async (data: { siteId: string; prompt: string; model?: string }) => {
-  const response = await apiClient.post<{ message: string; jobId: string }>('/ai/generate-cms', data);
-  return response.data;
-};
-
-export const getCmsJobApi = async (jobId: string) => {
-  const response = await apiClient.get<any>(`/ai/cms/job/${jobId}`);
-  return response.data;
-};
-
 // ============ Recruitment API ============
 export const analyzeCvApi = async (data: { resumeId: string; jobDescription: string; model?: string }) => {
   const response = await apiClient.post<{ message: string; jobId: string }>('/ai/analyze-cv', data);

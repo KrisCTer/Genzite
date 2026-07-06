@@ -44,16 +44,18 @@ export class AuthMiddleware implements NestMiddleware {
   }
 
   use(req: Request, _res: Response, next: NextFunction) {
+    console.log(`[Gateway Middleware] req.method=${req.method} req.path=${req.path} req.originalUrl=${req.originalUrl}`);
     // SECURITY: Strip any x-user-* headers sent by the client to prevent spoofing
     delete req.headers['x-user-id'];
     delete req.headers['x-user-email'];
     delete req.headers['x-user-roles'];
 
     // Public routes always pass through
+    const requestPath = req.originalUrl.split('?')[0];
     if (
       this.publicRoutes.some(
         (r) =>
-          req.path!.startsWith(r.split(' ')[1]) &&
+          requestPath.startsWith(r.split(' ')[1]) &&
           req.method === r.split(' ')[0],
       )
     ) {
@@ -72,7 +74,7 @@ export class AuthMiddleware implements NestMiddleware {
     // --- PRODUCTION MODE: verify JWT ---
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header');
+      throw new UnauthorizedException(`Missing or invalid Authorization header. req.method=${req.method} req.path=${req.path} req.originalUrl=${req.originalUrl}`);
     }
 
     try {
