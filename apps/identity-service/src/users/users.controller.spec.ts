@@ -45,11 +45,12 @@ describe('UsersController', () => {
   });
 
   describe('findById', () => {
-    it('should call usersService.findById with provided id', async () => {
+    it('should call usersService.findById when user requests own profile', async () => {
+      const mockReq = { user: { sub: 'some-id', roles: ['VIEWER'] } };
       const mockUser = { id: 'some-id', name: 'Test' };
       jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser as any);
 
-      const result = await controller.findById('some-id');
+      const result = await controller.findById('some-id', mockReq);
 
       expect(usersService.findById).toHaveBeenCalledWith('some-id');
       expect(result).toEqual(mockUser);

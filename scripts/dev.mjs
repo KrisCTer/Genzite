@@ -78,15 +78,22 @@ function buildDatabaseUrls(env, serviceName) {
 
   let databaseUrl, directUrl;
 
-  if (env.SUPABASE_URL && env.SUPABASE_DIRECT_URL) {
+  const postgresHost = env.POSTGRES_HOST || 'localhost';
+  const preferLocal =
+    env.DB_TARGET === 'local' ||
+    env.USE_LOCAL_DB === 'true' ||
+    postgresHost === 'localhost' ||
+    postgresHost === '127.0.0.1';
+
+  if (!preferLocal && env.SUPABASE_URL && env.SUPABASE_DIRECT_URL) {
     const sep1 = env.SUPABASE_URL.includes('?') ? '&' : '?';
     databaseUrl = `${env.SUPABASE_URL}${sep1}schema=${schema}`;
     const sep2 = env.SUPABASE_DIRECT_URL.includes('?') ? '&' : '?';
     directUrl = `${env.SUPABASE_DIRECT_URL}${sep2}schema=${schema}`;
   } else {
     const user = env.POSTGRES_USER || 'genzite_user';
-    const pass = env.POSTGRES_PASSWORD || 'genzite_password';
-    const host = env.POSTGRES_HOST || 'localhost';
+    const pass = encodeURIComponent(env.POSTGRES_PASSWORD || 'genzite_password');
+    const host = postgresHost;
     const port = env.POSTGRES_PORT || '5432';
     const db = env.POSTGRES_DB || 'genzite_dev';
     const localUrl = `postgresql://${user}:${pass}@${host}:${port}/${db}?schema=${schema}`;

@@ -89,6 +89,7 @@ services:
       PORT: 3000
       AUTH_BYPASS: "${AUTH_BYPASS:-false}"
       JWT_SECRET: ${JWT_SECRET:-}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
       IDENTITY_SERVICE_URL: http://identity:3001
       SITE_SERVICE_URL: http://site:3002
       DATA_SERVICE_URL: http://data:3003
@@ -121,6 +122,9 @@ services:
       REDIS_HOST: cache
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
       KAFKA_BROKERS: kafka:9092
     depends_on:
       db:

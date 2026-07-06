@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Avatar, Dropdown, Badge, List, Popover, Button, Spin } from 'antd';
+import { Layout, Menu, Typography, Dropdown, Badge, List, Popover, Button, Spin } from 'antd';
 import {
-  PieChartOutlined,
-  TeamOutlined,
   UserOutlined,
-  PictureOutlined,
   DatabaseOutlined,
-  GlobalOutlined,
   BellOutlined,
-  RobotOutlined,
   SettingOutlined,
-  LogoutOutlined
+  LogoutOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate } from 'react-router-dom';
+import UserAvatar from '../components/UserAvatar';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi, type AppNotification } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
+import { logoutApi } from '../api/auth';
 import { useNotificationStore } from '../store/notifications';
+import { hasMemberAccess, getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
+import { resolveUserRoles } from '../utils/jwt';
+import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
 import { Shield, Sparkles, Info, DollarSign } from 'lucide-react';
 
 const { Header, Content, Sider } = Layout;
@@ -25,35 +25,14 @@ const { Title } = Typography;
 import type { MenuProps } from 'antd';
 type MenuItem = Required<MenuProps>['items'][number];
 
-function getItem(
-  label: React.ReactNode,
-  key: React.Key,
-  icon?: React.ReactNode,
-  children?: MenuItem[],
-): MenuItem {
+function toMenuItem(item: import('../utils/navMenuConfig').NavMenuConfig): MenuItem {
   return {
-    key,
-    icon,
-    children,
-    label,
+    key: item.key,
+    icon: item.icon,
+    label: item.label,
+    children: item.children?.map(toMenuItem),
   } as MenuItem;
 }
-
-const items: MenuItem[] = [
-  getItem('Dashboard', '/admin', <PieChartOutlined />),
-  getItem('Identity (Users/Roles)', '/admin/identity', <TeamOutlined />),
-  getItem('Media Library', '/admin/media', <PictureOutlined />),
-  getItem('Data CMS', '/admin/cms', <DatabaseOutlined />),
-  getItem('Site Builder', '/admin/site', <GlobalOutlined />),
-  getItem('Notifications', '/admin/notifications', <BellOutlined />),
-  getItem('AI Services', 'sub1', <RobotOutlined />, [
-    getItem('Resume Builder', '/admin/ai/resume'),
-    getItem('AI Interview', '/admin/ai/interview'),
-    getItem('AI Canvas', '/admin/site/canvas'),
-    getItem('Agent Workspace', '/admin/ai/agent'),
-    getItem('Agent Logs', '/admin/ai/logs'),
-  ]),
-];
 
 const getNotificationIcon = (metadata?: { event?: string }) => {
   const event = metadata?.event;
@@ -80,10 +59,22 @@ const AdminLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const location = useLocation();
+  const { user, logout, token } = useAuthStore();
+  const isAdminArea = location.pathname.startsWith(ADMIN_BASE);
+  const effectiveRoles = resolveUserRoles(user?.roles, token);
+  const menuConfig = isAdminArea ? ADMIN_MENU : WORKSPACE_MENU;
+  const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
+  const notificationsPath = getNotificationsPath(effectiveRoles);
+  const profilePath = getProfilePath(effectiveRoles);
   const { simulatedNotifications, markSimulatedAsRead, markAllSimulatedAsRead } = useNotificationStore();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+    } catch {
+      // Clear local session even if server logout fails
+    }
     logout();
     navigate('/login');
   };
@@ -154,7 +145,7 @@ const AdminLayout: React.FC = () => {
           <Button
             type="link"
             size="small"
-            onClick={() => { setNotifOpen(false); navigate('/admin/notifications'); }}
+            onClick={() => { setNotifOpen(false); navigate(notificationsPath); }}
             style={{ fontSize: '11px', padding: 0 }}
           >
             Xem tất cả
@@ -191,7 +182,7 @@ const AdminLayout: React.FC = () => {
                 onClick={() => {
                   if (!item.isRead) markReadMutation.mutate(item.id);
                   setNotifOpen(false);
-                  navigate('/admin/notifications');
+                  navigate(notificationsPath);
                 }}
               >
                 {getNotificationIcon(item.metadata)}
@@ -217,12 +208,16 @@ const AdminLayout: React.FC = () => {
   );
 
   const userMenu: MenuProps['items'] = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: 'Profile',
-      onClick: () => navigate('/admin/profile'),
-    },
+    ...(hasMemberAccess(effectiveRoles)
+      ? [
+          {
+            key: 'profile',
+            icon: <UserOutlined />,
+            label: 'Profile',
+            onClick: () => navigate(profilePath),
+          },
+        ]
+      : []),
     {
       key: 'settings',
       icon: <SettingOutlined />,
@@ -266,20 +261,30 @@ const AdminLayout: React.FC = () => {
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
         }}>
-          <strong style={{
-            color: 'var(--color-accent)',
-            fontSize: collapsed ? '16px' : '18px',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-          }}>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            title="Về trang chủ"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              color: 'var(--color-accent)',
+              fontSize: collapsed ? '16px' : '18px',
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+            }}
+          >
             {collapsed ? 'GZ' : '✦ Genzite'}
-          </strong>
+          </button>
         </div>
         <Menu
           theme="dark"
-          defaultSelectedKeys={['/admin']}
+          selectedKeys={[location.pathname]}
+          defaultSelectedKeys={[isAdminArea ? ADMIN_BASE : WORKSPACE_BASE]}
           mode="inline"
-          items={items}
+          items={menuItems}
           onClick={(e) => navigate(e.key)}
           style={{ borderRight: 'none', padding: '8px 10px', background: 'transparent' }}
         />
@@ -301,7 +306,9 @@ const AdminLayout: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-             <Title level={5} style={{ margin: 0, color: 'var(--color-text-primary)', fontWeight: 600 }}>Workspace</Title>
+             <Title level={5} style={{ margin: 0, color: 'var(--color-text-primary)', fontWeight: 600 }}>
+               {isAdminArea ? 'Admin Console' : 'Không gian của tôi'}
+             </Title>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Popover placement="bottomRight" content={notificationContent} trigger="click" open={notifOpen} onOpenChange={setNotifOpen}>
@@ -315,18 +322,9 @@ const AdminLayout: React.FC = () => {
               </Badge>
             </Popover>
             <Dropdown menu={{ items: userMenu }} placement="bottomRight" trigger={['click']}>
-              <Avatar
-                size={34}
-                style={{
-                  backgroundColor: 'var(--color-accent)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                }}
-                icon={!user?.name && <UserOutlined />}
-              >
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </Avatar>
+              <span style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                <UserAvatar size={34} />
+              </span>
             </Dropdown>
           </div>
         </Header>

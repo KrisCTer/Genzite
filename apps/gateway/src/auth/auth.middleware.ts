@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NestMiddleware, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 
@@ -11,6 +11,9 @@ const MOCK_USER = {
 
 /**
  * JWT verification middleware for the API Gateway.
+ *
+ * Intentional double-verify: Gateway validates JWT here, then identity-service
+ * re-validates via Passport JwtStrategy. Both MUST share the same JWT_SECRET.
  *
  * DEV MODE (`AUTH_BYPASS=true` or no `JWT_SECRET`):
  *   - Skips token verification entirely
@@ -29,6 +32,9 @@ export class AuthMiddleware implements NestMiddleware {
   private readonly publicRoutes = [
     'POST /api/v1/auth/register',
     'POST /api/v1/auth/login',
+    'POST /api/v1/auth/refresh',
+    'POST /api/v1/auth/forgot-password',
+    'POST /api/v1/auth/reset-password',
     'GET /health',
   ];
 
@@ -44,6 +50,17 @@ export class AuthMiddleware implements NestMiddleware {
   }
 
   use(req: Request, _res: Response, next: NextFunction) {
+    const url = (req.originalUrl || req.url).split('?')[0];
+
+    // Block browser/external access to internal service-to-service routes
+    if (url.includes('/users/internal/')) {
+      const internalToken = req.headers['x-internal-token'];
+      const expected = process.env.INTERNAL_SERVICE_TOKEN;
+      if (!expected || internalToken !== expected) {
+        throw new ForbiddenException('Internal endpoint access denied');
+      }
+    }
+
     // SECURITY: Strip any x-user-* headers sent by the client to prevent spoofing
     delete req.headers['x-user-id'];
     delete req.headers['x-user-email'];
@@ -53,7 +70,7 @@ export class AuthMiddleware implements NestMiddleware {
     if (
       this.publicRoutes.some(
         (r) =>
-          req.path!.startsWith(r.split(' ')[1]) &&
+          (req.originalUrl || req.url).split('?')[0].startsWith(r.split(' ')[1]) &&
           req.method === r.split(' ')[0],
       )
     ) {
@@ -72,7 +89,7 @@ export class AuthMiddleware implements NestMiddleware {
     // --- PRODUCTION MODE: verify JWT ---
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header');
+      throw new UnauthorizedException('Thiếu hoặc sai định dạng Header Authorization');
     }
 
     try {
@@ -92,7 +109,7 @@ export class AuthMiddleware implements NestMiddleware {
 
       next();
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
     }
   }
 }

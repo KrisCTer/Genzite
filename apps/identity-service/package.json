@@ -9,9 +9,11 @@
     "start:prod": "node dist/main",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:generate": "node scripts/with-infra-env.cjs generate",
+    "prisma:migrate": "node scripts/with-infra-env.cjs migrate dev",
+    "prisma:migrate:deploy": "node scripts/with-infra-env.cjs migrate deploy",
+    "prisma:seed": "node scripts/with-infra-env.cjs db seed",
+    "prisma:studio": "node scripts/with-infra-env.cjs studio"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

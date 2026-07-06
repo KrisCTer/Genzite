@@ -25,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
       validationSchema: Joi.object({
         JWT_SECRET: Joi.string().min(32).required(),
         JWT_REFRESH_SECRET: Joi.string().min(32).required(),
+        INTERNAL_SERVICE_TOKEN: Joi.string().min(32).required(),
       }),
     }),
     ThrottlerModule.forRoot([{

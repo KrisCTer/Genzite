@@ -1,5 +1,6 @@
 import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
 import './CanvasLayout.css';
 
 /**
@@ -8,13 +9,16 @@ import './CanvasLayout.css';
  */
 const CanvasLayout: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isWorkspace = location.pathname.startsWith(WORKSPACE_BASE);
+  const backPath = isWorkspace ? WORKSPACE_BASE : `${ADMIN_BASE}/site`;
 
   return (
     <div className="canvas-layout">
       {/* Minimal escape hatch — small back pill in top-left */}
       <button
         className="canvas-layout-back"
-        onClick={() => navigate('/admin/site')}
+        onClick={() => navigate(backPath)}
         title="Back to workspace"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

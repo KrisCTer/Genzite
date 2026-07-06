@@ -19,6 +19,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/auth';
+import { getPostLoginPath, hasStaffAccess } from '../../utils/userNav';
+import { resolveUserRoles } from '../../utils/jwt';
 import './LandingPage.css';
 import './FeaturesPage.css';
 import './ContactPage.css';
@@ -163,6 +166,17 @@ const LandingPage: React.FC = () => {
   const location = useLocation();
   const layoutRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const roles = resolveUserRoles(user?.roles, token);
+  const staffAccess = hasStaffAccess(roles);
+  const goToWorkspace = () => {
+    if (token) {
+      navigate(getPostLoginPath(roles));
+      return;
+    }
+    navigate('/login');
+  };
 
   const anchors = {
     home: 'home-section',
@@ -265,11 +279,11 @@ const LandingPage: React.FC = () => {
             Genzite brings modern SaaS design, dynamic CMS, and intelligent automation together in one elegant platform. Create, launch, and scale polished digital experiences faster.
           </Paragraph>
           <div className="hero-actions">
-            <Button type="primary" size="large" className="hero-cta" onClick={() => navigate('/login')}>
-              Get Started for Free
+            <Button type="primary" size="large" className="hero-cta" onClick={goToWorkspace}>
+              {!token ? 'Get Started for Free' : staffAccess ? 'Vào Admin' : 'Vào Workspace'}
             </Button>
-            <Button type="default" size="large" className="hero-secondary" onClick={() => navigate('/login')}>
-              Explore Platform
+            <Button type="default" size="large" className="hero-secondary" onClick={goToWorkspace}>
+              {!token ? 'Explore Platform' : staffAccess ? 'Dashboard' : 'Không gian của tôi'}
             </Button>
           </div>
         </div>

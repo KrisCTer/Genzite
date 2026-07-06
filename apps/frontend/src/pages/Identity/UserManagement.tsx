@@ -1,55 +1,21 @@
 import React, { useState } from 'react';
-import { Button, Avatar, Drawer, Form, Input, Select, Switch, message, Tooltip } from 'antd';
+import { Button, Avatar, Drawer, Form, Input, Select, Switch, message, Modal } from 'antd';
 import { 
   PlusOutlined, 
-  DeleteOutlined, 
   UserOutlined, 
   SearchOutlined, 
   TeamOutlined, 
   MailOutlined,
-  SafetyOutlined,
-  SettingOutlined,
-  SaveOutlined,
-  UndoOutlined,
-  CloseOutlined
+  CloseOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchUsersApi, type User } from '../../api/users';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchUsersApi, lockUserApi, unlockUserApi, deactivateUserApi, adjustCreditsApi, updateRolesApi } from '../../api/users';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const { Option } = Select;
-
-// Remove MOCK_USERS
-
-const getLastActiveString = (userId: string) => {
-  return 'Recently';
-};
-
-interface Permission {
-  read: boolean;
-  write: boolean;
-  delete: boolean;
-}
-
-interface ModulePermissions {
-  cms: Permission;
-  siteBuilder: Permission;
-  aiServices: Permission;
-  identity: Permission;
-}
-
-interface FormValues {
-  name: string;
-  email: string;
-  roles: string[];
-  isActive: boolean;
-}
-
-const DEFAULT_PERMISSIONS = {
-  read: false,
-  write: false,
-  delete: false
-};
 
 const UserManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -69,76 +35,25 @@ const UserManagement: React.FC = () => {
 
   const displayUsers = serverUsers || [];
 
-  // Granular Permissions Matrix State
-  const [permissionsMatrix, setPermissionsMatrix] = useState<Record<string, ModulePermissions>>({});
-
-  // Sync matrix when users load
-  React.useEffect(() => {
-    if (displayUsers.length > 0 && Object.keys(permissionsMatrix).length === 0) {
-      const initial: Record<string, ModulePermissions> = {};
-      displayUsers.forEach(user => {
-        const isAdmin = user.roles.includes('ADMIN');
-        const isEditor = user.roles.includes('EDITOR');
-        initial[user.id] = {
-          cms: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-          siteBuilder: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-          aiServices: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-          identity: { read: isAdmin, write: isAdmin, delete: isAdmin }
-        };
-      });
-      setPermissionsMatrix(initial);
-      if (!selectedUserId) setSelectedUserId(displayUsers[0].id);
-    }
-  }, [displayUsers, permissionsMatrix, selectedUserId]);
-
-  // Filter list based on search and status filters
   const filteredUsers = displayUsers.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           u.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || u.roles.includes(roleFilter);
     const matchesStatus = statusFilter === 'ALL' || 
-                          (statusFilter === 'ACTIVE' && u.isActive) || 
-                          (statusFilter === 'INACTIVE' && !u.isActive);
+                          (statusFilter === 'ACTIVE' && u.status === 'ACTIVE') || 
+                          (statusFilter === 'INACTIVE' && u.status !== 'ACTIVE');
     return matchesSearch && matchesRole && matchesStatus;
   });
 
   const selectedUser = displayUsers.find(u => u.id === selectedUserId) || filteredUsers[0] || null;
 
-  // Matrix Temporary Edit State
-  const [tempPermissions, setTempPermissions] = useState<ModulePermissions | null>(null);
-
-  React.useEffect(() => {
-    if (selectedUser && !tempPermissions) {
-      const isAdmin = selectedUser.roles.includes('ADMIN');
-      const isEditor = selectedUser.roles.includes('EDITOR');
-      setTempPermissions({
-        cms: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-        siteBuilder: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-        aiServices: { read: true, write: isAdmin || isEditor, delete: isAdmin },
-        identity: { read: isAdmin, write: isAdmin, delete: isAdmin }
-      });
-    }
-  }, [selectedUser]);
-
   const handleSelectUser = (id: string) => {
     setSelectedUserId(id);
-    const user = displayUsers.find(u => u.id === id);
-    if (user) {
-      const userPerms = permissionsMatrix[id] || {
-        cms: { ...DEFAULT_PERMISSIONS },
-        siteBuilder: { ...DEFAULT_PERMISSIONS },
-        aiServices: { ...DEFAULT_PERMISSIONS },
-        identity: { ...DEFAULT_PERMISSIONS }
-      };
-      setTempPermissions(JSON.parse(JSON.stringify(userPerms)));
-    } else {
-      setTempPermissions(null);
-    }
   };
 
   const handleOpenDrawer = () => {
     form.resetFields();
-    form.setFieldsValue({ isActive: true, roles: ['MEMBER'] });
+    form.setFieldsValue({ isActive: true, roles: ['VIEWER'] });
     setDrawerOpen(true);
   };
 
@@ -146,261 +61,246 @@ const UserManagement: React.FC = () => {
     setDrawerOpen(false);
   };
 
-  const handleSaveUser = (values: FormValues) => {
-    message.info('Backend API for user mutation is not implemented yet.');
+  const deactivateMutation = useMutation({
+    mutationFn: deactivateUserApi,
+    onSuccess: () => {
+      message.success('Đã thu hồi quyền truy cập thành công.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setSelectedUserId(null);
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Không thể thu hồi quyền truy cập.';
+      message.error(msg);
+    }
+  });
+
+  const lockMutation = useMutation({
+    mutationFn: lockUserApi,
+    onSuccess: () => {
+      message.success('Đã khóa tài khoản thành công.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Không thể khóa tài khoản.';
+      message.error(`Lỗi: ${msg}`);
+    }
+  });
+
+  const unlockMutation = useMutation({
+    mutationFn: unlockUserApi,
+    onSuccess: () => {
+      message.success('Đã mở khóa tài khoản thành công.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Không thể mở khóa tài khoản.';
+      message.error(`Lỗi: ${msg}`);
+    }
+  });
+
+  const adjustCreditsMutation = useMutation({
+    mutationFn: (data: { id: string; amount: number }) => adjustCreditsApi(data.id, data.amount),
+    onSuccess: () => {
+      message.success('Cập nhật tín dụng thành công.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật tín dụng.');
+    },
+  });
+
+  const updateRolesMutation = useMutation({
+    mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
+    onSuccess: (_, variables) => {
+      message.success('Cập nhật quyền thành công.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật quyền.');
+    }
+  });
+
+  const handleUpdateRoles = (roles: string[]) => {
+    if (!selectedUser) return;
+    updateRolesMutation.mutate({ id: selectedUser.id, roles });
+  };
+
+  const handleSaveUser = () => {
+    message.info('Chức năng tạo tài khoản thủ công chưa được hỗ trợ. Vui lòng đăng ký qua cổng công khai.');
     handleCloseDrawer();
   };
 
   const handleDeleteUser = (id: string, name: string) => {
-    message.info(`Backend API for deleting user is not implemented yet. Cannot delete ${name}.`);
+    Modal.confirm({
+      title: 'Xác nhận thu hồi quyền',
+      content: `Bạn có chắc chắn muốn thu hồi quyền truy cập của ${name} vĩnh viễn không? Hành động này không thể hoàn tác.`,
+      okText: 'Thu hồi',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: () => {
+        deactivateMutation.mutate(id);
+      }
+    });
   };
 
   const handleToggleUserActive = (checked: boolean) => {
     if (!selectedUser) return;
-    message.info(`Backend API for updating status is not implemented yet.`);
-  };
-
-  const handlePermissionChange = (module: keyof ModulePermissions, action: keyof Permission, value: boolean) => {
-    if (!tempPermissions) return;
-    setTempPermissions(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        [module]: {
-          ...prev[module],
-          [action]: value
+    if (checked) {
+      unlockMutation.mutate(selectedUser.id);
+    } else {
+      Modal.confirm({
+        title: 'Khóa tài khoản',
+        content: `Bạn có chắc chắn muốn khóa tài khoản của ${selectedUser.name}? Người dùng sẽ bị đăng xuất và không thể đăng nhập lại.`,
+        okText: 'Khóa tài khoản',
+        okType: 'danger',
+        cancelText: 'Hủy',
+        onOk: () => {
+          lockMutation.mutate(selectedUser.id);
         }
-      };
-    });
+      });
+    }
   };
 
-  const handleSavePermissions = () => {
-    if (!selectedUser || !tempPermissions) return;
-    setPermissionsMatrix(prev => ({
-      ...prev,
-      [selectedUser.id]: JSON.parse(JSON.stringify(tempPermissions))
-    }));
-    message.success(`Saved granular permissions for ${selectedUser.name}`);
-  };
-
-  const handleResetPermissions = () => {
+  const handleDeductCredit = () => {
     if (!selectedUser) return;
-    const original = permissionsMatrix[selectedUser.id] || {
-      cms: { ...DEFAULT_PERMISSIONS },
-      siteBuilder: { ...DEFAULT_PERMISSIONS },
-      aiServices: { ...DEFAULT_PERMISSIONS },
-      identity: { ...DEFAULT_PERMISSIONS }
-    };
-    setTempPermissions(JSON.parse(JSON.stringify(original)));
-    message.info('Reverted to last saved permissions');
+    const amountStr = window.prompt('Nhập số credit muốn TRỪ:');
+    if (!amountStr) return;
+    const amount = parseInt(amountStr, 10);
+    if (isNaN(amount) || amount <= 0) {
+      message.error('Số tiền không hợp lệ');
+      return;
+    }
+    adjustCreditsMutation.mutate({ id: selectedUser.id, amount: -amount });
   };
 
-  const isPermissionsDirty = () => {
-    if (!selectedUser || !tempPermissions) return false;
-    const original = permissionsMatrix[selectedUser.id];
-    if (!original) return true;
-    return JSON.stringify(original) !== JSON.stringify(tempPermissions);
-  };
-
-  const getUserAccessSummary = (userId: string) => {
-    const perms = permissionsMatrix[userId];
-    if (!perms) return { r: 0, w: 0, d: 0 };
-    let r = 0, w = 0, d = 0;
-    Object.values(perms).forEach(p => {
-      if (p.read) r++;
-      if (p.write) w++;
-      if (p.delete) d++;
-    });
-    return { r, w, d };
+  const handleRefundCredit = () => {
+    if (!selectedUser) return;
+    const amountStr = window.prompt('Nhập số credit muốn HOÀN LẠI:');
+    if (!amountStr) return;
+    const amount = parseInt(amountStr, 10);
+    if (isNaN(amount) || amount <= 0) {
+      message.error('Số tiền không hợp lệ');
+      return;
+    }
+    adjustCreditsMutation.mutate({ id: selectedUser.id, amount });
   };
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col w-full text-left font-mono text-xs text-slate-300 min-h-screen bg-[#070B12] relative overflow-hidden"
+      className="max-w-7xl mx-auto flex flex-col w-full text-left font-sans text-sm text-[#94a3b8] px-4 md:px-6 py-4 select-none"
     >
-      {/* Tactical grid background overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-40 z-0"
-        style={{
-          backgroundImage: 'radial-gradient(#1E293B 1px, transparent 1px)',
-          backgroundSize: '16px 16px',
-        }}
-      />
-
-      {/* Dynamic overrides for custom tactical elements */}
       <style>{`
-        .tactical-input {
-          background-color: #0E1422 !important;
-          border: 1px solid #1E293B !important;
-          border-radius: 4px !important;
-          color: #F8FAF8 !important;
-          font-family: monospace !important;
+        .custom-input {
+          background-color: #161a23 !important;
+          border: 1px solid #2a3040 !important;
+          border-radius: 8px !important;
+          color: #fff !important;
         }
-        .tactical-input:hover, .tactical-input:focus {
+        .custom-input:hover, .custom-input:focus {
           border-color: #06b6d4 !important;
-          box-shadow: 0 0 10px rgba(6, 182, 212, 0.1) !important;
         }
-        .tactical-select .ant-select-selector {
-          background-color: #0E1422 !important;
-          border: 1px solid #1E293B !important;
-          border-radius: 4px !important;
-          color: #F8FAF8 !important;
+        .custom-input:focus-visible {
+          outline: 2px solid #06b6d4 !important;
+          outline-offset: -1px;
         }
-        .tactical-select.ant-select-focused .ant-select-selector {
-          border-color: #06b6d4 !important;
-          box-shadow: 0 0 10px rgba(6, 182, 212, 0.1) !important;
+        .custom-select .ant-select-selector {
+          background-color: #161a23 !important;
+          border: 1px solid #2a3040 !important;
+          border-radius: 8px !important;
+          color: #fff !important;
         }
-        .tactical-select .ant-select-selection-item {
-          color: #F8FAF8 !important;
-        }
-        .tactical-switch.ant-switch-checked {
+        .custom-switch.ant-switch-checked {
           background-color: #10B981 !important;
-        }
-        .tactical-checkbox {
-          cursor: pointer;
-          position: relative;
-          display: inline-block;
-          width: 14px;
-          height: 14px;
-        }
-        .tactical-checkbox input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-        .tactical-checkmark {
-          position: absolute;
-          top: 0;
-          left: 0;
-          height: 14px;
-          width: 14px;
-          background-color: #0E1422;
-          border: 1px solid #1E293B;
-          border-radius: 2px;
-          transition: all 0.2s;
-        }
-        .tactical-checkbox:hover input ~ .tactical-checkmark {
-          border-color: #06b6d4;
-        }
-        .tactical-checkbox input:checked ~ .tactical-checkmark {
-          background-color: #06b6d4;
-          border-color: #06b6d4;
-        }
-        .tactical-checkmark:after {
-          content: "";
-          position: absolute;
-          display: none;
-        }
-        .tactical-checkbox input:checked ~ .tactical-checkmark:after {
-          display: block;
-        }
-        .tactical-checkbox .tactical-checkmark:after {
-          left: 4px;
-          top: 1px;
-          width: 4px;
-          height: 8px;
-          border: solid #070B12;
-          border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
-        }
-        /* Custom Admin checkmark color */
-        .admin-matrix .tactical-checkbox input:checked ~ .tactical-checkmark {
-          background-color: #F59E0B;
-          border-color: #F59E0B;
         }
       `}</style>
 
-      {/* Top Banner: Stats & Header Info */}
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between border-b border-[#1E293B] pb-6 mb-6 gap-6 z-10 relative">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-[#06B6D4] animate-pulse"></span>
-            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#06B6D4]">Security Operation</span>
+      {/* Header + stats */}
+      <div className="pb-6 mb-6 border-b border-[#2a3040]/80">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold tracking-[0.2em] text-cyan-500 uppercase">Security Operation</span>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Identity Directory</h1>
+            <p className="text-sm text-[#94a3b8] max-w-xl">Quản lý hồ sơ người dùng, phân quyền và tín dụng hệ thống.</p>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight mt-1 font-mono uppercase">Identity Directory</h2>
-          <p className="text-slate-400 text-xs mt-1 font-sans">Manage system user profiles, granular access permissions, and account credentials.</p>
-        </div>
 
-        {/* Tactical Overview Statistics */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B] px-4 py-2 flex flex-col min-w-[100px] relative overflow-hidden">
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Total Accounts</span>
-            <span className="text-lg font-bold text-white mt-0.5">{displayUsers.length}</span>
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#06B6D4]"></div>
+          <div className="flex flex-wrap items-stretch gap-3">
+            {[
+              { label: 'Tổng tài khoản', value: displayUsers.length, icon: TeamOutlined, color: 'text-white' },
+              { label: 'Đang hoạt động', value: displayUsers.filter(u => u.status === 'ACTIVE').length, icon: CheckCircleOutlined, color: 'text-emerald-400' },
+              { label: 'Đã bị khóa', value: displayUsers.filter(u => u.status !== 'ACTIVE').length, icon: LockOutlined, color: 'text-rose-400' },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="flex items-center gap-3 rounded-xl border border-[#2a3040] bg-[#1c212c]/90 px-4 py-3 min-w-[130px]"
+              >
+                <span className="p-2 rounded-lg bg-[#161a23] border border-[#2a3040] text-[#64748b]">
+                  <stat.icon />
+                </span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-[#64748b] font-semibold m-0">{stat.label}</p>
+                  <p className={`text-xl font-extrabold tabular-nums m-0 mt-0.5 ${stat.color}`}>{stat.value}</p>
+                </div>
+              </div>
+            ))}
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={handleOpenDrawer}
+              className="bg-cyan-500 hover:bg-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none border-0 text-white font-semibold rounded-xl h-auto min-h-[56px] px-5 transition-all shadow-sm shadow-cyan-500/10 text-sm self-stretch"
+            >
+              Tạo tài khoản
+            </Button>
           </div>
-          <div className="bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B] px-4 py-2 flex flex-col min-w-[100px] relative overflow-hidden">
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Active Status</span>
-            <span className="text-lg font-bold text-[#10B981] mt-0.5">{displayUsers.filter(u => u.isActive).length}</span>
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#10B981]"></div>
-          </div>
-          <div className="bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B] px-4 py-2 flex flex-col min-w-[100px] relative overflow-hidden">
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Revoked Access</span>
-            <span className="text-lg font-bold text-rose-500 mt-0.5">{displayUsers.filter(u => !u.isActive).length}</span>
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-rose-500"></div>
-          </div>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={handleOpenDrawer}
-            className="bg-transparent border border-[#06b6d4] hover:bg-[#06b6d4]/10 hover:border-[#06b6d4] text-[#06b6d4] font-bold rounded-none h-10 px-4 text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-          >
-            Create Credentials
-          </Button>
         </div>
       </div>
 
-      {/* Connection Offline Bar */}
       {isError && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-none mb-6 text-xs text-yellow-300 z-10 relative">
+        <div className="flex items-center justify-between gap-3 px-6 py-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl mb-8 text-sm text-yellow-300">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-            <span>Identity services unreachable. Initializing cached memory parameters.</span>
+            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+            <span>Identity services unreachable. Check your connection.</span>
           </div>
           <button 
             onClick={() => queryClient.invalidateQueries({ queryKey: ['users'] })} 
-            className="text-xs font-bold text-[#06b6d4] hover:underline cursor-pointer bg-transparent border-0 outline-none"
+            className="font-semibold text-cyan-400 hover:underline bg-transparent border-0 cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded"
           >
-            Retry Connection
+            Thử lại
           </button>
         </div>
       )}
 
-      {/* Main Master-Detail Workstation Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start z-10 relative">
+      {/* Main Grid: 5 / 7 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
         
-        {/* ==========================================
-            LEFT PANEL: Users Directory List (45%)
-            ========================================== */}
+        {/* LEFT PANEL */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B] p-4 flex flex-col gap-4">
-            
-            {/* Search Input */}
+          <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-4 flex flex-col gap-3">
             <Input
-              placeholder="Search by identity parameter..."
+              placeholder="Tìm kiếm theo tên hoặc email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              prefix={<SearchOutlined className="text-slate-400 mr-2" />}
-              className="tactical-input h-10"
+              prefix={<SearchOutlined className="text-[#64748b] mr-1" />}
+              className="custom-input h-11"
+              allowClear
             />
 
-            {/* Quick Status / Role Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#1E293B]">
-              <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { label: 'All', value: 'ALL' },
-                  { label: 'Admins', value: 'ADMIN' },
-                  { label: 'Editors', value: 'EDITOR' },
-                  { label: 'Members', value: 'MEMBER' },
+                  { label: 'Tất cả', value: 'ALL' },
+                  { label: 'Admin', value: 'ADMIN' },
+                  { label: 'Editor', value: 'EDITOR' },
+                  { label: 'Viewer', value: 'VIEWER' },
                 ].map((btn) => (
                   <button
                     key={btn.value}
                     onClick={() => setRoleFilter(btn.value)}
-                    className={`px-2.5 py-1.5 transition-all border text-[10px] ${
+                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                       roleFilter === btn.value
-                        ? 'bg-[#06b6d4]/10 border-[#06b6d4] text-[#06b6d4]'
-                        : 'bg-[#070B12] border-[#1E293B] text-slate-400 hover:text-white'
+                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/10'
+                        : 'bg-[#161a23] border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-[#3d4659]'
                     }`}
                   >
                     {btn.label}
@@ -408,28 +308,27 @@ const UserManagement: React.FC = () => {
                 ))}
               </div>
 
-              <div className="w-28 shrink-0">
+              <div className="w-36 shrink-0">
                 <Select
                   value={statusFilter}
                   onChange={(value) => setStatusFilter(value)}
-                  className="tactical-select w-full text-[10px]"
-                  size="small"
+                  className="custom-select w-full"
+                  size="large"
                 >
-                  <Option value="ALL">All Status</Option>
-                  <Option value="ACTIVE">Active Only</Option>
-                  <Option value="INACTIVE">Inactive Only</Option>
+                  <Option value="ALL">Mọi trạng thái</Option>
+                  <Option value="ACTIVE">Đang hoạt động</Option>
+                  <Option value="INACTIVE">Đã bị khóa</Option>
                 </Select>
               </div>
             </div>
-
           </div>
 
-          {/* Scrollable User Directory */}
-          <div className="max-h-[600px] overflow-y-auto pr-1 flex flex-col gap-2">
+          <div className="max-h-[560px] overflow-y-auto flex flex-col gap-2 pr-1">
             <AnimatePresence initial={false}>
               {filteredUsers.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B]">
-                  No identities match specified filters.
+                <div className="text-center py-10 text-[#64748b] bg-[#1c212c]/60 border border-dashed border-[#2a3040] rounded-2xl">
+                  <TeamOutlined className="text-2xl mb-2 opacity-40" />
+                  <p className="m-0 text-sm">Không tìm thấy tài khoản phù hợp.</p>
                 </div>
               ) : (
                 filteredUsers.map((user, idx) => {
@@ -437,73 +336,55 @@ const UserManagement: React.FC = () => {
                   const isAdmin = user.roles.includes('ADMIN');
                   const isEditor = user.roles.includes('EDITOR');
 
-                  let indicatorBorder = 'border-l-2 border-slate-500';
-                  let activeBadgeColor = 'text-slate-400 border-slate-500/20 bg-slate-500/5';
+                  let indicatorBorder = 'border-l-4 border-[#94a3b8]';
+                  let activeBadgeColor = 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10';
                   if (isAdmin) {
-                    indicatorBorder = 'border-l-2 border-[#F59E0B]';
-                    activeBadgeColor = 'text-[#F59E0B] border-[#F59E0B]/20 bg-[#F59E0B]/5';
+                    indicatorBorder = 'border-l-4 border-amber-500';
+                    activeBadgeColor = 'text-amber-500 border-amber-500/20 bg-amber-500/10';
                   } else if (isEditor) {
-                    indicatorBorder = 'border-l-2 border-[#06B6D4]';
-                    activeBadgeColor = 'text-[#06B6D4] border-[#06B6D4]/20 bg-[#06B6D4]/5';
+                    indicatorBorder = 'border-l-4 border-cyan-500';
+                    activeBadgeColor = 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10';
                   }
 
-                  const summary = getUserAccessSummary(user.id);
-
                   return (
-                    <motion.div
+                    <motion.button
                       key={user.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                       onClick={() => handleSelectUser(user.id)}
-                      className={`relative bg-[#0E1422]/90 backdrop-blur-sm border ${
+                      className={`relative w-full text-left rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 transition-all ${
                         isSelected 
-                          ? 'border-[#06b6d4] shadow-[0_0_15px_rgba(6,182,212,0.1)] translate-x-1' 
-                          : 'border-[#1E293B] hover:border-slate-600 hover:translate-x-0.5'
-                      } p-4 flex items-center justify-between cursor-pointer transition-all ${indicatorBorder}`}
+                          ? 'bg-cyan-500/5 border border-cyan-500/50 shadow-md shadow-cyan-500/5' 
+                          : 'bg-[#1c212c]/80 border border-[#2a3040] hover:border-[#3d4659] hover:bg-[#1c212c]'
+                      } p-3.5 flex items-center justify-between cursor-pointer ${indicatorBorder}`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <div className="relative">
                           <Avatar 
                             src={user.avatarUrl || undefined} 
                             icon={!user.avatarUrl ? <UserOutlined /> : undefined}
-                            className="bg-[#070B12] border border-[#1E293B]"
+                            className="bg-[#161a23] border border-[#2a3040] text-[#94a3b8]"
+                            size="large"
                           />
-                          {user.isActive ? (
-                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#10B981] border-2 border-[#0E1422] rounded-full animate-pulse"></span>
+                          {user.status === 'ACTIVE' ? (
+                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-[#1c212c] rounded-full"></span>
                           ) : (
-                            <span className="absolute bottom-0 right-0 w-2 h-2 bg-rose-500 border-2 border-[#0E1422] rounded-full"></span>
+                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-rose-500 border-2 border-[#1c212c] rounded-full"></span>
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-white tracking-wide">{user.name}</span>
-                          <span className="text-[10px] text-slate-500 mt-0.5">{user.email}</span>
-                          
-                          {/* Mini Permission Clearance LED Dots */}
-                          <div className="flex gap-1 mt-1.5 items-center">
-                            <span className="text-[8px] text-slate-600 mr-1 uppercase tracking-wider font-semibold">Clearance:</span>
-                            <Tooltip title={`Read access enabled in ${summary.r} modules`}>
-                              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${summary.r > 0 ? 'bg-[#10B981] shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-slate-800'}`}></span>
-                            </Tooltip>
-                            <Tooltip title={`Write access enabled in ${summary.w} modules`}>
-                              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${summary.w > 0 ? 'bg-[#06B6D4] shadow-[0_0_4px_rgba(6,182,212,0.5)]' : 'bg-slate-800'}`}></span>
-                            </Tooltip>
-                            <Tooltip title={`Delete access enabled in ${summary.d} modules`}>
-                              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${summary.d > 0 ? 'bg-[#F59E0B] shadow-[0_0_4px_rgba(245,158,11,0.5)]' : 'bg-slate-800'}`}></span>
-                            </Tooltip>
-                          </div>
+                          <span className="font-semibold text-white text-base">{user.name}</span>
+                          <span className="text-xs text-[#94a3b8] mt-0.5">{user.email}</span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold ${activeBadgeColor} border`}>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${activeBadgeColor}`}>
                           {user.roles[0]}
                         </span>
-                        <span className="text-[9px] text-slate-600 font-medium">
-                          {getLastActiveString(user.id)}
-                        </span>
                       </div>
-                    </motion.div>
+                    </motion.button>
                   );
                 })
               )}
@@ -511,10 +392,8 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* ==========================================
-            RIGHT PANEL: Identity Details Dashboard (55%)
-            ========================================== */}
-        <div className="lg:col-span-7">
+        {/* RIGHT PANEL */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
           <AnimatePresence mode="wait">
             {!selectedUser ? (
               <motion.div 
@@ -522,11 +401,13 @@ const UserManagement: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B] p-12 text-center text-slate-500 flex flex-col items-center justify-center min-h-[480px]"
+                className="rounded-2xl border border-dashed border-[#2a3040] bg-[#1c212c]/40 p-10 text-center text-[#64748b] flex flex-col items-center justify-center min-h-[360px]"
               >
-                <TeamOutlined className="text-3xl text-slate-700 mb-3" />
-                <span className="uppercase tracking-widest font-semibold text-xs">No active terminal selected</span>
-                <p className="text-[11px] text-slate-600 mt-2 max-w-xs">Select an identity from the sidebar to inspect credentials and access permissions.</p>
+                <div className="w-14 h-14 rounded-2xl bg-[#161a23] border border-[#2a3040] flex items-center justify-center mb-4">
+                  <TeamOutlined className="text-2xl text-[#475569]" />
+                </div>
+                <span className="uppercase tracking-[0.15em] font-semibold text-xs text-[#94a3b8]">Chưa chọn tài khoản</span>
+                <p className="text-xs mt-2 max-w-xs leading-relaxed">Chọn một tài khoản bên trái để xem chi tiết và quản lý quyền.</p>
               </motion.div>
             ) : (
               <motion.div
@@ -538,197 +419,139 @@ const UserManagement: React.FC = () => {
                 className="flex flex-col gap-6"
               >
                 {/* Details Card */}
-                <div className="bg-[#0E1422]/90 backdrop-blur-sm border border-[#1E293B] p-6 relative">
-                  
-                  {/* Status Toggle & Details Header */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[#1E293B] pb-5 mb-5 gap-4">
-                    <div className="flex items-center gap-4">
+                <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5 md:p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                    <div className="flex items-center gap-4 min-w-0">
                       <Avatar 
                         src={selectedUser.avatarUrl || undefined} 
                         icon={!selectedUser.avatarUrl ? <UserOutlined /> : undefined}
-                        size={64}
-                        className="bg-[#070B12] border border-[#1E293B] rounded-none shrink-0"
+                        size={72}
+                        className="bg-[#161a23] border-2 border-[#2a3040] text-[#94a3b8] shrink-0"
                       />
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base font-bold text-white tracking-wide">{selectedUser.name}</h3>
-                          <span className={`px-2 py-0.2 text-[9px] font-bold border uppercase tracking-wider ${
+                          <h3 className="text-xl font-bold text-white m-0 truncate">{selectedUser.name}</h3>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
                             selectedUser.roles.includes('ADMIN')
-                              ? 'text-[#F59E0B] border-[#F59E0B]/20 bg-[#F59E0B]/5'
+                              ? 'text-amber-500 border-amber-500/20 bg-amber-500/10'
                               : selectedUser.roles.includes('EDITOR')
-                              ? 'text-[#06B6D4] border-[#06B6D4]/20 bg-[#06B6D4]/5'
-                              : 'text-slate-400 border-slate-500/20 bg-slate-500/5'
+                              ? 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10'
+                              : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
                           }`}>
-                            {selectedUser.roles.join(' / ')}
+                            {selectedUser.roles.join(' · ')}
                           </span>
                         </div>
-                        <span className="text-slate-400 text-xs mt-1 flex items-center gap-1.5">
-                          <MailOutlined className="text-[10px]" /> {selectedUser.email}
+                        <span className="text-[#94a3b8] text-sm flex items-center gap-2 truncate">
+                          <MailOutlined className="shrink-0" /> <span className="truncate">{selectedUser.email}</span>
                         </span>
-                        <span className="text-[10px] text-slate-500 mt-1">
-                          Joined on: {new Date(selectedUser.createdAt).toLocaleDateString()}
+                        <span className="text-[11px] text-[#64748b]">
+                          Tham gia: {new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-[#070B12] border border-[#1E293B] px-3.5 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Network Access</span>
-                        <span className={`text-[10px] font-bold ${selectedUser.isActive ? 'text-[#10B981]' : 'text-rose-500'}`}>
-                          {selectedUser.isActive ? 'AUTHORIZED' : 'ACCESS REVOKED'}
+                    <div className="flex items-center gap-3 rounded-xl border border-[#2a3040] bg-[#161a23]/80 px-4 py-3 shrink-0">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] uppercase tracking-wider text-[#64748b] font-semibold">Trạng thái</span>
+                        <span className={`text-[10px] font-bold uppercase ${selectedUser.status === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {selectedUser.status === 'ACTIVE' ? 'Hoạt động' : selectedUser.status}
                         </span>
                       </div>
                       <Switch 
-                        checked={selectedUser.isActive}
-                        onChange={handleToggleUserActive}
-                        className="tactical-switch shrink-0"
                         size="small"
+                        checked={selectedUser.status === 'ACTIVE'}
+                        onChange={(checked) => {
+                          setSelectedUserId(selectedUser.id);
+                          setTimeout(() => handleToggleUserActive(checked), 50);
+                        }}
+                        className="custom-switch"
                       />
                     </div>
                   </div>
-
-                  {/* Granular Permissions Matrix */}
-                  <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <SafetyOutlined className="text-[#06b6d4]" />
-                      <span className="uppercase tracking-wider font-bold text-white">Granular Permissions Matrix</span>
-                    </div>
-
-                    {tempPermissions && (
-                      <div className={`border border-[#1E293B] overflow-hidden ${selectedUser.roles.includes('ADMIN') ? 'admin-matrix' : ''}`}>
-                        <div className="grid grid-cols-12 bg-[#070B12] border-b border-[#1E293B] p-2.5 font-bold uppercase tracking-wider text-slate-400 text-[10px]">
-                          <div className="col-span-5">System Module</div>
-                          <div className="col-span-1.5 text-center">Read</div>
-                          <div className="col-span-1.5 text-center">Write</div>
-                          <div className="col-span-1.5 text-center">Delete</div>
-                          <div className="col-span-2.5 text-right pr-2">Access Indicator</div>
-                        </div>
-
-                        {[
-                          { key: 'cms', label: 'Data CMS & Collections' },
-                          { key: 'siteBuilder', label: 'Canvas Site Builder' },
-                          { key: 'aiServices', label: 'AI Services (Gemini Client)' },
-                          { key: 'identity', label: 'Identity / Access Control' },
-                        ].map((row, rIdx) => {
-                          const moduleKey = row.key as keyof ModulePermissions;
-                          const perms = tempPermissions[moduleKey] || { ...DEFAULT_PERMISSIONS };
-
-                          return (
-                            <div 
-                              key={row.key} 
-                              className={`grid grid-cols-12 items-center p-3 text-[11px] ${
-                                rIdx % 2 === 0 ? 'bg-[#0E1422]' : 'bg-[#090D16]/40'
-                              } border-b border-[#1E293B]/60`}
-                            >
-                              <div className="col-span-5 font-bold text-slate-300">{row.label}</div>
-                              
-                              <div className="col-span-1.5 flex justify-center">
-                                <label className="tactical-checkbox">
-                                  <input 
-                                    type="checkbox" 
-                                    checked={perms.read} 
-                                    onChange={(e) => handlePermissionChange(moduleKey, 'read', e.target.checked)}
-                                  />
-                                  <span className="tactical-checkmark"></span>
-                                </label>
-                              </div>
-                              
-                              <div className="col-span-1.5 flex justify-center">
-                                <label className="tactical-checkbox">
-                                  <input 
-                                    type="checkbox" 
-                                    checked={perms.write} 
-                                    onChange={(e) => handlePermissionChange(moduleKey, 'write', e.target.checked)}
-                                  />
-                                  <span className="tactical-checkmark"></span>
-                                </label>
-                              </div>
-                              
-                              <div className="col-span-1.5 flex justify-center">
-                                <label className="tactical-checkbox">
-                                  <input 
-                                    type="checkbox" 
-                                    checked={perms.delete} 
-                                    onChange={(e) => handlePermissionChange(moduleKey, 'delete', e.target.checked)}
-                                  />
-                                  <span className="tactical-checkmark"></span>
-                                </label>
-                              </div>
-
-                              {/* Glowing LED Status Matrix Progress Bar */}
-                              <div className="col-span-2.5 flex gap-1 justify-end pr-1">
-                                <span className={`px-2 py-0.5 rounded-sm text-[8px] font-bold border transition-all ${
-                                  perms.read 
-                                    ? 'bg-[#10B981]/15 border-[#10B981]/30 text-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.15)] font-semibold' 
-                                    : 'bg-[#070B12] border-slate-900 text-slate-700'
-                                }`}>R</span>
-                                <span className={`px-2 py-0.5 rounded-sm text-[8px] font-bold border transition-all ${
-                                  perms.write 
-                                    ? 'bg-[#06B6D4]/15 border-[#06B6D4]/30 text-[#06B6D4] shadow-[0_0_8px_rgba(6,182,212,0.15)] font-semibold' 
-                                    : 'bg-[#070B12] border-slate-900 text-slate-700'
-                                }`}>W</span>
-                                <span className={`px-2 py-0.5 rounded-sm text-[8px] font-bold border transition-all ${
-                                  perms.delete 
-                                    ? 'bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B] shadow-[0_0_8px_rgba(245,158,11,0.15)] font-semibold' 
-                                    : 'bg-[#070B12] border-slate-900 text-slate-700'
-                                }`}>D</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Admin Warning info */}
-                    {selectedUser.roles.includes('ADMIN') && (
-                      <div className="mt-3 p-3 bg-yellow-500/5 border border-yellow-500/10 text-yellow-300 text-[10px] flex items-start gap-2">
-                        <SettingOutlined className="mt-0.5 shrink-0" />
-                        <span>Administrator accounts automatically bypass granular matrix limitations to ensure full recovery access.</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Permissions Action Buttons */}
-                  <div className="flex gap-3 justify-end border-t border-[#1E293B] pt-4">
-                    <Button 
-                      icon={<UndoOutlined />} 
-                      onClick={handleResetPermissions}
-                      disabled={!isPermissionsDirty()}
-                      className="bg-transparent border border-slate-600 hover:border-slate-500 text-slate-400 font-bold rounded-none h-9 px-4 text-[11px] uppercase tracking-wider transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1.5"
-                    >
-                      Reset Changes
-                    </Button>
-                    <Button 
-                      type="primary" 
-                      icon={<SaveOutlined />} 
-                      onClick={handleSavePermissions}
-                      disabled={!isPermissionsDirty()}
-                      className="bg-transparent border border-[#06b6d4] hover:bg-[#06b6d4]/10 hover:border-[#06b6d4] text-[#06b6d4] font-bold rounded-none h-9 px-4 text-[11px] uppercase tracking-wider transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-                    >
-                      Save Permissions
-                    </Button>
-                  </div>
-
                 </div>
 
-                {/* Danger Zone */}
-                <div className="bg-[#0E1422]/90 backdrop-blur-sm border border-rose-950 p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="w-1.5 h-1.5 bg-rose-500 animate-pulse"></span>
-                    <span className="uppercase tracking-wider font-bold text-rose-400 font-mono">Terminal Danger Zone</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <p className="text-slate-400 text-[11px] max-w-md font-sans">
-                      Revoking access tokens or deleting credentials will immediately terminate all active workspace integrations and session logging capability for this operator.
+                <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94a3b8] mb-3">Phân quyền (Roles)</h3>
+                  <div className="flex flex-col gap-3">
+                    <p className="text-xs text-[#94a3b8] leading-relaxed">
+                      Chọn các quyền hạn cho tài khoản này. Quyền <span className="text-amber-400 font-semibold">ADMIN</span> có toàn quyền hệ thống.
                     </p>
+                    <div className="flex gap-3 items-end">
+                      <Select
+                        mode="multiple"
+                        defaultValue={selectedUser.roles}
+                        key={selectedUser.id}
+                        onChange={handleUpdateRoles}
+                        loading={updateRolesMutation.isPending}
+                        disabled={updateRolesMutation.isPending}
+                        className="flex-1"
+                        placeholder="Chọn quyền..."
+                        style={{ minWidth: 200 }}
+                        options={[
+                          { value: 'ADMIN', label: 'ADMIN — Toàn quyền' },
+                          { value: 'EDITOR', label: 'EDITOR — Biên tập' },
+                          { value: 'VIEWER', label: 'VIEWER — Người xem' },
+                        ]}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedUser.roles.map(role => (
+                        <span key={role} className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${
+                          role === 'ADMIN' ? 'text-amber-500 border-amber-500/30 bg-amber-500/10'
+                          : role === 'EDITOR' ? 'text-cyan-400 border-cyan-400/30 bg-cyan-400/10'
+                          : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
+                        }`}>{role}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94a3b8] mb-4">Quản lý tín dụng</h3>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[11px] uppercase tracking-wider text-[#94a3b8] font-semibold">Số dư hiện tại</span>
+                      <span className="text-2xl font-extrabold text-cyan-400 tabular-nums">
+                        {selectedUser.credits !== undefined ? selectedUser.credits : '0'} CR
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={handleRefundCredit}
+                        loading={adjustCreditsMutation.isPending}
+                        className="bg-[#161a23] border border-[#2a3040] text-[#10B981] hover:text-[#10B981] hover:border-[#10B981] rounded-lg h-10 px-4 text-xs uppercase font-bold tracking-wider"
+                      >
+                        + Hoàn Credit
+                      </Button>
+                      <Button
+                        onClick={handleDeductCredit}
+                        loading={adjustCreditsMutation.isPending}
+                        className="bg-[#161a23] border border-[#2a3040] text-rose-500 hover:text-rose-500 hover:border-rose-500 rounded-lg h-10 px-4 text-xs uppercase font-bold tracking-wider"
+                      >
+                        - Trừ Credit
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-rose-500/25 bg-rose-500/5 p-5">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex flex-col gap-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <WarningOutlined className="text-rose-500 text-lg" />
+                        <span className="uppercase tracking-wider font-bold text-rose-500 text-base">Vùng Nguy Hiểm</span>
+                      </div>
+                      <p className="text-rose-200/70 text-sm m-0 leading-relaxed">
+                        Thu hồi quyền truy cập sẽ vô hiệu hóa hoàn toàn tài khoản này. Người dùng sẽ bị đăng xuất khỏi tất cả thiết bị ngay lập tức.
+                      </p>
+                    </div>
                     <Button 
                       danger 
-                      type="primary" 
-                      icon={<DeleteOutlined />} 
                       onClick={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
-                      className="bg-transparent border border-rose-500 hover:bg-rose-500/10 hover:border-rose-500 text-rose-500 font-bold rounded-none h-9 px-4 text-[11px] uppercase tracking-wider transition-all shrink-0 flex items-center justify-center gap-1.5"
+                      loading={deactivateMutation.isPending}
+                      className="bg-transparent border-2 border-rose-500 hover:bg-rose-500 hover:text-white focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none text-rose-500 font-bold rounded-lg h-12 px-6 text-xs uppercase tracking-wider transition-all shrink-0"
                     >
-                      Revoke Identity
+                      Thu Hồi Quyền
                     </Button>
                   </div>
                 </div>
@@ -740,90 +563,63 @@ const UserManagement: React.FC = () => {
 
       </div>
 
-      {/* Slide-out Drawer for Add User */}
       <Drawer
-        title={
-          <span className="text-xs font-bold text-white tracking-wider uppercase font-mono">
-            Register New Access Credentials
-          </span>
-        }
+        title={<span className="font-bold text-white uppercase tracking-wider text-sm">Đăng ký tài khoản mới</span>}
         placement="right"
         onClose={handleCloseDrawer}
         open={drawerOpen}
         width={400}
-        closeIcon={<CloseOutlined className="text-slate-400 hover:text-white" />}
+        closeIcon={<CloseOutlined className="text-[#94a3b8] hover:text-white" />}
         styles={{
-          header: {
-            background: '#0E1422',
-            borderBottom: '1px solid #1E293B',
-            padding: '20px 24px',
-          },
-          body: {
-            background: '#070b12',
-            padding: '24px',
-            color: '#cbd5e1',
-          },
+          header: { background: '#1c212c', borderBottom: '1px solid #2a3040', padding: '24px' },
+          body: { background: '#161a23', padding: '24px' }
         }}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSaveUser}
-          requiredMark={false}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSaveUser} requiredMark={false} className="flex flex-col gap-6">
           <Form.Item
             name="name"
-            label={<span className="text-xs text-slate-400 font-bold uppercase font-mono">Operator Full Name</span>}
-            rules={[{ required: true, message: 'Please input full name!' }]}
-            className="mb-5"
+            label={<span className="text-[#94a3b8] text-sm font-semibold">Họ và tên</span>}
+            rules={[{ required: true, message: 'Thiếu tên người dùng' }]}
+            className="mb-0"
           >
-            <Input placeholder="e.g. John Doe" className="tactical-input h-10" />
+            <Input placeholder="Nhập họ và tên" className="custom-input h-11" />
           </Form.Item>
 
           <Form.Item
             name="email"
-            label={<span className="text-xs text-slate-400 font-bold uppercase font-mono">Secure Email Address</span>}
-            rules={[{ required: true, message: 'Please input email!' }, { type: 'email', message: 'Invalid email format!' }]}
-            className="mb-5"
+            label={<span className="text-[#94a3b8] text-sm font-semibold">Địa chỉ Email</span>}
+            rules={[{ required: true, message: 'Thiếu email', type: 'email' }]}
+            className="mb-0"
           >
-            <Input placeholder="e.g. john.doe@genzite.com" className="tactical-input h-10" />
+            <Input placeholder="name@domain.com" className="custom-input h-11" />
           </Form.Item>
 
           <Form.Item
             name="roles"
-            label={<span className="text-xs text-slate-400 font-bold uppercase font-mono">Access Role Definition</span>}
-            rules={[{ required: true, message: 'Please select permissions' }]}
-            className="mb-5"
+            label={<span className="text-[#94a3b8] text-sm font-semibold">Quyền truy cập</span>}
+            rules={[{ required: true, message: 'Thiếu quyền' }]}
+            className="mb-0"
           >
-            <Select mode="multiple" placeholder="Select roles" className="tactical-select">
-              <Option value="ADMIN">ADMIN</Option>
-              <Option value="EDITOR">EDITOR</Option>
-              <Option value="MEMBER">MEMBER</Option>
+            <Select mode="multiple" className="custom-select text-sm h-auto min-h-[44px]">
+              <Option value="ADMIN">Quản trị viên (ADMIN)</Option>
+              <Option value="EDITOR">Biên tập (EDITOR)</Option>
+              <Option value="VIEWER">Thành viên (VIEWER)</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item
-            name="isActive"
-            label={<span className="text-xs text-slate-400 font-bold uppercase font-mono">Default Status</span>}
-            valuePropName="checked"
-            className="mb-8"
-          >
-            <div className="flex items-center gap-3">
-              <Switch className="tactical-switch" />
-              <span className="text-[10px] text-slate-500 font-mono">Authorize credentials immediately upon save</span>
-            </div>
-          </Form.Item>
-
-          <div className="flex gap-3 justify-end mt-8 border-t border-[#1E293B] pt-6">
-            <Button onClick={handleCloseDrawer} className="bg-transparent border border-slate-600 hover:border-slate-500 text-slate-400 font-bold rounded-none h-10 px-5 transition-all text-xs uppercase font-mono">
-              Cancel
+          <div className="flex gap-4 mt-8 pt-6 border-t border-[#2a3040]">
+            <Button 
+              onClick={handleCloseDrawer} 
+              className="flex-1 bg-transparent border border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:outline-none rounded-lg h-11 transition-all uppercase tracking-wider text-xs font-bold"
+            >
+              Hủy
             </Button>
             <Button 
               type="primary" 
               htmlType="submit" 
-              className="bg-transparent border border-[#06b6d4] hover:bg-[#06b6d4]/10 hover:border-[#06b6d4] text-[#06b6d4] font-bold rounded-none h-10 px-5 transition-all cursor-pointer text-xs uppercase font-mono"
+              className="flex-1 bg-cyan-500 border-0 text-white font-bold rounded-lg h-11 hover:bg-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none transition-all uppercase tracking-wider text-xs shadow-sm"
             >
-              Generate
+              Tạo mới
             </Button>
           </div>
         </Form>
