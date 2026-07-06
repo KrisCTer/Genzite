@@ -6,18 +6,19 @@ import 'grapesjs/dist/css/grapes.min.css';
 // @ts-ignore
 import webpagePlugin from 'grapesjs-preset-webpage';
 import { Spin, Button, Space, Tooltip } from 'antd';
-import { UndoOutlined, RedoOutlined, DesktopOutlined, MobileOutlined, TabletOutlined } from '@ant-design/icons';
+import { UndoOutlined, RedoOutlined } from '@ant-design/icons';
+import AgentLogSidebar from './AgentLogSidebar';
 
 interface GrapesEditorProps {
   htmlContent: string;
   cssContent?: string;
+  readOnly?: boolean;
   onSave?: (html: string, css: string) => void;
 }
 
-const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '', onSave }) => {
+const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '', readOnly = false, onSave }) => {
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [device, setDevice] = useState('Desktop');
   const [mounted, setMounted] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -119,6 +120,20 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
         editor.setStyle(cssContent);
       }
 
+      if (readOnly) {
+        // Disable selection and editing
+        editor.Commands.stop('select-comp');
+        const lockStyle = iframeDoc.createElement('style');
+        // Allow scroll on body, but block interaction on all elements
+        lockStyle.innerHTML = `body * { pointer-events: none !important; }`;
+        iframeDoc.head.appendChild(lockStyle);
+        
+        // Hide GrapesJS UI elements inside the canvas if any
+        const noUiStyle = document.createElement('style');
+        noUiStyle.innerHTML = `.gjs-cv-canvas { pointer-events: auto !important; }`;
+        document.head.appendChild(noUiStyle);
+      }
+
       // Mount panels manually to our custom sidebars
       const layersEl = document.getElementById('gjs-layers');
       if (layersEl) {
@@ -197,19 +212,12 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
     };
   }, [htmlContent, cssContent, onSave]);
 
-  const handleDevice = (dev: string) => {
-    if (editorRef.current) {
-      editorRef.current.setDevice(dev);
-      setDevice(dev);
-    }
-  };
-
   return (
     <>
       <style>
         {`
-          /* Hide all built-in GrapesJS panels (top bar, right sidebar) */
-          .gjs-pn-panels { display: none !important; }
+          /* Hide all built-in GrapesJS panels (top bar, right sidebar, devices, commands) */
+          .gjs-pn-panels, .gjs-pn-panel, .gjs-pn-devices-c, .gjs-pn-devices, .gjs-pn-commands, .gjs-pn-views, .gjs-pn-buttons { display: none !important; }
           /* Fix Canvas background to fill the Rnd container perfectly */
           .gjs-cv-canvas { background: #fff !important; height: 100% !important; top: 0 !important; width: 100% !important; left: 0 !important; }
           .gjs-frame { margin: 0 !important; display: block; border-radius: 0 !important; border: none !important; width: 100% !important; height: 100% !important; box-shadow: none !important; }
@@ -253,10 +261,7 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
 
       {/* Portals to inject UI into PageBuilder's global layout */}
       {mounted && document.getElementById('portal-left-sidebar') && createPortal(
-        <div className="custom-sidebar" style={{ width: '100%', height: '100%' }}>
-          <div className="sidebar-header">Layers & Structure</div>
-          <div id="gjs-layers" style={{ flex: 1 }} />
-        </div>,
+        <AgentLogSidebar />,
         document.getElementById('portal-left-sidebar')!
       )}
 
@@ -270,31 +275,6 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
         document.getElementById('portal-right-sidebar')!
       )}
 
-      {mounted && document.getElementById('portal-toolbar') && createPortal(
-        <Space size="middle" style={{ marginLeft: 16 }}>
-          <Tooltip title="Undo (Ctrl+Z)">
-            <Button 
-              icon={<UndoOutlined />} 
-              type="text" 
-              style={{ color: '#fff', opacity: canUndo ? 1 : 0.4, pointerEvents: canUndo ? 'auto' : 'none' }} 
-              onClick={() => editorRef.current?.UndoManager.undo()} 
-            />
-          </Tooltip>
-          <Tooltip title="Redo (Ctrl+Y)">
-            <Button 
-              icon={<RedoOutlined />} 
-              type="text" 
-              style={{ color: '#fff', opacity: canRedo ? 1 : 0.4, pointerEvents: canRedo ? 'auto' : 'none' }} 
-              onClick={() => editorRef.current?.UndoManager.redo()} 
-            />
-          </Tooltip>
-          <div style={{ width: 1, height: 24, background: '#1E293B', margin: '0 8px' }} />
-          <Tooltip title="Desktop"><Button icon={<DesktopOutlined />} type={device === 'Desktop' ? 'primary' : 'text'} style={{ color: device === 'Desktop' ? '#fff' : '#94A3B8' }} onClick={() => handleDevice('Desktop')} /></Tooltip>
-          <Tooltip title="Tablet"><Button icon={<TabletOutlined />} type={device === 'Tablet' ? 'primary' : 'text'} style={{ color: device === 'Tablet' ? '#fff' : '#94A3B8' }} onClick={() => handleDevice('Tablet')} /></Tooltip>
-          <Tooltip title="Mobile"><Button icon={<MobileOutlined />} type={device === 'Mobile portrait' ? 'primary' : 'text'} style={{ color: device === 'Mobile portrait' ? '#fff' : '#94A3B8' }} onClick={() => handleDevice('Mobile portrait')} /></Tooltip>
-        </Space>,
-        document.getElementById('portal-toolbar')!
-      )}
     </>
   );
 };

@@ -1,46 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Spin } from 'antd';
-import {
-  ZoomInOutlined,
-  ZoomOutOutlined,
-  FullscreenOutlined,
-  GlobalOutlined,
-  CodeOutlined,
-  ThunderboltOutlined,
-  EyeOutlined,
-  ShareAltOutlined
-} from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { fetchPagesApi } from '../../api/sites';
+import { fetchPagesApi, fetchSiteByIdApi } from '../../api/sites';
 import { useParams, useNavigate } from 'react-router-dom';
-import DarkPropertyEditor from './builder/DarkPropertyEditor';
 import AIPromptBar from './builder/AIPromptBar';
-import CanvasPageFrame from './builder/CanvasPageFrame';
+import ProjectSidebar from './builder/ProjectSidebar';
+import CanvasWorkspace from './builder/CanvasWorkspace';
+import { useAiLogStore } from '../../store/aiLogs';
 import './CanvasBuilder.css';
-
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 2;
-const ZOOM_STEP = 0.1;
-const PAGE_SPACING = 1640; // 1440 width + 200 gap
 
 const PageBuilder: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedWidgetObj, setSelectedWidgetObj] = useState<any | null>(null);
-  
-  const [zoom, setZoom] = useState(0.4); // Start zoomed out
-  const [pan, setPan] = useState({ x: 100, y: 100 });
-  const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
-  const [isGrapesSelected, setIsGrapesSelected] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: any) => setIsGrapesSelected(e.detail);
-    window.addEventListener('grapes:selected', handler);
-    return () => window.removeEventListener('grapes:selected', handler);
-  }, []);
+  const isGenerating = useAiLogStore(state => state.isGenerating);
 
   const { data: pages, isLoading, isError } = useQuery({
     queryKey: ['site-pages', siteId],
@@ -49,189 +22,80 @@ const PageBuilder: React.FC = () => {
     retry: 1,
   });
 
+  const { data: site } = useQuery({
+    queryKey: ['site', siteId],
+    queryFn: () => fetchSiteByIdApi(siteId!),
+    enabled: !!siteId,
+    retry: 1,
+  });
+
   const isWelcomeMode = !siteId;
 
-  const zoomIn = () => setZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2))));
-  const zoomOut = () => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2))));
-  const resetZoom = () => { setZoom(0.4); setPan({ x: 100, y: 100 }); };
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      setZoom(z => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, parseFloat((z + delta).toFixed(2)))));
+  const handleAIGenerated = (_jobId: string, subdomain?: string) => {
+    if (subdomain && subdomain !== siteId) {
+      navigate(`/project/${subdomain}`, { replace: true });
     }
-  }, []);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || e.altKey || e.button === 2) {
-      e.preventDefault();
-      setIsPanning(true);
-      panStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
-    }
-  }, [pan.x, pan.y]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isPanning && panStart.current) {
-      setPan({
-        x: panStart.current.px + (e.clientX - panStart.current.mx),
-        y: panStart.current.py + (e.clientY - panStart.current.my),
-      });
-    }
-  }, [isPanning]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
-    panStart.current = null;
-  }, []);
-
-  const handleAIGenerated = (_jobId: string) => {
-    if (!siteId) {
-      navigate('/admin/site');
+  };
+  
+  const handleAIStarted = (newSiteId: string) => {
+    if (!siteId || siteId !== newSiteId) {
+      navigate(`/project/${newSiteId}`);
     }
   };
 
   if (isWelcomeMode) {
     return (
       <div className="canvas-builder">
-        <div className="canvas-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="canvas-welcome">
-            <h1 className="canvas-welcome-title">Build at the speed of AI</h1>
-            <p className="canvas-welcome-subtitle">
-              Describe what you want to build with AI.
-            </p>
+        {/* Left Sidebar */}
+        <ProjectSidebar />
+
+        {/* Center Area */}
+        <div className="canvas-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', flex: 1, paddingLeft: 340, paddingRight: 40, paddingTop: 160, paddingBottom: 40, overflowY: 'auto', height: '100vh' }}>
+          <div className="canvas-welcome" style={{ width: '100%', maxWidth: 1024 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h1 className="canvas-welcome-title" style={{ margin: 0, fontSize: '3rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                Welcome to Genzite..
+              </h1>
+              <button
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', borderRadius: 24, padding: '8px 16px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}
+              >
+                <PlusOutlined /> Start with your design
+              </button>
+            </div>
+
+            <AIPromptBar onGenerated={handleAIGenerated} onStarted={handleAIStarted} />
+
+            <div style={{ marginTop: 48, display: 'none' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 500, color: '#fff', margin: 0 }}>Need inspiration?</h2>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer' }}>◄</button>
+                  <button style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}>►</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16 }}>
+                <div style={{ width: 260, height: 180, background: 'linear-gradient(to bottom, #8a7c73, #4a3c33)', borderRadius: 16, flexShrink: 0 }}></div>
+                <div style={{ width: 260, height: 180, background: 'linear-gradient(to bottom, #7da5b8, #3b5b6b)', borderRadius: 16, flexShrink: 0 }}></div>
+                <div style={{ width: 260, height: 180, background: 'linear-gradient(to bottom, #a39c92, #534c42)', borderRadius: 16, flexShrink: 0 }}></div>
+              </div>
+            </div>
           </div>
         </div>
-        <AIPromptBar onGenerated={handleAIGenerated} />
       </div>
     );
   }
 
-  if (isLoading) return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
-  if (isError) return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'red' }}>Failed to load site.</div>;
+  if (isLoading && !isGenerating) return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
+  if (isError && !isGenerating) return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'red' }}>Failed to load site.</div>;
 
   return (
     <div className="canvas-builder">
-      {/* ── Toolbar ─────────────────────────────────────────────── */}
-      <div className="canvas-toolbar">
-        <div className="canvas-toolbar-left" style={{ paddingLeft: 120 }}>
-        </div>
-
-        <div className="canvas-toolbar-center">
-          <button className="canvas-tool-btn" onClick={zoomOut} title="Zoom Out"><ZoomOutOutlined /></button>
-          <span className="canvas-zoom-display">{Math.round(zoom * 100)}%</span>
-          <button className="canvas-tool-btn" onClick={zoomIn} title="Zoom In"><ZoomInOutlined /></button>
-          <div className="canvas-divider" />
-          <button className="canvas-tool-btn" onClick={resetZoom} title="Fit to Screen"><FullscreenOutlined /></button>
-          <div className="canvas-divider" />
-          
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="canvas-tool-btn canvas-tool-btn-text" title="Generate with AI"><ThunderboltOutlined /> Generate</button>
-            <button className="canvas-tool-btn canvas-tool-btn-text" title="Modify with AI"><CodeOutlined /> Modify</button>
-          </div>
-          <div className="canvas-divider" />
-          
-          <div id="portal-toolbar" style={{ display: 'inline-flex', alignItems: 'center' }}></div>
-        </div>
-
-        <div className="canvas-toolbar-right" style={{ display: 'flex', gap: 8 }}>
-          <button 
-            className="canvas-tool-btn canvas-tool-btn-text" 
-            title="Preview"
-            onClick={() => {
-              const homePage = pages?.find((p: any) => p.slug === 'home' || p.slug === '/') || pages?.[0];
-              if (homePage) {
-                window.open(`/live/${homePage.id}`, '_blank');
-              }
-            }}
-          >
-            <EyeOutlined /> Preview
-          </button>
-          <button className="canvas-tool-btn canvas-tool-btn-text" title="Share"><ShareAltOutlined /> Share</button>
-          <button className="canvas-tool-btn canvas-tool-btn-text" style={{ background: 'var(--color-accent)', color: '#fff' }} onClick={() => window.open(`https://${siteId}.genzite.com`, '_blank')} title="View Live"><GlobalOutlined /> Publish</button>
-        </div>
-      </div>
-
-      {/* ── Body ───────────────────────────────────────────────── */}
-      <div className="canvas-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-        
-        {/* Left: Layers & Structure (Floating) */}
-        <div className="canvas-sidebar-left" style={{ position: 'absolute', left: 24, top: 24, bottom: 120, width: 280, background: '#111827', borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #1E293B' }}>
-          <div id="portal-left-sidebar" style={{ width: '100%', height: '100%', overflowY: 'auto' }}>
-            {/* Portaled from GrapesEditor */}
-          </div>
-        </div>
-
-        {/* Center: Infinite Canvas */}
-        <div
-          className="canvas-center"
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onContextMenu={(e) => { e.preventDefault(); handleMouseDown(e); }} // Right click pan
-          style={{ cursor: isPanning ? 'grabbing' : 'default', background: '#0B0F19' }}
-          onClick={(e) => {
-            if ((e.target as HTMLElement).classList.contains('canvas-center') ||
-                (e.target as HTMLElement).classList.contains('canvas-viewport')) {
-              setSelectedId(null);
-              setSelectedWidgetObj(null);
-            }
-          }}
-        >
-          {/* Viewport with zoom + pan transform */}
-          <div
-            className="canvas-viewport"
-            style={{ 
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: '0 0',
-              position: 'absolute',
-              width: 10000, height: 10000 // Very large logical space
-            }}
-          >
-            {(pages || []).map((page: any, index: number) => (
-              <div 
-                key={page.id} 
-                style={{ 
-                  position: 'absolute', 
-                  left: index * PAGE_SPACING, 
-                  top: 100 
-                }}
-              >
-                <CanvasPageFrame
-                  pageId={page.id}
-                  pageTitle={page.title}
-                  globalSelectedId={selectedId}
-                  onSelectWidget={setSelectedId}
-                  onUpdateWidget={setSelectedWidgetObj}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Property Editor (Floating) */}
-        <div className="canvas-sidebar-right" style={{ position: 'absolute', right: 24, top: 24, bottom: 120, width: 320, background: '#111827', borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.5)', zIndex: 50, transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #1E293B' }}>
-          
-          <div id="portal-right-sidebar" style={{ width: '100%', height: '100%', overflowY: 'auto', display: isGrapesSelected ? 'block' : 'none' }}>
-            {/* Portaled from GrapesEditor */}
-          </div>
-
-
-
-          <div style={{ display: selectedWidgetObj && selectedWidgetObj.type !== 'GRAPESJS' ? 'block' : 'none', padding: 16 }}>
-            <DarkPropertyEditor
-              widget={selectedWidgetObj}
-              onChange={() => {}}
-              onSizeChange={() => {}} 
-            />
-          </div>
-        </div>
-        
-        <div className="canvas-prompt-wrapper">
-          <AIPromptBar compact onGenerated={handleAIGenerated} siteId={siteId} />
-        </div>
-      </div>
+      <CanvasWorkspace
+        pages={pages || []}
+        siteId={siteId!}
+        site={site}
+        onAIGenerated={handleAIGenerated}
+      />
     </div>
   );
 };

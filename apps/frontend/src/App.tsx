@@ -25,6 +25,7 @@ const CanvasLayout = lazy(() => import('./layouts/CanvasLayout'));
 
 const LandingPage = lazy(() => import('./pages/Public/LandingPage'));
 const LiveViewer = lazy(() => import('./pages/Public/LiveViewer'));
+const PreviewViewer = lazy(() => import('./pages/Site/PreviewViewer'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const ForgotPassword = lazy(() => import('./pages/Auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/Auth/ResetPassword'));
@@ -191,6 +192,7 @@ const App: React.FC = () => {
                 <Route path="/features" element={<LandingPage />} />
                 <Route path="/contact" element={<LandingPage />} />
                 <Route path="/live/:pageId" element={<LiveViewer />} />
+                <Route path="/preview/:siteId" element={<PreviewViewer />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

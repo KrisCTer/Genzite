@@ -228,6 +228,7 @@ Rules:
 
 Output format:
 {
+  "siteName": "A creative, relevant name for the website",
   "sections": [
     {
       "type": "HEADER",

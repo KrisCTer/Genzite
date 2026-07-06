@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from './client';
 
 export interface MediaFile {
@@ -14,15 +15,73 @@ export const fetchMediaFilesApi = async () => {
   return response.data;
 };
 
-export const uploadMediaFileApi = async (file: File, onUploadProgress?: (progressEvent: any) => void) => {
-  const formData = new FormData();
-  formData.append('file', file);
+const convertToWebP = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    // Only convert image files (excluding svg/gif where webp conversion might break animation/vector)
+    if (!file.type.startsWith('image/') || file.type === 'image/svg+xml' || file.type === 'image/gif' || file.type === 'image/webp') {
+      return resolve(file);
+    }
 
-  const response = await apiClient.post<MediaFile>('/media/upload', formData, {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(file);
+      
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => {
+        if (!blob) return resolve(file);
+        
+        const newFilename = file.name.replace(/\.[^/.]+$/, "") + '.webp';
+        const webpFile = new File([blob], newFilename, {
+          type: 'image/webp',
+          lastModified: Date.now(),
+        });
+        
+        resolve(webpFile);
+      }, 'image/webp', 0.85);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file); // Fallback to original if decoding fails
+    };
+    
+    img.src = objectUrl;
+  });
+};
+
+export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: (progressEvent: any) => void) => {
+  const file = await convertToWebP(originalFile);
+
+  // 1. Get presigned URL
+  const presignedRes = await apiClient.post<{ uploadUrl: string; s3Key: string }>('/media/presigned-url', {
+    filename: file.name,
+    mimeType: file.type,
+  });
+  
+  const { uploadUrl, s3Key } = presignedRes.data;
+
+  // 2. Upload file directly to S3/MinIO using the presigned URL
+  await axios.put(uploadUrl, file, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      'Content-Type': file.type,
     },
     onUploadProgress,
   });
-  return response.data;
+
+  // 3. Confirm upload with the backend
+  const confirmRes = await apiClient.post<MediaFile>('/media/confirm', {
+    s3Key,
+    filename: file.name,
+    mimeType: file.type,
+    sizeBytes: file.size,
+  });
+
+  return confirmRes.data;
 };

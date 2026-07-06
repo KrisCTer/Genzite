@@ -43,7 +43,7 @@ export const createSiteApi = async (data: { name: string; subdomain: string; des
   return response.data;
 };
 
-export const updateSiteApi = async (id: string, data: { name?: string; subdomain?: string; settings?: any }) => {
+export const updateSiteApi = async (id: string, data: { name?: string; subdomain?: string; description?: string; settings?: any }) => {
   const response = await apiClient.put<Site>(`/sites/${id}`, data);
   return response.data;
 };

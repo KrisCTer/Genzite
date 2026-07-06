@@ -1,29 +1,32 @@
 .ai-prompt-bar {
-  position: fixed;
-  bottom: 52px;
-  left: 50%;
+  position: relative;
   z-index: var(--z-overlay);
   display: flex;
-  width: min(820px, calc(100vw - 56px));
+  width: 100%;
   flex-direction: column;
   gap: 12px;
-  transform: translateX(-50%);
   animation: promptEnter 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .ai-prompt-bar.compact {
-  bottom: 20px;
-  width: min(640px, calc(100vw - 48px));
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: promptEnter 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .ai-prompt-bar-inner {
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   min-height: 92px;
-  padding: 14px;
-  overflow: hidden;
+  padding: 16px 20px;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 28px;
   background:
@@ -47,6 +50,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  border-radius: inherit;
   background:
     radial-gradient(circle at 14% 0%, rgba(0, 229, 255, 0.16), transparent 34%),
     radial-gradient(circle at 86% 100%, rgba(139, 92, 246, 0.13), transparent 36%);
@@ -68,17 +72,13 @@
   border-color: rgba(0, 229, 255, 0.28);
 }
 
-.ai-prompt-main-row,
-.ai-prompt-controls {
+.ai-prompt-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
   position: relative;
   z-index: 1;
-}
-
-.ai-prompt-main-row {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 12px;
 }
 
 .ai-prompt-left-tools,
@@ -127,9 +127,8 @@
 
 .ai-prompt-input {
   width: 100%;
-  min-height: 58px;
-  max-height: 120px;
-  padding: 11px 0 8px;
+  min-height: 80px;
+  padding: 8px 4px;
   overflow-y: auto;
   border: 0;
   outline: 0;
@@ -139,6 +138,8 @@
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.55;
+  z-index: 1;
+  position: relative;
 }
 
 .ai-prompt-input::placeholder {
@@ -355,6 +356,17 @@
 @keyframes promptEnter {
   from {
     opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes promptEnterCompact {
+  from {
+    opacity: 0;
     transform: translateX(-50%) translateY(18px) scale(0.985);
   }
   to {
@@ -433,4 +445,395 @@
   .ai-prompt-bar-inner {
     transition: none;
   }
+}
+
+.ai-platform-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 4px;
+}
+
+.ai-platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  padding: 6px 12px;
+  color: #a1a1aa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.ai-platform-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.ai-prompt-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-start;
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+.ai-prompt-quick-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 8px 16px;
+  color: #e5e5e5;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.ai-prompt-quick-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ai-prompt-theme-btn,
+.ai-prompt-model-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 6px 12px;
+  color: #a1a1aa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.ai-prompt-theme-btn:hover,
+.ai-prompt-model-btn:hover,
+.ai-prompt-theme-btn.active,
+.ai-prompt-model-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Trigger HMR */
+
+/* --- Dropdown Menus --- */
+.ai-add-menu,
+.ai-theme-menu,
+.ai-model-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  background: rgba(15, 20, 30, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: menuFadeIn 0.2s ease-out both;
+}
+
+.ai-theme-picker-wrapper,
+.ai-model-picker-wrapper,
+.ai-add-picker-wrapper {
+  position: relative;
+}
+
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Add Menu */
+.ai-add-menu {
+  left: 0;
+  width: 200px;
+}
+.ai-add-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+  text-align: left;
+}
+.ai-add-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Theme Menu */
+.ai-theme-menu {
+  right: 0;
+  width: 280px;
+  padding: 16px;
+}
+.ai-theme-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.ai-theme-desc {
+  font-size: 13px;
+  color: #a1a1aa;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+.ai-theme-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 16px;
+  transition: background 0.15s;
+}
+.ai-theme-add-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.ai-theme-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.ai-theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-theme-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+  text-align: left;
+}
+.ai-theme-item:hover, .ai-theme-item.selected {
+  background: rgba(255, 255, 255, 0.1);
+}
+.ai-theme-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.ai-theme-item-check {
+  margin-left: auto;
+  color: #00e5ff;
+}
+
+/* Model Menu */
+.ai-model-menu {
+  right: 0;
+  width: 320px;
+}
+.ai-model-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.ai-model-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.ai-model-item-icon {
+  margin-top: 2px;
+  color: #a1a1aa;
+}
+.ai-model-item:hover .ai-model-item-icon {
+  color: #fff;
+}
+.ai-model-item-content {
+  flex: 1;
+}
+.ai-model-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.ai-model-item-desc {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+}
+.ai-model-item-check {
+  color: #00e5ff;
+  margin-top: 2px;
+}
+
+/* ─── Compact Chat Bar Refinements ─── */
+.ai-prompt-bar.compact .ai-prompt-bar-inner {
+  min-height: auto;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(15, 18, 28, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 40px rgba(59, 130, 246, 0.1);
+}
+
+.ai-prompt-bar.compact .ai-prompt-input {
+  min-height: 26px;
+  height: 26px;
+  max-height: 120px;
+  padding: 2px 6px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.ai-prompt-bar.compact .ai-prompt-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.ai-prompt-bar.compact .ai-prompt-bottom-row {
+  margin-top: 2px;
+}
+
+.ai-prompt-bar.compact .ai-prompt-icon-btn,
+.ai-prompt-bar.compact .ai-prompt-theme-btn {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 10px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.ai-prompt-bar.compact .ai-prompt-model-btn {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 16px;
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  gap: 5px;
+}
+
+.ai-prompt-bar.compact .ai-prompt-submit {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+}
+
+/* Compact Suggestion Chips above chat box */
+.ai-prompt-quick.compact-quick {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 0 4px 4px 4px;
+  margin: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+.ai-prompt-quick.compact-quick::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-prompt-quick-chip.compact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(20, 25, 38, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.ai-prompt-quick-chip.compact-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.chip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  margin-left: 2px;
 }

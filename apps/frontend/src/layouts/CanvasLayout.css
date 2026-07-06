@@ -1,41 +1,290 @@
-/* CanvasLayout — Full-bleed container for Canvas Builder */
 .canvas-layout {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   position: relative;
   background: var(--color-bg-canvas);
 }
 
-.canvas-layout-back {
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: var(--z-sticky);
+.canvas-spotlight {
+  display: none; /* Moved to canvas-center level in CanvasBuilder.css */
+}
+
+.canvas-layout:hover .canvas-spotlight {
+  opacity: 0;
+}
+
+.canvas-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  background-color: transparent; /* Match canvas background */
+  /* subtle dot grid background on the bar itself, similar to the image */
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0);
+  background-size: 16px 16px;
+  background-position: 0 0;
+  border-bottom: none; /* No divider line */
+  z-index: 100;
+}
+
+.canvas-topbar-left, .canvas-topbar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px 6px 10px;
-  background: var(--gz-dark-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  font-family: var(--font-sans);
+  gap: 16px;
+}
+
+.canvas-topbar-right {
+  gap: 12px;
+}
+
+.canvas-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-out);
-  backdrop-filter: blur(12px);
-  opacity: 0.7;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s ease;
 }
 
-.canvas-layout-back:hover {
-  background: var(--gz-dark-5);
-  color: var(--color-text-primary);
-  opacity: 1;
-  transform: translateX(2px);
+.canvas-brand:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.canvas-layout-back-text {
+.canvas-brand-name {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 17px;
   letter-spacing: 0.02em;
+}
+
+.canvas-brand-beta {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a1a1aa;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 12px;
+  letter-spacing: 0.05em;
+}
+
+.canvas-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.canvas-icon-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.canvas-icon-btn.with-text {
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 10px;
+}
+
+.canvas-icon-btn.with-badge .notification-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  background-color: #60a5fa; /* Blue dot */
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #1a1a1a;
+}
+
+.canvas-avatar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.canvas-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  margin-left: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.canvas-avatar:hover {
+  transform: scale(1.05);
+}
+
+.canvas-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* User Popover Menu */
+.user-popover-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 280px;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+.user-popover-logo {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.user-popover-close {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.user-popover-close:hover {
+  color: #fff;
+}
+
+.user-popover-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-popover-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-popover-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-popover-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.user-popover-name {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-popover-email {
+  color: #a1a1aa;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-popover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-popover-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 10px 16px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-popover-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.user-popover-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-popover-footer a {
+  color: #a1a1aa;
+  font-size: 11px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.user-popover-footer a:hover {
+  color: #fff;
+}
+
+.canvas-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
 }

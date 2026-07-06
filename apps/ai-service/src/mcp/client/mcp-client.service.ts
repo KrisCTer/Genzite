@@ -85,10 +85,18 @@ export class McpClientService implements OnModuleInit, OnModuleDestroy {
     try {
       const configs: McpServerConfig[] = JSON.parse(serversJson);
       for (const serverConfig of configs) {
-        // Skip dummy/placeholder servers injected from infra/.env to prevent 404/Connection closed errors
+        // Skip only dummy/placeholder servers injected from env to prevent 404/Connection closed errors
         if (serverConfig.name === 'codebase' || serverConfig.name === 'stitch') {
-          this.logger.log(`Skipping dummy MCP server: ${serverConfig.name}`);
-          continue;
+          const isDummyUrl = serverConfig.url && (serverConfig.url.includes('localhost:9999') || serverConfig.url.includes('dummy') || serverConfig.url.includes('placeholder'));
+          const isDummyCommand = serverConfig.command && serverConfig.args && (
+            serverConfig.args.includes('@anthropic/stitch-mcp') || 
+            serverConfig.args.includes('./node_modules/.bin/codebase-memory-mcp')
+          );
+          
+          if (isDummyCommand || (!serverConfig.command && (!serverConfig.url || isDummyUrl))) {
+            this.logger.log(`Skipping dummy MCP server: ${serverConfig.name}`);
+            continue;
+          }
         }
         await this.connect(serverConfig);
       }

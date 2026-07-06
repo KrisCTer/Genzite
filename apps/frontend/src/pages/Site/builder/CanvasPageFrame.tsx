@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import { message } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
+import { Monitor, Star, ThumbsUp, ThumbsDown, FileCode2, Sparkles, Pen, Eye, ChevronDown, MoreVertical } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWidgetsApi, replaceWidgetsApi } from '../../../api/sites';
 import WidgetRenderer from './WidgetRenderer';
@@ -36,20 +37,26 @@ const WIDGET_DEFAULTS: Record<string, { w: number; h: number }> = {
 interface CanvasPageFrameProps {
   pageId: string;
   pageTitle: string;
+  siteName?: string;
   globalSelectedId: string | null;
   onSelectWidget: (id: string | null) => void;
-  onUpdateWidget: (widget: CanvasWidget | null) => void;
+  onUpdateWidget?: (widget: CanvasWidget | null) => void;
+  activeTool?: string;
 }
 
 const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   pageId,
   pageTitle,
+  siteName,
   globalSelectedId,
   onSelectWidget,
-  onUpdateWidget
+  onUpdateWidget,
+  activeTool
 }) => {
   const queryClient = useQueryClient();
   const [widgets, setWidgets] = useState<CanvasWidget[]>([]);
+  const [past, setPast] = useState<CanvasWidget[][]>([]);
+  const [future, setFuture] = useState<CanvasWidget[][]>([]);
   const [hasUnsaved, setHasUnsaved] = useState(false);
 
   const { data: dbWidgets, isLoading } = useQuery({
@@ -78,9 +85,56 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         return widget;
       });
       setWidgets(mapped);
+      setPast([]);
+      setFuture([]);
       setHasUnsaved(false);
     }
   }, [dbWidgets, pageId]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('genzite:history:state', {
+      detail: { pageId, canUndo: past.length > 0, canRedo: future.length > 0 }
+    }));
+  }, [past.length, future.length, pageId]);
+
+  useEffect(() => {
+    const handleUndo = (e: any) => {
+      if (e.detail?.pageId !== pageId) return;
+      setPast(p => {
+        if (p.length === 0) return p;
+        const newPast = [...p];
+        const previous = newPast.pop()!;
+        setWidgets(current => {
+          setFuture(f => [current, ...f]);
+          return previous;
+        });
+        setHasUnsaved(true);
+        return newPast;
+      });
+    };
+
+    const handleRedo = (e: any) => {
+      if (e.detail?.pageId !== pageId) return;
+      setFuture(f => {
+        if (f.length === 0) return f;
+        const newFuture = [...f];
+        const next = newFuture.shift()!;
+        setWidgets(current => {
+          setPast(p => [...p, current]);
+          return next;
+        });
+        setHasUnsaved(true);
+        return newFuture;
+      });
+    };
+
+    window.addEventListener('genzite:undo', handleUndo);
+    window.addEventListener('genzite:redo', handleRedo);
+    return () => {
+      window.removeEventListener('genzite:undo', handleUndo);
+      window.removeEventListener('genzite:redo', handleRedo);
+    };
+  }, [pageId]);
 
   const saveMutation = useMutation({
     mutationFn: (payload: any[]) => replaceWidgetsApi(pageId, payload),
@@ -165,7 +219,12 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   };
 
   const updateWidgetGeometry = (id: string, x: number, y: number, width: number, height: number) => {
-    setWidgets(prev => prev.map(w => w._id === id ? { ...w, x, y, width, height } : w));
+    setWidgets(prev => {
+      const next = prev.map(w => w._id === id ? { ...w, x, y, width, height } : w);
+      setPast(p => [...p, prev].slice(-50));
+      setFuture([]);
+      return next;
+    });
     setHasUnsaved(true);
     const updated = widgets.find(w => w._id === id);
     if (updated) {
@@ -174,7 +233,12 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   };
 
   const deleteWidget = (id: string) => {
-    setWidgets(prev => prev.filter(w => w._id !== id));
+    setWidgets(prev => {
+      const next = prev.filter(w => w._id !== id);
+      setPast(p => [...p, prev].slice(-50));
+      setFuture([]);
+      return next;
+    });
     if (globalSelectedId === id) onSelectWidget(null);
     setHasUnsaved(true);
   };
@@ -182,19 +246,49 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   const canvasHeight = Math.max(600, widgets.reduce((max, w) => Math.max(max, w.y + w.height), 600));
 
   return (
-    <div style={{ position: 'relative', width: 1440, height: canvasHeight, background: '#111827', border: '2px solid #1E293B', borderRadius: 8, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-      {/* Frame Header */}
-      <div style={{ position: 'absolute', top: -40, left: 0, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0, color: 'var(--color-text-secondary)' }}>{pageTitle}</h3>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="canvas-tool-btn" onClick={handleExportHTML} title="Export HTML">⬇</button>
-          <button className={`canvas-save-btn ${hasUnsaved ? 'unsaved' : 'saved'}`} onClick={handleSave} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? 'Saving…' : hasUnsaved ? 'Publish' : 'Published'}
-          </button>
+    <div 
+      style={{ position: 'relative', width: 1440, height: canvasHeight }}
+      onPointerDown={(e) => {
+        if (e.button === 0 && activeTool === 'select') {
+          const firstWidget = widgets[0];
+          if (firstWidget) {
+            onSelectWidget(firstWidget._id);
+            onUpdateWidget(firstWidget);
+          }
+        }
+      }}
+    >
+      {/* Frame Header (Browser Tab Style) */}
+      <div className="canvas-page-drag-handle" style={{ 
+        position: 'absolute', 
+        top: -48, 
+        left: 0, 
+        width: '100%', 
+        height: 40, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        color: '#f8fafc', 
+        fontFamily: 'Inter, sans-serif' 
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
+          <Monitor size={18} />
+          <span>{siteName ? `${siteName} - ${pageTitle}` : pageTitle}</span>
         </div>
       </div>
 
-      {isLoading && <div style={{ color: 'white', padding: 20 }}>Loading...</div>}
+      {/* Main Content Container with Dynamic Border */}
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        background: '#111827', 
+        border: globalSelectedId && widgets.some(w => w._id === globalSelectedId) ? '3px solid #8b5cf6' : '3px solid #ffffff',
+        borderRadius: 12, 
+        overflow: 'hidden',
+        position: 'relative',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
+      }}>
+        {isLoading && <div style={{ color: '#111827', padding: 20 }}>Loading...</div>}
 
       {widgets.map((widget) => (
         <Rnd
@@ -205,7 +299,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           onDragStop={(_e, d) => updateWidgetGeometry(widget._id, d.x, d.y, widget.width, widget.height)}
           onResizeStop={(_e, _dir, ref, _delta, pos) => updateWidgetGeometry(widget._id, pos.x, pos.y, ref.offsetWidth, ref.offsetHeight)}
           minWidth={120} minHeight={60} bounds="parent" dragGrid={[10, 10]} resizeGrid={[10, 10]} cancel=".canvas-widget-delete"
-          dragHandleClassName={widget.type === 'GRAPESJS' ? 'canvas-widget-label' : undefined}
+          dragHandleClassName="canvas-page-drag-handle"
           enableResizing={{ top: true, right: true, bottom: true, left: true, topRight: true, bottomRight: true, bottomLeft: true, topLeft: true }}
           resizeHandleStyles={{
             right: { width: 4, right: -2, background: globalSelectedId === widget._id ? 'var(--color-accent)' : 'transparent' },
@@ -214,22 +308,40 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         >
           <div
             className={`canvas-widget-frame ${globalSelectedId === widget._id ? 'selected' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onSelectWidget(widget._id); onUpdateWidget(widget); }}
+            style={{ position: 'relative', width: '100%', height: '100%' }}
           >
             <span className="canvas-widget-label">{widget.type}</span>
-            <div style={{ width: '100%', height: '100%', overflow: 'hidden', pointerEvents: widget.type === 'GRAPESJS' ? 'auto' : 'none' }}>
+            <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+              
+              {/* Interaction Overlay: Captures drags and clicks, forwards scrolls */}
+              <div 
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, cursor: 'grab' }}
+                onPointerDown={(e) => {
+                  // Allow bubbling so DraggableBoard can drag the page
+                  if (e.button === 0 && activeTool === 'select') {
+                    onSelectWidget(widget._id); 
+                    onUpdateWidget(widget);
+                  }
+                }}
+                onWheel={(e) => {
+                  e.preventDefault(); // Prevent default page scroll
+                  const iframe = e.currentTarget.parentElement?.querySelector('iframe');
+                  if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.scrollBy({ top: e.deltaY, behavior: 'auto' });
+                  }
+                }}
+              />
+
               {widget.type === 'GRAPESJS' ? (
-                <GrapesEditor htmlContent={widget.contentConfig.html} />
+                <GrapesEditor htmlContent={widget.contentConfig.html} readOnly={globalSelectedId !== widget._id} />
               ) : (
                 <WidgetRenderer type={widget.type} config={widget.contentConfig} isActive={globalSelectedId === widget._id} />
               )}
             </div>
-            <button className="canvas-widget-delete" onClick={(e) => { e.stopPropagation(); deleteWidget(widget._id); }}>
-              <DeleteOutlined style={{ fontSize: 10 }} />
-            </button>
           </div>
         </Rnd>
       ))}
+      </div>
     </div>
   );
 };

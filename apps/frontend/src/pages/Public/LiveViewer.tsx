@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
 import { fetchWidgetsApi, fetchPagesApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, InfoCircleOutlined, CloseOutlined } from '@ant-design/icons';
 import CartDrawer from '../../components/CartDrawer';
 
 interface LiveViewerProps {
   siteId?: string;
 }
 
-const LiveViewer: React.FC<LiveViewerProps> = ({ siteId }) => {
+const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
+  const [searchParams] = useSearchParams();
   const { pageId: paramPageId } = useParams<{ pageId: string }>();
+  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && paramPageId.length > 20 ? paramPageId : undefined); // rudimentary check for UUID-like siteId if passed in path
+
+  const isParamActuallySiteId = paramPageId === siteId || paramPageId === 'preview' || paramPageId === '_';
+  
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [resolvedPageId, setResolvedPageId] = useState<string | null>(paramPageId || null);
+  const [resolvedPageId, setResolvedPageId] = useState<string | null>(isParamActuallySiteId ? null : (paramPageId || null));
+  const [showBanner, setShowBanner] = useState(isParamActuallySiteId);
 
   useEffect(() => {
     // Dynamically inject Tailwind CDN so that AI-generated classes work at runtime in Live View
@@ -25,6 +31,18 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId }) => {
       script.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
       document.head.appendChild(script);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      window.parent.postMessage({
+        type: 'CANVAS_MOUSE_MOVE',
+        clientX: e.clientX,
+        clientY: e.clientY
+      }, '*');
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   useEffect(() => {
@@ -49,7 +67,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId }) => {
   }, [siteId, resolvedPageId]);
 
   useEffect(() => {
-    const targetPageId = resolvedPageId || paramPageId;
+    const targetPageId = resolvedPageId || (isParamActuallySiteId ? null : paramPageId);
     if (targetPageId) {
       setLoading(true);
       fetchWidgetsApi(targetPageId)
@@ -119,6 +137,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId }) => {
       position: 'relative', 
       overflowX: 'hidden' 
     }}>
+      
       {/* Return button for preview purpose (only if not viewing via subdomain) */}
       {!siteId && (resolvedPageId || paramPageId) && (
         <Link to={`/admin/site/pages/${resolvedPageId || paramPageId}/builder`} style={{

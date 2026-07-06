@@ -298,7 +298,7 @@ export class SiteGeneratorService {
 
       // STEP 1: Plan Sections
       const planPrompt = SECTION_PLANNER_PROMPT.replace('{{PROMPT}}', prompt);
-      const planResult = await this.ai.generateJson<{ sections: any[] }>(planPrompt, {
+      const planResult = await this.ai.generateJson<{ siteName?: string; sections: any[] }>(planPrompt, {
         model: 'gemini-2.0-flash',
         systemInstruction: SECTION_PLANNER_SYSTEM,
       });
@@ -467,7 +467,7 @@ export class SiteGeneratorService {
       const generatedSubdomain = siteId ? siteId : `gen-${Date.now()}`;
       const result: GeneratedSite = {
         generationMode: 'hybrid',
-        site: { name: "Hybrid Site", subdomain: generatedSubdomain, ...(siteId ? { id: siteId } : {}) },
+        site: { name: planResult.siteName || "Hybrid Site", subdomain: generatedSubdomain, ...(siteId ? { id: siteId } : {}) },
         pages: [{
           title: "Home",
           slug: "home",
