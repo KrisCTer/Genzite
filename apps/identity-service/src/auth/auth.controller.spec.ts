@@ -44,10 +44,19 @@ describe('AuthController', () => {
   describe('login', () => {
     it('should call authService.login and return the result', async () => {
       const dto = { email: 'test@test.com', password: 'password' };
-      const expectedResult = { 
-        accessToken: 'token', 
-        expiresIn: 3600, 
-        user: { id: '1', email: 'test@test.com', name: 'test', role: 'admin' } 
+      const expectedResult = {
+        accessToken: 'token',
+        refreshToken: 'refresh-token',
+        expiresIn: 900,
+        user: {
+          id: 'uuid-1',
+          email: dto.email,
+          name: 'Test',
+          roles: ['VIEWER'],
+          avatarUrl: null,
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString(),
+        },
       };
       jest.spyOn(authService, 'login').mockResolvedValue(expectedResult);
 

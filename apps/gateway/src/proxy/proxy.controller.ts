@@ -37,6 +37,8 @@ export class ProxyController {
       this.proxies[key] = createProxyMiddleware({
         target,
         changeOrigin: true,
+        proxyTimeout: 30000, // 30s timeout
+        timeout: 30000,
         on: {
           proxyReq: fixRequestBody,
           proxyRes: (proxyRes) => {

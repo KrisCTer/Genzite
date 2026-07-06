@@ -1,0 +1,155 @@
+### Genzite Identity Service API Tests
+@baseUrl = http://localhost:3001/api/v1
+
+# ====================================================================
+# HƯỚNG DẪN TEST TUẦN TỰ (END-TO-END)
+# Vui lòng chạy các Request từ trên xuống dưới theo đúng số thứ tự.
+# Ở các bước (2) và (10) sau khi Login, nhớ copy "accessToken" trả về
+# và dán vào biến @token tương ứng bên dưới để chạy các bước tiếp theo.
+# ====================================================================
+
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NWEwOTkwYS02ODQ2LTQ0ZmMtODYwNi02ODUzOWI2YjRkYmQiLCJlbWFpbCI6ImRhbmhjYW9sYW1odW5nOTEyMjAwNEBnbWFpbC5jb20iLCJyb2xlcyI6W10sImlhdCI6MTc4MzIyMjU0OSwiZXhwIjoxNzgzMjIzNDQ5fQ.QF-qcinmgB9nJ1uLUQXvnqHxH3Jdh4NozD9xZzrgG-s
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNTg1NGEyNS05YzhjLTQ3YWUtOGQ2Yy1kNzhhNWI4NjljOWYiLCJlbWFpbCI6ImFkbWluQGdlbnppdGUuY29tIiwicm9sZXMiOlsiYWRtaW4iXSwiaWF0IjoxNzgzMjIyNTg4LCJleHAiOjE3ODMyMjM0ODh9.JIpTTMIetwJn8G_nLZYz0kHcaCBzvQEyNbuMjkE-jtQ
+@targetUserId = 65a0990a-6846-44fc-8606-68539b6b4dbd
+
+
+### ------------------------------------------------------------------
+### GIAI ĐOẠN 1: NGƯỜI DÙNG THÔNG THƯỜNG (USER FLOW)
+### ------------------------------------------------------------------
+
+### BƯỚC 1: Đăng ký tài khoản (Register)
+# Dùng email thật của bạn để lát nữa nhận email khôi phục mật khẩu.
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "danhcaolamhung9122004@gmail.com",
+  "password": "User@12345",
+  "name": "Lâm Hùng"
+}
+
+### BƯỚC 2: Đăng nhập (Login)
+# Chạy xong, copy chuỗi "accessToken" và dán đè lên chữ YOUR_USER_TOKEN_HERE ở dòng 12.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "danhcaolamhung9122004@gmail.com",
+  "password": "User@12345"
+}
+
+### BƯỚC 3: Sửa Hồ sơ (Update Profile)
+# Test xem Token vừa dán có hoạt động không
+POST {{baseUrl}}/users/me
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "name": "Lâm Hùng (Đã cập nhật)",
+  "avatarUrl": "https://s3.aws.com/avatar.jpg",
+  "metadata": {
+    "theme": "dark",
+    "phone": "+84123456789"
+  }
+}
+
+### BƯỚC 4: Xem Hồ sơ (Get Profile)
+# Kiểm tra xem dữ liệu cập nhật ở Bước 3 đã vào Database chưa
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{userToken}}
+
+### BƯỚC 5: Đổi mật khẩu chủ động (Change Password)
+# Mật khẩu cũ là User@12345, đổi sang mật khẩu mới.
+PUT {{baseUrl}}/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "oldPassword": "User@12345",
+  "newPassword": "User@123456"
+}
+
+### BƯỚC 6: Quên mật khẩu (Forgot Password)
+# Gửi yêu cầu Khôi phục mật khẩu. Hãy mở hộp thư Gmail của bạn để lấy Token.
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "danhcaolamhung9122004@gmail.com"
+}
+
+### BƯỚC 7: Đặt lại mật khẩu từ Email (Reset Password)
+# Thay chuỗi TOKEN_TRONG_EMAIL bằng Token bạn vừa nhận được.
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NWEwOTkwYS02ODQ2LTQ0ZmMtODYwNi02ODUzOWI2YjRkYmQiLCJlbWFpbCI6ImRhbmhjYW9sYW1odW5nOTEyMjAwNEBnbWFpbC5jb20iLCJwdXJwb3NlIjoicmVzZXQtcGFzc3dvcmQiLCJpYXQiOjE3ODMyMjI0NDYsImV4cCI6MTc4MzIyMzM0Nn0.ifh7OgWN18TgXsnA1voQok0LIcfREIpNh4NS5jEAklE",
+  "newPassword": "ResetPassword@123"
+}
+
+### BƯỚC 8: Đăng nhập lại với mật khẩu mới
+# Kiểm tra xem quá trình Reset Password ở bước 7 có thành công không.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "danhcaolamhung9122004@gmail.com",
+  "password": "ResetPassword@123"
+}
+
+### BƯỚC 9: Đăng xuất (Logout)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{userToken}}
+
+
+### ------------------------------------------------------------------
+### GIAI ĐOẠN 2: QUẢN TRỊ VIÊN VÀ HỆ THỐNG (ADMIN FLOW)
+### ------------------------------------------------------------------
+
+### BƯỚC 10: Đăng nhập quyền Admin
+# Chạy xong, copy chuỗi "accessToken" và dán đè lên chữ YOUR_ADMIN_TOKEN_HERE ở dòng 13.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@genzite.com",
+  "password": "Admin@12345"
+}
+
+### BƯỚC 11: Xem danh sách User (List All Users)
+# Bắt buộc phải dùng token Admin. Ở kết quả trả về, copy ID của user "Lâm Hùng" 
+# và dán lên chữ ID_CUA_USER_LAY_TU_BUOC_11 ở dòng 14.
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+### BƯỚC 12: Khóa tài khoản User (Lock Account)
+POST {{baseUrl}}/users/{{targetUserId}}/lock
+Authorization: Bearer {{adminToken}}
+
+### BƯỚC 13: Mở khóa tài khoản (Unlock Account)
+POST {{baseUrl}}/users/{{targetUserId}}/unlock
+Authorization: Bearer {{adminToken}}
+
+### BƯỚC 14: Hệ thống trừ Credit (Internal API)
+POST {{baseUrl}}/users/internal/{{targetUserId}}/deduct-credits
+Content-Type: application/json
+x-internal-token: dev-internal-token
+
+{
+  "amount": 10
+}
+
+### BƯỚC 15: Hệ thống hoàn Credit (Internal API)
+POST {{baseUrl}}/users/internal/{{targetUserId}}/refund-credits
+Content-Type: application/json
+x-internal-token: dev-internal-token
+
+{
+  "amount": 5
+}
+
+### BƯỚC 16: Xóa / Vô hiệu hóa tài khoản (Deactivate)
+# Chuyển trạng thái user thành INACTIVE
+DELETE {{baseUrl}}/users/{{targetUserId}}
+Authorization: Bearer {{adminToken}}

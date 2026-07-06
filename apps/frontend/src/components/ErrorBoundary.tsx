@@ -31,7 +31,7 @@ class ErrorBoundary extends Component<Props, State> {
           status="500"
           title="Something went wrong."
           subTitle={this.state.error?.message || "Sorry, an unexpected error has occurred."}
-          extra={<Button type="primary" onClick={() => window.location.href = '/admin'}>Back to Home</Button>}
+          extra={<Button type="primary" onClick={() => { window.location.href = '/'; }}>Back to Home</Button>}
         />
       );
     }
