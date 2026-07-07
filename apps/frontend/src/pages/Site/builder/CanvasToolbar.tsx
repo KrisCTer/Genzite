@@ -15,10 +15,11 @@ import {
 import { Dropdown, Modal, message, type MenuProps } from 'antd';
 import { Sparkles, Pen, Eye, ChevronDown, MoreVertical, Play, PlusSquare, RotateCcw, Flame, Smartphone, Layers, PlayCircle, Store, Globe, Megaphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../../../store/auth';
 import { updateSiteApi, deleteSiteApi } from '../../../api/sites';
+import { fetchAiModelsApi } from '../../../api/ai';
 import { CanvasToolbarModals } from './modals/CanvasToolbarModals';
 
 interface CanvasToolbarProps {
@@ -70,12 +71,86 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
   const [activeDrawerTab, setActiveDrawerTab] = useState<'chat' | 'share' | 'publish' | 'versions' | 'integrations'>('chat');
-  const [selectedModel, setSelectedModel] = useState('Default (Gemini 3.5 Flash)');
+  
+  // Use real models from backend
+  const { data: models = [] } = useQuery({
+    queryKey: ['ai-models'],
+    queryFn: fetchAiModelsApi,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const [selectedModel, setSelectedModel] = useState(site?.settings?.chatModel || 'gemini-2.5-flash');
+  
+  // Keep selectedModel synced if site settings change externally
+  useEffect(() => {
+    if (site?.settings?.chatModel) {
+      setSelectedModel(site.settings.chatModel);
+    }
+  }, [site?.settings?.chatModel]);
+
+  const handleModelChange = async (val: string) => {
+    setSelectedModel(val);
+    if (siteId) {
+      try {
+        await updateSiteApi(siteId, {
+          settings: {
+            ...site?.settings,
+            chatModel: val,
+          },
+        });
+        queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+      } catch (err) {
+        console.error('Failed to update model in backend:', err);
+      }
+    }
+  };
+
   const [micSource, setMicSource] = useState('Default');
   const [isCustomInstOpen, setIsCustomInstOpen] = useState(false);
-  const [shareAccess, setShareAccess] = useState('Restricted: Only people you specify can access');
-  const [defaultFullscreen, setDefaultFullscreen] = useState(false);
-  const [includeChatHistory, setIncludeChatHistory] = useState(false);
+  
+  const [shareAccess, setShareAccess] = useState(site?.settings?.shareAccess || 'Restricted: Only people you specify can access');
+  const [defaultFullscreen, setDefaultFullscreen] = useState(site?.settings?.defaultFullscreen || false);
+  const [includeChatHistory, setIncludeChatHistory] = useState(site?.settings?.includeChatHistory || false);
+  
+  // Keep settings synced if they change externally
+  useEffect(() => {
+    if (site?.settings) {
+      if (site.settings.shareAccess !== undefined) setShareAccess(site.settings.shareAccess);
+      if (site.settings.defaultFullscreen !== undefined) setDefaultFullscreen(site.settings.defaultFullscreen);
+      if (site.settings.includeChatHistory !== undefined) setIncludeChatHistory(site.settings.includeChatHistory);
+    }
+  }, [site?.settings]);
+
+  const updateSetting = async (key: string, value: any) => {
+    if (!siteId) return;
+    try {
+      await updateSiteApi(siteId, {
+        settings: {
+          ...site?.settings,
+          [key]: value,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+    } catch (err) {
+      console.error(`Failed to update ${key} in backend:`, err);
+    }
+  };
+
+  const handleShareAccessChange = (val: string) => {
+    setShareAccess(val);
+    updateSetting('shareAccess', val);
+  };
+
+  const handleDefaultFullscreenChange = (val: boolean) => {
+    setDefaultFullscreen(val);
+    updateSetting('defaultFullscreen', val);
+  };
+
+  const handleIncludeChatHistoryChange = (val: boolean) => {
+    setIncludeChatHistory(val);
+    updateSetting('includeChatHistory', val);
+  };
+
   const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'Product Mockup Visualizer');
   const [nameVal, setNameVal] = useState('');
   const [descVal, setDescVal] = useState('');
@@ -158,14 +233,17 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       key: 'share',
       icon: <ShareAltOutlined />,
       label: 'Chia sẻ',
-      onClick: handleShare,
+      onClick: () => {
+        setActiveDrawerTab('share');
+        setIsChatSettingsOpen(true);
+      },
     },
     {
       key: 'download',
       icon: <DownloadOutlined />,
       label: 'Tải dự án xuống',
       onClick: () => {
-        if (onPublish) onPublish();
+        if (onDownload) onDownload();
         else message.success('Đang bắt đầu tải xuống dự án...');
       },
     },
@@ -181,28 +259,33 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       type: 'divider',
     },
     {
-      key: 'edit',
-      icon: <EditOutlined />,
-      label: 'Chỉnh sửa',
-      onClick: handleOpenRename,
-    },
-    {
-      key: 'help',
-      icon: <QuestionCircleOutlined />,
-      label: 'Trợ giúp',
-      onClick: () => {
-        window.open('https://genzite.com/help', '_blank');
-        message.info('Đang mở trang Trợ giúp Genzite...');
-      },
+      key: 'feedback',
+      icon: <MessageOutlined />,
+      label: 'Gửi phản hồi',
+      onClick: () => setIsBugReportOpen(true),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Cài đặt',
-      onClick: handleOpenRename,
+      onClick: () => {
+        setActiveDrawerTab('chat');
+        setIsChatSettingsOpen(true);
+      },
     },
     {
       type: 'divider',
+    },
+    {
+      key: 'command-menu',
+      icon: <span className="anticon" style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>⌘</span>,
+      label: (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 24 }}>
+          <span>Command menu</span>
+          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Ctrl+K</span>
+        </div>
+      ),
+      onClick: () => message.info('Command Menu (Ctrl+K)'),
     },
     {
       key: 'delete',
@@ -228,25 +311,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             navigate('/project');
           },
         });
-      },
-    },
-    {
-      key: 'command-menu',
-      icon: <span className="anticon" style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>⌘</span>,
-      label: (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 24 }}>
-          <span>Command menu</span>
-          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Ctrl+K</span>
-        </div>
-      ),
-      onClick: () => message.info('Command Menu (Ctrl+K)'),
-    },
-    {
-      key: 'feedback',
-      icon: <MessageOutlined />,
-      label: 'Gửi phản hồi',
-      onClick: () => {
-        message.info('Cảm ơn bạn! Hãy gửi ý kiến đóng góp cho chúng tôi.');
       },
     },
   ];
@@ -817,7 +881,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               title={user?.name || 'User Profile'}
             >
               {user?.name ? (
-                <div className="avatar-initials" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-accent)', color: '#fff', fontWeight: 600, fontSize: 16 }}>
+                <div className="avatar-initials">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               ) : (
@@ -849,11 +913,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         descVal={descVal} setDescVal={setDescVal}
         promptVal={promptVal} setPromptVal={setPromptVal}
         handleSaveRename={handleSaveRename} onPublish={onPublish}
-        selectedModel={selectedModel} setSelectedModel={setSelectedModel}
+        selectedModel={selectedModel} setSelectedModel={handleModelChange}
+        models={models}
         micSource={micSource} setMicSource={setMicSource}
-        shareAccess={shareAccess} setShareAccess={setShareAccess}
-        defaultFullscreen={defaultFullscreen} setDefaultFullscreen={setDefaultFullscreen}
-        includeChatHistory={includeChatHistory} setIncludeChatHistory={setIncludeChatHistory}
+        shareAccess={shareAccess} setShareAccess={handleShareAccessChange}
+        defaultFullscreen={defaultFullscreen} setDefaultFullscreen={handleDefaultFullscreenChange}
+        includeChatHistory={includeChatHistory} setIncludeChatHistory={handleIncludeChatHistoryChange}
         bugReportText={bugReportText} setBugReportText={setBugReportText}
         user={user} handleShare={handleShare}
       />

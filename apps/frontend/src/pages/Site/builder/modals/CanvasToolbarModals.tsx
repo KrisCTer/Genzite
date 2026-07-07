@@ -35,6 +35,7 @@ export interface CanvasToolbarModalsProps {
   
   selectedModel: string;
   setSelectedModel: (val: string) => void;
+  models?: {key: string, label: string}[];
   micSource: string;
   setMicSource: (val: string) => void;
   shareAccess: string;
@@ -60,7 +61,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
   descVal, setDescVal,
   promptVal, setPromptVal,
   handleSaveRename, onPublish,
-  selectedModel, setSelectedModel,
+  selectedModel, setSelectedModel, models = [],
   micSource, setMicSource,
   shareAccess, setShareAccess,
   defaultFullscreen, setDefaultFullscreen,
@@ -361,13 +362,11 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
               </div>
               <Dropdown
                 menu={{
-                  items: [
-                    { key: 'Gemini 3.5 Flash', label: 'Default (Gemini 3.5 Flash)', onClick: () => setSelectedModel('Default (Gemini 3.5 Flash)') },
-                    { key: 'Gemini 3.5 Pro', label: 'Gemini 3.5 Pro (Advanced Reasoning)', onClick: () => setSelectedModel('Gemini 3.5 Pro') },
-                    { key: 'Gemini 3.0 Ultra', label: 'Gemini 3.0 Ultra (Max Intelligence)', onClick: () => setSelectedModel('Gemini 3.0 Ultra') },
-                    { key: 'Claude 3.5 Sonnet', label: 'Claude 3.5 Sonnet (Coding Specialist)', onClick: () => setSelectedModel('Claude 3.5 Sonnet') },
-                    { key: 'GPT-4o', label: 'GPT-4o (Omni Multimodal)', onClick: () => setSelectedModel('GPT-4o') },
-                  ]
+                  items: models.length > 0 ? models.map(m => ({
+                    key: m.key,
+                    label: m.label,
+                    onClick: () => setSelectedModel(m.key)
+                  })) : [{ key: 'loading', label: 'Loading models...', disabled: true }]
                 }}
                 trigger={['click']}
               >
@@ -385,7 +384,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
                   cursor: 'pointer',
                   transition: 'border-color 0.2s'
                 }}>
-                  <span>{selectedModel}</span>
+                  <span>{models.find(m => m.key === selectedModel)?.label || selectedModel}</span>
                   <DownOutlined style={{ fontSize: 11, color: '#94A3B8' }} />
                 </div>
               </Dropdown>
@@ -586,17 +585,23 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
                 justifyContent: 'space-between'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <img
-                    src={user?.avatarUrl || "https://i.pravatar.cc/150?img=33"}
-                    alt="Avatar"
-                    style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                  />
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : user?.name ? (
+                      <div className="avatar-initials">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    ) : (
+                      <img src="https://i.pravatar.cc/150?img=33" alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <span style={{ color: '#fff', fontWeight: 600, fontSize: 13 }}>
-                      {user?.name || 'Châu Phúc Lợi'}
+                      {user?.name || 'Anonymous User'}
                     </span>
                     <span style={{ color: '#94A3B8', fontSize: 13 }}>
-                      {user?.email || 'phucloidanghoconline@gmail.com'}
+                      {user?.email || 'No email available'}
                     </span>
                   </div>
                 </div>
