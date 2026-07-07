@@ -74,7 +74,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     const onResize = (): void => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', onResize);
-    
+
     // SEO setup
     document.title = "Sign In | Genzite Identity";
     let metaDescription = document.querySelector('meta[name="description"]');
@@ -84,7 +84,7 @@ const Login: React.FC = () => {
       document.head.appendChild(metaDescription);
     }
     metaDescription.setAttribute('content', 'Sign in to access your Genzite dashboard, identity management, and AI services.');
-    
+
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
@@ -108,7 +108,7 @@ const Login: React.FC = () => {
       console.error('Login error', err);
       const errorCode = err.response?.data?.errorCode;
       let errMsg = 'Đăng nhập thất bại. Vui lòng thử lại.';
-      
+
       if (errorCode === 'AUTH_INVALID_CREDENTIALS') {
         errMsg = 'Tài khoản hoặc mật khẩu không chính xác.';
       } else if (errorCode === 'AUTH_ACCOUNT_LOCKED') {
@@ -116,7 +116,7 @@ const Login: React.FC = () => {
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message;
       }
-      
+
       setLoginError(errMsg);
     },
   });
@@ -167,8 +167,7 @@ const Login: React.FC = () => {
 
   return (
     <div
-      className="relative flex items-center justify-center min-h-screen overflow-hidden bg-[#030712] px-4"
-      style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #0b0f19 0%, #030712 100%)' }}
+      className="relative flex items-center justify-center min-h-screen overflow-hidden  px-4"
     >
       {/* ── ANT DESIGN overrides to support beautiful centering ── */}
       <style>{`
@@ -232,8 +231,8 @@ const Login: React.FC = () => {
             <div className="gz-login w-1/2 h-full flex flex-col justify-center items-center p-12 text-center">
               <div className="w-full max-w-[320px] h-[296px] flex flex-col justify-start text-left">
                 {/* Header */}
-                <div className="text-center animate-fade-in-down mb-6">
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Sign In</h2>
+                <div className="text-center animate-fade-in-down m-10">
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight">Sign In</h2>
                   {loginError && (
                     <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20">
                       {loginError}

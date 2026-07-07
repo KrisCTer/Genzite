@@ -71,6 +71,17 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  @Get('models')
+  getModels() {
+    return [
+      { key: 'gemini-2.5-flash', label: 'Default (Gemini 2.5 Flash)' },
+      { key: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Advanced Reasoning)' },
+      { key: 'deepseek-chat', label: 'DeepSeek Chat (Coding Specialist)' },
+      { key: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (Groq)' },
+      { key: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B Instruct (Nvidia)' },
+    ];
+  }
+
   @SkipThrottle()
   @Get('site/job/:jobId')
   async getSiteJobStatus(
