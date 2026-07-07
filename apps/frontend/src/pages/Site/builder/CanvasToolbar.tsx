@@ -452,6 +452,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const modifyMenuItems: MenuProps['items'] = [
     {
       key: '1',
+      onClick: () => {
+        if (siteId) navigate(`/edit/${siteId}`);
+      },
       label: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 220, padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

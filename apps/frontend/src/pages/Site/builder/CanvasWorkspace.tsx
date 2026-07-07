@@ -245,6 +245,19 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       const designPrompt = activePage?.settings?.designPrompt || site?.settings?.systemPrompt || 'No design prompt specified.';
       zip.file('DESIGN.md', designPrompt);
       
+      const boardEl = document.getElementById(`board-${activePage.id}`) || document.querySelector('.canvas-viewport') as HTMLElement;
+      if (boardEl) {
+        const canvas = await html2canvas(boardEl, {
+           useCORS: true,
+           scale: 2,
+           backgroundColor: '#F8FAFC'
+        });
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (blob) {
+          zip.file('screen.png', blob);
+        }
+      }
+      
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       saveAs(zipBlob, `${activePage.slug || 'export'}.zip`);
       hideMessage();
