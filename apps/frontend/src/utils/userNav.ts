@@ -18,7 +18,7 @@ export const WORKSPACE_NAV_ITEMS: UserNavItem[] = [
   { key: 'notifications', label: 'Thông báo', path: `${WORKSPACE_BASE}/notifications`, roles: VIEWER_ROLES },
   { key: 'ai-resume', label: 'Resume Builder', path: `${WORKSPACE_BASE}/ai/resume`, roles: VIEWER_ROLES },
   { key: 'ai-interview', label: 'AI Interview', path: `${WORKSPACE_BASE}/ai/interview`, roles: VIEWER_ROLES },
-  { key: 'canvas', label: 'AI Canvas', path: `${WORKSPACE_BASE}/site/canvas`, roles: VIEWER_ROLES },
+  { key: 'canvas', label: 'AI Canvas', path: '/project', roles: VIEWER_ROLES },
   { key: 'ai-agent', label: 'Agent Workspace', path: `${WORKSPACE_BASE}/ai/agent`, roles: VIEWER_ROLES },
 ];
 
@@ -32,7 +32,7 @@ export const ADMIN_NAV_ITEMS: UserNavItem[] = [
   { key: 'site', label: 'Site Builder', path: `${ADMIN_BASE}/site`, roles: STAFF_ROLES },
   { key: 'ai-resume', label: 'Resume Builder', path: `${ADMIN_BASE}/ai/resume`, roles: STAFF_ROLES },
   { key: 'ai-interview', label: 'AI Interview', path: `${ADMIN_BASE}/ai/interview`, roles: STAFF_ROLES },
-  { key: 'canvas', label: 'AI Canvas', path: `${ADMIN_BASE}/site/canvas`, roles: STAFF_ROLES },
+  { key: 'canvas', label: 'AI Canvas', path: '/project', roles: STAFF_ROLES },
   { key: 'ai-agent', label: 'Agent Workspace', path: `${ADMIN_BASE}/ai/agent`, roles: STAFF_ROLES },
   { key: 'ai-logs', label: 'Agent Logs', path: `${ADMIN_BASE}/ai/logs`, roles: STAFF_ROLES },
 ];

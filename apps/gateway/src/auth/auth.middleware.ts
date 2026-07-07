@@ -36,6 +36,7 @@ export class AuthMiddleware implements NestMiddleware {
     'POST /api/v1/auth/forgot-password',
     'POST /api/v1/auth/reset-password',
     'GET /health',
+    'GET /api/v1/ai/stream',
   ];
 
   constructor() {

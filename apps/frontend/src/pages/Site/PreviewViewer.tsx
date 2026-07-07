@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Smartphone, Tablet, Monitor, Share2, RotateCw, ExternalLink, QrCode, Info, X } from 'lucide-react';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../../store/auth';
-import { Modal, Switch, message } from 'antd';
+import { Modal, Switch, message, Spin } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { fetchPagesApi } from '../../api/sites';
 import './CanvasBuilder.css';
 
 const PreviewViewer: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
+  const navigate = useNavigate();
   const [device, setDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -20,6 +23,15 @@ const PreviewViewer: React.FC = () => {
   const avatarRef = useRef<HTMLDivElement>(null);
   const canvasCenterRef = useRef<HTMLDivElement>(null);
   const iframeWrapperRef = useRef<HTMLDivElement>(null);
+
+  const { data: pages, isLoading } = useQuery({
+    queryKey: ['site-pages', siteId],
+    queryFn: () => fetchPagesApi(siteId!),
+    enabled: !!siteId,
+  });
+
+  const homePage = pages?.find((p: any) => p.slug === 'home' || p.slug === '/') || pages?.[0];
+  const liveUrl = homePage ? `/live/${homePage.id}` : null;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -44,10 +56,10 @@ const PreviewViewer: React.FC = () => {
       if (e.data && e.data.type === 'CANVAS_MOUSE_MOVE' && canvasCenterRef.current && iframeWrapperRef.current) {
         const centerRect = canvasCenterRef.current.getBoundingClientRect();
         const iframeRect = iframeWrapperRef.current.getBoundingClientRect();
-        
+
         const parentX = iframeRect.left + e.data.clientX;
         const parentY = iframeRect.top + e.data.clientY;
-        
+
         canvasCenterRef.current.style.setProperty('--mouse-x', `${parentX - centerRect.left}px`);
         canvasCenterRef.current.style.setProperty('--mouse-y', `${parentY - centerRect.top}px`);
       }
@@ -78,7 +90,7 @@ const PreviewViewer: React.FC = () => {
       <div className="canvas-toolbar" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => window.location.href = '/home'}>
+          <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate('/project')}>
             <span style={{ color: '#fff' }}>Genzite</span>
             <span style={{ fontSize: 10, padding: '2px 6px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, verticalAlign: 'middle', fontWeight: 600, color: '#a1a1aa' }}>BETA</span>
           </div>
@@ -93,7 +105,7 @@ const PreviewViewer: React.FC = () => {
           </div>
           <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="canvas-header-btn-icon" onClick={() => window.open(`/live/${siteId}`, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
+            <button className="canvas-header-btn-icon" onClick={() => liveUrl && window.open(liveUrl, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
             <button className="canvas-header-btn-icon" onClick={() => window.location.reload()} title="Reload Preview"><RotateCw size={16} /></button>
             <button className="canvas-header-btn-icon" onClick={() => setIsQrModalOpen(true)} title="QR Code"><QrCode size={16} /></button>
           </div>
@@ -104,9 +116,9 @@ const PreviewViewer: React.FC = () => {
           <button className="canvas-header-btn-pill" onClick={() => setIsShareModalOpen(true)}>
             <Share2 size={14} /> Chia sẻ
           </button>
-          
+
           <div style={{ position: 'relative' }}>
-            <div 
+            <div
               ref={avatarRef}
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
               style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer' }}
@@ -136,7 +148,7 @@ const PreviewViewer: React.FC = () => {
       </div>
 
       {/* Main Preview Area */}
-      <div 
+      <div
         ref={canvasCenterRef}
         className="canvas-center"
         onMouseMove={(e) => {
@@ -154,22 +166,22 @@ const PreviewViewer: React.FC = () => {
           position: 'relative'
         }}
       >
-        <div 
+        <div
           ref={iframeWrapperRef}
           style={{
-          width: getWidth(),
-          height: '100%',
-          maxWidth: '1440px',
-          background: '#fff',
-          borderRadius: 24,
-          overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          transition: 'width 0.3s ease',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1
-        }}>
+            width: getWidth(),
+            height: '100%',
+            maxWidth: '1440px',
+            background: '#fff',
+            borderRadius: 24,
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            transition: 'width 0.3s ease',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1
+          }}>
           {/* Security Banner */}
           {showBanner && (
             <div style={{
@@ -189,20 +201,30 @@ const PreviewViewer: React.FC = () => {
             }}>
               <Info size={16} />
               <span>Nội dung này do một người dùng Genzite tạo. Đừng nhập thông tin nhạy cảm vì chủ sở hữu có thể xem được thông tin đó.</span>
-              <X 
-                size={16} 
-                style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }} 
+              <X
+                size={16}
+                style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }}
                 onClick={() => setShowBanner(false)}
                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                 onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
               />
             </div>
           )}
-          <iframe 
-            src={`/live/${siteId}`} 
-            style={{ width: '100%', flex: 1, border: 'none' }} 
-            title="Preview"
-          />
+          {isLoading ? (
+            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Spin size="large" />
+            </div>
+          ) : liveUrl ? (
+            <iframe
+              src={liveUrl}
+              style={{ width: '100%', flex: 1, border: 'none' }}
+              title="Preview"
+            />
+          ) : (
+            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 16 }}>
+              No pages found for this site.
+            </div>
+          )}
         </div>
       </div>
 
@@ -224,14 +246,14 @@ const PreviewViewer: React.FC = () => {
             Quét mã QR
           </h2>
           <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 20 }}>
-            <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(window.location.origin + '/live/' + siteId)}&margin=0`} 
-              alt="QR Code" 
-              style={{ width: 220, height: 220, display: 'block' }} 
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(window.location.origin + (liveUrl || ''))}&margin=0`}
+              alt="QR Code"
+              style={{ width: 220, height: 220, display: 'block', opacity: liveUrl ? 1 : 0.2 }}
             />
           </div>
           <div style={{ color: '#A1A1AA', textAlign: 'center', fontSize: 13.5, lineHeight: 1.6, fontWeight: 400 }}>
-            Quét mã này bằng thiết bị di động để<br/>xem bản xem trước.
+            Quét mã này bằng thiết bị di động để<br />xem bản xem trước.
           </div>
         </div>
       </Modal>
@@ -268,21 +290,21 @@ const PreviewViewer: React.FC = () => {
             </div>
           </div>
 
-          <button 
+          <button
             disabled={!isShareEnabled}
             onClick={() => {
               navigator.clipboard.writeText(window.location.origin + '/live/' + siteId);
               message.success('Đã sao chép liên kết chia sẻ dự án!');
             }}
-            style={{ 
-              width: '100%', 
-              background: isShareEnabled ? '#333' : 'rgba(255,255,255,0.05)', 
-              color: isShareEnabled ? '#fff' : 'rgba(255,255,255,0.3)', 
-              border: 'none', 
-              padding: '12px', 
-              borderRadius: 8, 
-              fontSize: 14, 
-              fontWeight: 600, 
+            style={{
+              width: '100%',
+              background: isShareEnabled ? '#333' : 'rgba(255,255,255,0.05)',
+              color: isShareEnabled ? '#fff' : 'rgba(255,255,255,0.3)',
+              border: 'none',
+              padding: '12px',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
               cursor: isShareEnabled ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s'
             }}

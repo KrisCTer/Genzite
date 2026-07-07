@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
-import { message } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
-import { Monitor, Star, ThumbsUp, ThumbsDown, FileCode2, Sparkles, Pen, Eye, ChevronDown, MoreVertical } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWidgetsApi, replaceWidgetsApi } from '../../../api/sites';
+import { Monitor } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWidgetsApi } from '../../../api/sites';
 import WidgetRenderer from './WidgetRenderer';
 import GrapesEditor from './GrapesEditor';
-import { renderToStaticMarkup } from 'react-dom/server';
 
 interface CanvasWidget {
   _id: string;
@@ -42,6 +39,7 @@ interface CanvasPageFrameProps {
   onSelectWidget: (id: string | null) => void;
   onUpdateWidget?: (widget: CanvasWidget | null) => void;
   activeTool?: string;
+  canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
 }
 
 const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
@@ -51,13 +49,19 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   globalSelectedId,
   onSelectWidget,
   onUpdateWidget,
-  activeTool
+  activeTool,
+  canvasDevice = 'full'
 }) => {
-  const queryClient = useQueryClient();
   const [widgets, setWidgets] = useState<CanvasWidget[]>([]);
   const [past, setPast] = useState<CanvasWidget[][]>([]);
   const [future, setFuture] = useState<CanvasWidget[][]>([]);
-  const [hasUnsaved, setHasUnsaved] = useState(false);
+  const [grapesHeight, setGrapesHeight] = useState(1000);
+
+  useEffect(() => {
+    const handleHeight = (e: any) => setGrapesHeight(e.detail);
+    window.addEventListener('grapes:content:height', handleHeight);
+    return () => window.removeEventListener('grapes:content:height', handleHeight);
+  }, []);
 
   const { data: dbWidgets, isLoading } = useQuery({
     queryKey: ['page-widgets', pageId],
@@ -87,7 +91,6 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
       setWidgets(mapped);
       setPast([]);
       setFuture([]);
-      setHasUnsaved(false);
     }
   }, [dbWidgets, pageId]);
 
@@ -108,7 +111,6 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           setFuture(f => [current, ...f]);
           return previous;
         });
-        setHasUnsaved(true);
         return newPast;
       });
     };
@@ -123,7 +125,6 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           setPast(p => [...p, current]);
           return next;
         });
-        setHasUnsaved(true);
         return newFuture;
       });
     };
@@ -136,88 +137,6 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     };
   }, [pageId]);
 
-  const saveMutation = useMutation({
-    mutationFn: (payload: any[]) => replaceWidgetsApi(pageId, payload),
-    onSuccess: () => {
-      message.success(`${pageTitle} saved!`);
-      setHasUnsaved(false);
-      queryClient.invalidateQueries({ queryKey: ['page-widgets', pageId] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to save');
-    },
-  });
-
-  const handleSave = () => {
-    const sorted = [...widgets].sort((a, b) => a.y - b.y);
-    const payload = sorted.map((w, i) => {
-      const { _id, x, y, width, height, contentConfig, ...rest } = w;
-      return { 
-        ...rest, 
-        contentConfig: {
-          ...(contentConfig || {}),
-          geometry: { x, y, width, height }
-        },
-        sortOrder: i + 1 
-      };
-    });
-    saveMutation.mutate(payload);
-  };
-
-  const handleExportHTML = () => {
-    try {
-      const sorted = [...widgets].sort((a, b) => a.y - b.y);
-      const htmlContent = sorted.map(widget => {
-        const geom = widget.contentConfig?.geometry || { x: widget.x, y: widget.y, width: widget.width, height: widget.height };
-        return renderToStaticMarkup(
-          <div key={widget._id} style={{ 
-            position: 'absolute',
-            left: geom.x,
-            top: geom.y,
-            width: geom.width,
-            height: geom.height
-          }}>
-            <WidgetRenderer type={widget.type} config={widget.contentConfig} isActive={false} />
-          </div>
-        );
-      }).join('');
-
-      const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${pageTitle}</title>
-  <style>
-    :root { --color-bg-app: #0B0F19; --color-text-primary: #FFFFFF; --color-text-secondary: #94A3B8; --color-text-muted: #475569; --color-accent: #06B6D4; --color-accent-hover: #0891b2; --color-accent-muted: rgba(6, 182, 212, 0.2); --color-accent-glow: rgba(6, 182, 212, 0.4); --gradient-accent: linear-gradient(135deg, #06B6D4 0%, #10B981 100%); --color-border: #1E293B; --color-border-subtle: rgba(30, 41, 59, 0.5); --gz-dark-1: #0B0F19; --gz-dark-2: #0f172a; --gz-dark-3: #111827; --gz-dark-4: #1E293B; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px; }
-    body { margin: 0; padding: 0; background: var(--color-bg-app); color: var(--color-text-primary); font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
-    * { box-sizing: border-box; }
-  </style>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-</head>
-<body>
-  <div style="position: relative; width: 1440px; margin: 0 auto; min-height: 100vh;">
-    ${htmlContent}
-  </div>
-</body>
-</html>`;
-
-      const blob = new Blob([fullHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${pageTitle}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      message.success('HTML Exported Successfully!');
-    } catch (e) {
-      console.error(e);
-      message.error('Failed to export HTML');
-    }
-  };
-
   const updateWidgetGeometry = (id: string, x: number, y: number, width: number, height: number) => {
     setWidgets(prev => {
       const next = prev.map(w => w._id === id ? { ...w, x, y, width, height } : w);
@@ -225,29 +144,33 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
       setFuture([]);
       return next;
     });
-    setHasUnsaved(true);
     const updated = widgets.find(w => w._id === id);
-    if (updated) {
+    if (updated && onUpdateWidget) {
       onUpdateWidget({ ...updated, x, y, width, height });
     }
   };
+  const contentHeight = Math.max(600, widgets.reduce((max, w) => Math.max(max, w.y + w.height), 600));
 
-  const deleteWidget = (id: string) => {
-    setWidgets(prev => {
-      const next = prev.filter(w => w._id !== id);
-      setPast(p => [...p, prev].slice(-50));
-      setFuture([]);
-      return next;
-    });
-    if (globalSelectedId === id) onSelectWidget(null);
-    setHasUnsaved(true);
+  const getDeviceDimensions = () => {
+    switch (canvasDevice) {
+      case 'mobile': return { width: 390, height: 884 };
+      case 'tablet': return { width: 768, height: 1024 };
+      case 'desktop': return { width: 1280, height: 1024 };
+      case 'full': 
+      default: return { width: 1440, height: Math.max(contentHeight, grapesHeight) };
+    }
   };
 
-  const canvasHeight = Math.max(600, widgets.reduce((max, w) => Math.max(max, w.y + w.height), 600));
+  const { width: frameWidth, height: frameHeight } = getDeviceDimensions();
 
   return (
     <div 
-      style={{ position: 'relative', width: 1440, height: canvasHeight }}
+      style={{ 
+        position: 'relative', 
+        width: frameWidth, 
+        height: frameHeight, 
+        transition: 'width 0.3s ease, height 0.3s ease'
+      }}
       onPointerDown={(e) => {
         if (e.button === 0 && activeTool === 'select') {
           const firstWidget = widgets[0];
@@ -258,23 +181,26 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         }
       }}
     >
-      {/* Frame Header (Browser Tab Style) */}
+      {/* Frame Header (Design System Style) */}
       <div className="canvas-page-drag-handle" style={{ 
         position: 'absolute', 
-        top: -48, 
+        top: -50, 
         left: 0, 
         width: '100%', 
-        height: 40, 
         display: 'flex', 
-        justifyContent: 'space-between', 
         alignItems: 'center', 
-        color: '#f8fafc', 
-        fontFamily: 'Inter, sans-serif' 
+        gap: 10,
+        cursor: activeTool === 'select' ? 'pointer' : 'grab'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
-          <Monitor size={18} />
-          <span>{siteName ? `${siteName} - ${pageTitle}` : pageTitle}</span>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155' }}>
+          <Monitor size={16} color="#fff" />
         </div>
+        <span style={{ fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+          {siteName || 'My Site'}
+        </span>
+        <span style={{ fontSize: 12, background: 'rgba(99, 102, 241, 0.2)', color: '#818CF8', padding: '4px 10px', borderRadius: 999, fontWeight: 600, border: '1px solid rgba(99, 102, 241, 0.3)', marginLeft: 8, whiteSpace: 'nowrap' }}>
+          {pageTitle || 'Home'}
+        </span>
       </div>
 
       {/* Main Content Container with Dynamic Border */}
@@ -295,7 +221,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           key={widget._id}
           className="canvas-widget-rnd"
           position={{ x: widget.x, y: widget.y }}
-          size={{ width: widget.width, height: widget.height }}
+          size={{ width: widget.width, height: (canvasDevice === 'full' && widget.type === 'GRAPESJS') ? Math.max(widget.height, grapesHeight) : widget.height }}
           onDragStop={(_e, d) => updateWidgetGeometry(widget._id, d.x, d.y, widget.width, widget.height)}
           onResizeStop={(_e, _dir, ref, _delta, pos) => updateWidgetGeometry(widget._id, pos.x, pos.y, ref.offsetWidth, ref.offsetHeight)}
           minWidth={120} minHeight={60} bounds="parent" dragGrid={[10, 10]} resizeGrid={[10, 10]} cancel=".canvas-widget-delete"

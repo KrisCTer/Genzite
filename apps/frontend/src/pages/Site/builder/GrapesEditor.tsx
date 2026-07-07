@@ -5,9 +5,8 @@ import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 // @ts-ignore
 import webpagePlugin from 'grapesjs-preset-webpage';
-import { Spin, Button, Space, Tooltip } from 'antd';
-import { UndoOutlined, RedoOutlined } from '@ant-design/icons';
-import AgentLogSidebar from './AgentLogSidebar';
+import { Spin } from 'antd';
+
 
 interface GrapesEditorProps {
   htmlContent: string;
@@ -20,8 +19,6 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -176,6 +173,20 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
           });
         }
       }, 500);
+
+      // Measure content height and emit for Full Height mode
+      const emitHeight = () => {
+        try {
+          const body = editor.Canvas.getBody();
+          if (body) {
+            window.dispatchEvent(new CustomEvent('grapes:content:height', { detail: body.scrollHeight + 100 }));
+          }
+        } catch (e) {}
+      };
+      
+      setTimeout(emitHeight, 1000);
+      editor.on('component:update', emitHeight);
+      editor.on('styleManager:update', emitHeight);
     });
 
     // Handle selection for Global Theme toggle
@@ -192,20 +203,12 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
       }, 50);
     });
 
-    // Handle Undo/Redo state and Auto-save
-    const updateUndoRedo = () => {
-      setCanUndo(editor.UndoManager.hasUndo());
-      setCanRedo(editor.UndoManager.hasRedo());
-    };
-    
+    // Handle Auto-save
     editor.on('update', () => {
-      updateUndoRedo();
       if (onSave) {
         onSave(editor.getHtml(), editor.getCss() || '');
       }
     });
-    editor.on('run:core:undo', updateUndoRedo);
-    editor.on('run:core:redo', updateUndoRedo);
 
     return () => {
       editor.destroy();
@@ -260,11 +263,6 @@ const GrapesEditor: React.FC<GrapesEditorProps> = ({ htmlContent, cssContent = '
       <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }} />
 
       {/* Portals to inject UI into PageBuilder's global layout */}
-      {mounted && document.getElementById('portal-left-sidebar') && createPortal(
-        <AgentLogSidebar />,
-        document.getElementById('portal-left-sidebar')!
-      )}
-
       {mounted && document.getElementById('portal-right-sidebar') && createPortal(
         <div className="custom-sidebar" style={{ width: '100%', height: '100%' }}>
           <div className="sidebar-header">Properties</div>

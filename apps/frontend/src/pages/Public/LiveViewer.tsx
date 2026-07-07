@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
 import { fetchWidgetsApi, fetchPagesApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
-import { ArrowLeftOutlined, InfoCircleOutlined, CloseOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import CartDrawer from '../../components/CartDrawer';
 
 interface LiveViewerProps {
@@ -13,15 +13,12 @@ interface LiveViewerProps {
 const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   const [searchParams] = useSearchParams();
   const { pageId: paramPageId } = useParams<{ pageId: string }>();
-  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && paramPageId.length > 20 ? paramPageId : undefined); // rudimentary check for UUID-like siteId if passed in path
-
-  const isParamActuallySiteId = paramPageId === siteId || paramPageId === 'preview' || paramPageId === '_';
+  const siteId = propSiteId || searchParams.get('siteId'); 
   
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [resolvedPageId, setResolvedPageId] = useState<string | null>(isParamActuallySiteId ? null : (paramPageId || null));
-  const [showBanner, setShowBanner] = useState(isParamActuallySiteId);
+  const [resolvedPageId, setResolvedPageId] = useState<string | null>(paramPageId || null);
 
   useEffect(() => {
     // Dynamically inject Tailwind CDN so that AI-generated classes work at runtime in Live View
@@ -67,7 +64,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   }, [siteId, resolvedPageId]);
 
   useEffect(() => {
-    const targetPageId = resolvedPageId || (isParamActuallySiteId ? null : paramPageId);
+    const targetPageId = resolvedPageId || paramPageId;
     if (targetPageId) {
       setLoading(true);
       fetchWidgetsApi(targetPageId)

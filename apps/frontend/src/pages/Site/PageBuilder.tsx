@@ -1,9 +1,9 @@
 import React from 'react';
 import { Spin } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchPagesApi, fetchSiteByIdApi } from '../../api/sites';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AIPromptBar from './builder/AIPromptBar';
 import ProjectSidebar from './builder/ProjectSidebar';
 import CanvasWorkspace from './builder/CanvasWorkspace';
@@ -31,9 +31,14 @@ const PageBuilder: React.FC = () => {
 
   const isWelcomeMode = !siteId;
 
+  const queryClient = useQueryClient();
+
   const handleAIGenerated = (_jobId: string, subdomain?: string) => {
     if (subdomain && subdomain !== siteId) {
       navigate(`/project/${subdomain}`, { replace: true });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+      queryClient.invalidateQueries({ queryKey: ['site-pages', siteId] });
     }
   };
   
