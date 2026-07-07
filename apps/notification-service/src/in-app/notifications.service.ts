@@ -20,6 +20,21 @@ export class NotificationsService {
     });
   }
 
+  async createRoleAssignedNotification(userId: string, roleName: string) {
+    return this.prisma.notification.create({
+      data: {
+        userId,
+        type: NotificationType.IN_APP,
+        title: "Account Role Updated",
+        body: `You have been assigned the new role: ${roleName}.`,
+        metadata: {
+          event: "role.assigned",
+          role: roleName,
+        },
+      },
+    });
+  }
+
   async findByUserId(userId: string, page = 1, limit = 20, unreadOnly = false) {
     return this.prisma.notification.findMany({
       where: {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Button, Avatar, Drawer, Form, Input, Select, Switch, message, Modal } from 'antd';
-import { 
-  PlusOutlined, 
-  UserOutlined, 
-  SearchOutlined, 
-  TeamOutlined, 
+import {
+  PlusOutlined,
+  UserOutlined,
+  SearchOutlined,
+  TeamOutlined,
   MailOutlined,
   CloseOutlined,
   WarningOutlined,
@@ -22,7 +22,7 @@ const UserManagement: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -36,12 +36,12 @@ const UserManagement: React.FC = () => {
   const displayUsers = serverUsers || [];
 
   const filteredUsers = displayUsers.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || u.roles.includes(roleFilter);
-    const matchesStatus = statusFilter === 'ALL' || 
-                          (statusFilter === 'ACTIVE' && u.status === 'ACTIVE') || 
-                          (statusFilter === 'INACTIVE' && u.status !== 'ACTIVE');
+    const matchesStatus = statusFilter === 'ALL' ||
+      (statusFilter === 'ACTIVE' && u.status === 'ACTIVE') ||
+      (statusFilter === 'INACTIVE' && u.status !== 'ACTIVE');
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -111,7 +111,7 @@ const UserManagement: React.FC = () => {
 
   const updateRolesMutation = useMutation({
     mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       message.success('Cập nhật quyền thành công.');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
@@ -186,7 +186,7 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto flex flex-col w-full text-left font-sans text-sm text-[#94a3b8] px-4 md:px-6 py-4 select-none"
@@ -244,9 +244,9 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
             ))}
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
               onClick={handleOpenDrawer}
               className="bg-cyan-500 hover:bg-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none border-0 text-white font-semibold rounded-xl h-auto min-h-[56px] px-5 transition-all shadow-sm shadow-cyan-500/10 text-sm self-stretch"
             >
@@ -262,8 +262,8 @@ const UserManagement: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
             <span>Identity services unreachable. Check your connection.</span>
           </div>
-          <button 
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['users'] })} 
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['users'] })}
             className="font-semibold text-cyan-400 hover:underline bg-transparent border-0 cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded"
           >
             Thử lại
@@ -273,7 +273,7 @@ const UserManagement: React.FC = () => {
 
       {/* Main Grid: 5 / 7 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
-        
+
         {/* LEFT PANEL */}
         <div className="lg:col-span-5 flex flex-col gap-4">
           <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-4 flex flex-col gap-3">
@@ -297,11 +297,10 @@ const UserManagement: React.FC = () => {
                   <button
                     key={btn.value}
                     onClick={() => setRoleFilter(btn.value)}
-                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
-                      roleFilter === btn.value
-                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/10'
-                        : 'bg-[#161a23] border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-[#3d4659]'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${roleFilter === btn.value
+                      ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/10'
+                      : 'bg-[#161a23] border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-[#3d4659]'
+                      }`}
                   >
                     {btn.label}
                   </button>
@@ -353,16 +352,15 @@ const UserManagement: React.FC = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                       onClick={() => handleSelectUser(user.id)}
-                      className={`relative w-full text-left rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 transition-all ${
-                        isSelected 
-                          ? 'bg-cyan-500/5 border border-cyan-500/50 shadow-md shadow-cyan-500/5' 
-                          : 'bg-[#1c212c]/80 border border-[#2a3040] hover:border-[#3d4659] hover:bg-[#1c212c]'
-                      } p-3.5 flex items-center justify-between cursor-pointer ${indicatorBorder}`}
+                      className={`relative w-full text-left rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 transition-all ${isSelected
+                        ? 'bg-cyan-500/5 border border-cyan-500/50 shadow-md shadow-cyan-500/5'
+                        : 'bg-[#1c212c]/80 border border-[#2a3040] hover:border-[#3d4659] hover:bg-[#1c212c]'
+                        } p-3.5 flex items-center justify-between cursor-pointer ${indicatorBorder}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="relative">
-                          <Avatar 
-                            src={user.avatarUrl || undefined} 
+                          <Avatar
+                            src={user.avatarUrl || undefined}
                             icon={!user.avatarUrl ? <UserOutlined /> : undefined}
                             className="bg-[#161a23] border border-[#2a3040] text-[#94a3b8]"
                             size="large"
@@ -396,7 +394,7 @@ const UserManagement: React.FC = () => {
         <div className="lg:col-span-7 flex flex-col gap-6">
           <AnimatePresence mode="wait">
             {!selectedUser ? (
-              <motion.div 
+              <motion.div
                 key="empty-state"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -422,8 +420,8 @@ const UserManagement: React.FC = () => {
                 <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5 md:p-6">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
                     <div className="flex items-center gap-4 min-w-0">
-                      <Avatar 
-                        src={selectedUser.avatarUrl || undefined} 
+                      <Avatar
+                        src={selectedUser.avatarUrl || undefined}
                         icon={!selectedUser.avatarUrl ? <UserOutlined /> : undefined}
                         size={72}
                         className="bg-[#161a23] border-2 border-[#2a3040] text-[#94a3b8] shrink-0"
@@ -431,13 +429,12 @@ const UserManagement: React.FC = () => {
                       <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-xl font-bold text-white m-0 truncate">{selectedUser.name}</h3>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
-                            selectedUser.roles.includes('ADMIN')
-                              ? 'text-amber-500 border-amber-500/20 bg-amber-500/10'
-                              : selectedUser.roles.includes('EDITOR')
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${selectedUser.roles.includes('ADMIN')
+                            ? 'text-amber-500 border-amber-500/20 bg-amber-500/10'
+                            : selectedUser.roles.includes('EDITOR')
                               ? 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10'
                               : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
-                          }`}>
+                            }`}>
                             {selectedUser.roles.join(' · ')}
                           </span>
                         </div>
@@ -457,7 +454,7 @@ const UserManagement: React.FC = () => {
                           {selectedUser.status === 'ACTIVE' ? 'Hoạt động' : selectedUser.status}
                         </span>
                       </div>
-                      <Switch 
+                      <Switch
                         size="small"
                         checked={selectedUser.status === 'ACTIVE'}
                         onChange={(checked) => {
@@ -496,11 +493,10 @@ const UserManagement: React.FC = () => {
                     </div>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {selectedUser.roles.map(role => (
-                        <span key={role} className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${
-                          role === 'ADMIN' ? 'text-amber-500 border-amber-500/30 bg-amber-500/10'
+                        <span key={role} className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${role === 'ADMIN' ? 'text-amber-500 border-amber-500/30 bg-amber-500/10'
                           : role === 'EDITOR' ? 'text-cyan-400 border-cyan-400/30 bg-cyan-400/10'
-                          : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
-                        }`}>{role}</span>
+                            : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
+                          }`}>{role}</span>
                       ))}
                     </div>
                   </div>
@@ -545,8 +541,8 @@ const UserManagement: React.FC = () => {
                         Thu hồi quyền truy cập sẽ vô hiệu hóa hoàn toàn tài khoản này. Người dùng sẽ bị đăng xuất khỏi tất cả thiết bị ngay lập tức.
                       </p>
                     </div>
-                    <Button 
-                      danger 
+                    <Button
+                      danger
                       onClick={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
                       loading={deactivateMutation.isPending}
                       className="bg-transparent border-2 border-rose-500 hover:bg-rose-500 hover:text-white focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none text-rose-500 font-bold rounded-lg h-12 px-6 text-xs uppercase tracking-wider transition-all shrink-0"
@@ -608,15 +604,15 @@ const UserManagement: React.FC = () => {
           </Form.Item>
 
           <div className="flex gap-4 mt-8 pt-6 border-t border-[#2a3040]">
-            <Button 
-              onClick={handleCloseDrawer} 
+            <Button
+              onClick={handleCloseDrawer}
               className="flex-1 bg-transparent border border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:outline-none rounded-lg h-11 transition-all uppercase tracking-wider text-xs font-bold"
             >
               Hủy
             </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
+            <Button
+              type="primary"
+              htmlType="submit"
               className="flex-1 bg-cyan-500 border-0 text-white font-bold rounded-lg h-11 hover:bg-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none transition-all uppercase tracking-wider text-xs shadow-sm"
             >
               Tạo mới

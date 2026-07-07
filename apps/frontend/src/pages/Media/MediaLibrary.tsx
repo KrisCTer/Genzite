@@ -106,7 +106,7 @@ const MediaLibrary: React.FC = () => {
       </div>
 
       <Card 
-        bordered
+        variant="outlined"
         styles={{ body: { padding: 24 } }}
       >
         {renderMediaGrid()}
@@ -117,7 +117,7 @@ const MediaLibrary: React.FC = () => {
         open={isModalOpen}
         onCancel={() => !uploadMutation.isPending && setIsModalOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Dragger 
           name="file" 

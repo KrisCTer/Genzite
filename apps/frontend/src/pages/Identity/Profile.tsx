@@ -120,8 +120,8 @@ const Profile: React.FC = () => {
     >
       <style>{`
         .custom-input {
-          background-color: #161a23 !important;
-          border: 1px solid #2a3040 !important;
+          background-color: #050816 !important;
+          border: 1px solid #1A2235 !important;
           border-radius: 8px !important;
           color: #fff !important;
         }
@@ -133,14 +133,14 @@ const Profile: React.FC = () => {
           outline-offset: -1px;
         }
         .custom-input[disabled] {
-          background-color: #0f1219 !important;
+          background-color: #020409 !important;
           color: #64748b !important;
-          border-color: #1c212c !important;
+          border-color: #080E1E !important;
           cursor: not-allowed !important;
         }
       `}</style>
 
-      <div className="flex flex-col gap-1 pb-6 mb-6 border-b border-[#2a3040]">
+      <div className="flex flex-col gap-1 pb-6 mb-6 border-b border-[#1A2235]">
         <span className="text-xs font-bold tracking-widest text-cyan-500 uppercase">ACCOUNT SETTINGS</span>
         <h1 className="text-3xl font-extrabold text-white">Hồ Sơ Cá Nhân</h1>
         <p className="text-[#94a3b8] text-sm mt-1">Quản lý thông tin tài khoản và bảo mật của bạn.</p>
@@ -148,19 +148,19 @@ const Profile: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-1">
-          <div className="bg-[#1c212c] border border-[#2a3040] rounded-xl p-6 flex flex-col items-center text-center">
+          <div className="bg-[#080E1E] border border-[#1A2235] rounded-xl p-6 flex flex-col items-center text-center">
             <div className="relative mb-5">
               {displayAvatar ? (
-                <img src={displayAvatar} alt="avatar" className="w-24 h-24 rounded-full object-cover border-4 border-[#2a3040]" />
+                <img src={displayAvatar} alt="avatar" className="w-24 h-24 rounded-full object-cover border-4 border-[#1A2235]" />
               ) : (
-                <div className="w-24 h-24 rounded-full border-4 border-[#2a3040] bg-[#161a23] flex items-center justify-center text-[#94a3b8] text-4xl">
+                <div className="w-24 h-24 rounded-full border-4 border-[#1A2235] bg-[#050816] flex items-center justify-center text-[#94a3b8] text-4xl">
                   <UserOutlined />
                 </div>
               )}
               {isActive ? (
-                <span className="absolute bottom-1 right-1 w-5 h-5 bg-[#10B981] border-[3px] border-[#1c212c] rounded-full" />
+                <span className="absolute bottom-1 right-1 w-5 h-5 bg-[#10B981] border-[3px] border-[#080E1E] rounded-full" />
               ) : (
-                <span className="absolute bottom-1 right-1 w-5 h-5 bg-rose-500 border-[3px] border-[#1c212c] rounded-full" />
+                <span className="absolute bottom-1 right-1 w-5 h-5 bg-rose-500 border-[3px] border-[#080E1E] rounded-full" />
               )}
             </div>
 
@@ -174,7 +174,7 @@ const Profile: React.FC = () => {
               {userRoles.join(' / ')}
             </span>
 
-            <div className="flex flex-col items-center gap-1 mt-4 pt-4 border-t border-[#2a3040] w-full">
+            <div className="flex flex-col items-center gap-1 mt-4 pt-4 border-t border-[#1A2235] w-full">
               <span className="text-[#94a3b8] text-sm flex items-center gap-2 break-all">
                 <MailOutlined className="shrink-0" /> {displayEmail}
               </span>
@@ -191,7 +191,7 @@ const Profile: React.FC = () => {
                 }
               }}
               loading={updateMutation.isPending}
-              className="mt-5 w-full bg-[#161a23] border border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-slate-500 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none rounded-lg h-11 transition-all font-semibold text-xs uppercase tracking-wider"
+              className="mt-5 w-full bg-[#050816] border border-[#1A2235] text-[#94a3b8] hover:text-white hover:border-slate-500 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none rounded-lg h-11 transition-all font-semibold text-xs uppercase tracking-wider"
             >
               Đổi ảnh đại diện
             </Button>
@@ -199,7 +199,7 @@ const Profile: React.FC = () => {
         </div>
 
         <div className="lg:col-span-2">
-          <div className="bg-[#1c212c] border border-[#2a3040] rounded-xl p-6 md:p-7">
+          <div className="bg-[#080E1E] border border-[#1A2235] rounded-xl p-6 md:p-7">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-5">Thông Tin Cơ Bản</h3>
             
             <Form 
@@ -228,7 +228,7 @@ const Profile: React.FC = () => {
                     rules={[{ required: true, type: 'email' }]} 
                     className="mb-0"
                   >
-                    <Input disabled className="custom-input h-11" />
+                    <Input disabled className="custom-input h-11" autoComplete="username" />
                   </Form.Item>
                   <span className="text-[11px] text-slate-500 mt-2 italic flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -237,7 +237,7 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              <div className="border-t border-[#2a3040] pt-5 mt-1">
+              <div className="border-t border-[#1A2235] pt-5 mt-1">
                 <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-5">Đổi Mật Khẩu</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -277,7 +277,7 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-5 mt-1 border-t border-[#2a3040]">
+              <div className="flex justify-end pt-5 mt-1 border-t border-[#1A2235]">
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -286,7 +286,7 @@ const Profile: React.FC = () => {
                   className={`border-0 font-bold rounded-lg h-11 px-7 text-xs uppercase tracking-wider transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none ${
                     isModified 
                       ? 'bg-cyan-500 hover:bg-cyan-600 text-white' 
-                      : 'bg-[#161a23] text-slate-600 cursor-not-allowed border border-[#2a3040]'
+                      : 'bg-[#050816] text-slate-600 cursor-not-allowed border border-[#1A2235]'
                   }`}
                 >
                   Lưu Thay Đổi

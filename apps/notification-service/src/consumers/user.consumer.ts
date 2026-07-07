@@ -64,5 +64,23 @@ export class UserConsumer implements OnModuleInit {
         );
       },
     );
+
+    this.kafkaConsumer.subscribe<{ userId: string; roleName: string }>(
+      KAFKA_TOPICS.ROLE_ASSIGNED,
+      async (event) => {
+        this.logger.log(
+          `Role assigned notification → user: ${event.payload.userId}, role: ${event.payload.roleName}`,
+        );
+
+        await this.notificationsService.createRoleAssignedNotification(
+          event.payload.userId,
+          event.payload.roleName,
+        );
+
+        this.logger.log(
+          `Role assigned notification created for ${event.payload.userId}`,
+        );
+      },
+    );
   }
 }

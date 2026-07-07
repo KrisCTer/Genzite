@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { IdentityProducer } from '../events/identity.producer.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly identityProducer: IdentityProducer
+  ) {}
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -152,6 +156,9 @@ export class UsersService {
         data: { userId: id, action: 'ROLES_UPDATED_BY_ADMIN', details: { roles: roleNames } }
       })
     ]);
+
+    // Bắn sự kiện Role Assigned để Notification Service nhận được
+    await this.identityProducer.emitRoleAssigned({ userId: id, roleName: roleNames.join(', ') });
 
     return { message: 'Roles updated successfully', roles: roleNames };
   }

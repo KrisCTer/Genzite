@@ -102,7 +102,7 @@ const DataGrid: React.FC = () => {
       </div>
 
       <Card 
-        bordered
+        variant="outlined"
         styles={{ body: { padding: 0 } }}
       >
         {isError && (

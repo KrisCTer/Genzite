@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button, useToast } from '@genzite/shared-ui';
 import { 
-  Bell, Check, CheckCheck, Inbox, Info, Sparkles, Database, Plus, 
+  Bell, Check, CheckCheck, Inbox, Info, Sparkles, Database, 
   ShieldAlert, Settings, Mail, Smartphone, Eye, DollarSign,
-  Filter, TrendingUp, Zap, Clock, Users
+  Filter, TrendingUp, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -14,8 +14,6 @@ import {
   markNotificationAsReadApi, 
   markAllNotificationsAsReadApi 
 } from '../api/notifications';
-import type { AppNotification } from '../api/notifications';
-import { useNotificationStore } from '../store/notifications';
 
 // ─── Toggle Switch (Cozy Rounded) ────────────────────────────────────────
 const ToggleSwitch: React.FC<{
@@ -53,12 +51,12 @@ const getEventConfig = (event?: string) => {
   switch (event) {
     case 'user.registered':
       return { 
-        icon: <Users className="w-4 h-4" />, 
+        icon: <Info className="w-4 h-4" />, 
         color: 'text-cyan-400', 
         bg: 'bg-cyan-500/10', 
         border: 'border-cyan-500/20', 
         dot: 'bg-cyan-400', 
-        label: 'Người dùng' 
+        label: 'Users' 
       };
     case 'site.generated':
     case 'site.created':
@@ -87,7 +85,7 @@ const getEventConfig = (event?: string) => {
         bg: 'bg-rose-500/10', 
         border: 'border-rose-500/20', 
         dot: 'bg-rose-400', 
-        label: 'Bảo mật' 
+        label: 'Security' 
       };
     case 'payment.succeeded':
     case 'payment':
@@ -97,7 +95,7 @@ const getEventConfig = (event?: string) => {
         bg: 'bg-yellow-500/10', 
         border: 'border-yellow-500/20', 
         dot: 'bg-yellow-400', 
-        label: 'Giao dịch' 
+        label: 'Transactions' 
       };
     default:
       return { 
@@ -106,7 +104,7 @@ const getEventConfig = (event?: string) => {
         bg: 'bg-slate-800/50', 
         border: 'border-slate-700/50', 
         dot: 'bg-slate-400', 
-        label: 'Hệ thống' 
+        label: 'System' 
       };
   }
 };
@@ -118,37 +116,35 @@ const getRelativeTime = (dateStr: string) => {
   const m = Math.floor(diff / 60000);
   const h = Math.floor(diff / 3600000);
   const d = Math.floor(diff / 86400000);
-  if (m < 1) return 'Vừa xong';
-  if (m < 60) return `${m} phút trước`;
-  if (h < 24) return `${h} giờ trước`;
-  if (d < 7) return `${d} ngày trước`;
-  return new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m} mins ago`;
+  if (h < 24) return `${h} hours ago`;
+  if (d < 7) return `${d} days ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { day: '2-digit', month: '2-digit' });
 };
 
 // ─── Category Filter Config ───────────────────────────────────────────────────
 type CategoryId = 'all' | 'unread' | 'system' | 'security' | 'activity' | 'transactions';
 const CATEGORIES: Array<{ id: CategoryId; label: string; icon: React.ReactNode }> = [
-  { id: 'all', label: 'Tất cả', icon: <Inbox className="w-3.5 h-3.5" /> },
-  { id: 'unread', label: 'Chưa đọc', icon: <Eye className="w-3.5 h-3.5" /> },
-  { id: 'system', label: 'Hệ thống', icon: <Info className="w-3.5 h-3.5" /> },
-  { id: 'security', label: 'Bảo mật', icon: <ShieldAlert className="w-3.5 h-3.5" /> },
-  { id: 'activity', label: 'AI / CMS', icon: <Sparkles className="w-3.5 h-3.5" /> },
-  { id: 'transactions', label: 'Giao dịch', icon: <DollarSign className="w-3.5 h-3.5" /> },
+  { id: 'all', label: 'All', icon: <Inbox className="w-3.5 h-3.5" /> },
+  { id: 'unread', label: 'Unread', icon: <Eye className="w-3.5 h-3.5" /> },
+  { id: 'system', label: 'System', icon: <Info className="w-3.5 h-3.5" /> },
+  { id: 'security', label: 'Security', icon: <ShieldAlert className="w-3.5 h-3.5" /> },
+  { id: 'activity', label: 'Activity', icon: <Sparkles className="w-3.5 h-3.5" /> },
+  { id: 'transactions', label: 'Transactions', icon: <DollarSign className="w-3.5 h-3.5" /> },
 ];
 
 export const AdminNotificationsPage: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'notifications' | 'settings' | 'simulator'>('notifications');
+  const [activeTab, setActiveTab] = useState<'notifications' | 'settings'>('notifications');
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>('all');
 
   const [settings, setSettings] = useState({
     emailSecurity: true, emailSystem: true, emailBilling: false,
     pushActivity: true, pushAi: true, pushBilling: true
   });
-
-  const { simulatedNotifications, addSimulatedNotification, markSimulatedAsRead, markAllSimulatedAsRead } = useNotificationStore();
 
   const { data: serverNotifications, isLoading } = useQuery({
     queryKey: ['notifications'],
@@ -167,9 +163,9 @@ export const AdminNotificationsPage: React.FC = () => {
   });
 
   const allNotifications = useMemo(() => {
-    const merged = [...simulatedNotifications, ...(serverNotifications || [])];
+    const merged = [...(serverNotifications || [])];
     return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [serverNotifications, simulatedNotifications]);
+  }, [serverNotifications]);
 
   const filteredNotifications = useMemo(() => {
     return allNotifications.filter(n => {
@@ -192,70 +188,25 @@ export const AdminNotificationsPage: React.FC = () => {
   }, [allNotifications, unreadCount]);
 
   const handleMarkAsRead = async (id: string) => {
-    if (id.startsWith('sim-')) {
-      markSimulatedAsRead(id);
-      toast({ title: 'Đã đọc thông báo', description: 'Đánh dấu giả lập là đã đọc.', variant: 'success' });
-      return;
-    }
     markReadMutation.mutate(id, {
-      onSuccess: () => toast({ title: 'Đã đọc thông báo', description: 'Cập nhật trạng thái thành công.', variant: 'success' }),
-      onError: () => toast({ title: 'Lỗi', description: 'Không thể cập nhật trạng thái.', variant: 'error' })
+      onSuccess: () => toast({ title: 'Notification read', description: 'Status updated successfully.', variant: 'success' }),
+      onError: () => toast({ title: 'Error', description: 'Failed to update status.', variant: 'error' })
     });
   };
 
   const handleMarkAllAsRead = () => {
-    markAllSimulatedAsRead();
-    const unreadServerCount = unreadCount - simulatedNotifications.filter(n => !n.isRead).length;
-    if (unreadServerCount > 0) {
+    if (unreadCount > 0) {
       markAllReadMutation.mutate(undefined, {
-        onSuccess: () => toast({ title: 'Thành công', description: 'Tất cả thông báo đã được đánh dấu là đã đọc.', variant: 'success' })
+        onSuccess: () => toast({ title: 'Success', description: 'All notifications marked as read.', variant: 'success' })
       });
     } else {
-      toast({ title: 'Thành công', description: 'Tất cả thông báo đã được đánh dấu là đã đọc.', variant: 'success' });
+      toast({ title: 'Success', description: 'All notifications marked as read.', variant: 'success' });
     }
   };
 
-  const triggerSimulation = useCallback((eventType: 'register' | 'site_ready' | 'security' | 'payment') => {
-    const randId = `sim-${Date.now()}`;
-    const templates: Record<string, AppNotification> = {
-      register: {
-        id: randId, userId: 'sim-user', type: 'IN_APP', isRead: false,
-        title: 'Đăng ký tài khoản mới',
-        body: 'Người dùng mới hoang.nguyen@example.com vừa đăng ký tài khoản thành công.',
-        metadata: { event: 'user.registered', email: 'hoang.nguyen@example.com' },
-        createdAt: new Date().toISOString()
-      },
-      site_ready: {
-        id: randId, userId: 'sim-user', type: 'IN_APP', isRead: false,
-        title: 'Sản xuất giao diện AI hoàn tất',
-        body: 'Giao diện "Homestead Cozy Cafe" đã được Stitch Engine dựng thành công với 12 widgets.',
-        metadata: { event: 'site.generated', siteId: '109', widgets: 12 },
-        createdAt: new Date().toISOString()
-      },
-      security: {
-        id: randId, userId: 'sim-user', type: 'IN_APP', isRead: false,
-        title: 'Cảnh báo đăng nhập bất thường',
-        body: 'Phát hiện đăng nhập từ IP lạ (103.45.122.9) tại khu vực Hải Phòng, Việt Nam.',
-        metadata: { event: 'security.alert', ip: '103.45.122.9', location: 'Hai Phong, VN' },
-        createdAt: new Date().toISOString()
-      },
-      payment: {
-        id: randId, userId: 'sim-user', type: 'IN_APP', isRead: false,
-        title: 'Giao dịch thanh toán thành công',
-        body: 'Hóa đơn #INV-9904 trị giá 490.000đ đã được thanh toán qua PayOS.',
-        metadata: { event: 'payment.succeeded', orderId: 'INV-9904', amount: '490,000 VND' },
-        createdAt: new Date().toISOString()
-      }
-    };
-    const mockNotif = templates[eventType];
-    addSimulatedNotification(mockNotif);
-    toast({ title: 'Giả lập thành công', description: mockNotif.title, variant: 'info' });
-  }, [addSimulatedNotification, toast]);
-
   const TABS = [
-    { id: 'notifications' as const, label: 'Thông báo', icon: <Bell className="w-3.5 h-3.5" /> },
-    { id: 'settings' as const, label: 'Cài đặt', icon: <Settings className="w-3.5 h-3.5" /> },
-    { id: 'simulator' as const, label: 'Dev Simulator', icon: <Zap className="w-3.5 h-3.5" /> },
+    { id: 'notifications' as const, label: 'Notifications', icon: <Bell className="w-3.5 h-3.5" /> },
+    { id: 'settings' as const, label: 'Settings', icon: <Settings className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -268,8 +219,8 @@ export const AdminNotificationsPage: React.FC = () => {
             <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Genzite Hub</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white mt-1">Trung tâm Thông báo</h1>
-          <p className="text-xs text-slate-400 mt-1">Quản lý và kiểm thử các kênh truyền đạt thông báo trong hệ thống.</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white mt-1">Notification Center</h1>
+          <p className="text-xs text-slate-400 mt-1">Manage and monitor system notification channels.</p>
         </div>
       </div>
 
@@ -282,10 +233,10 @@ export const AdminNotificationsPage: React.FC = () => {
             <Bell size={24} />
           </span>
           <div>
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Chưa đọc</span>
+            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Unread</span>
             <h2 className="text-2xl font-extrabold text-white mt-1">{unreadCount}</h2>
             <span className="text-[10px] text-rose-400 flex items-center gap-1 font-semibold mt-0.5">
-              Cần xử lý
+              Requires Action
             </span>
           </div>
         </div>
@@ -296,10 +247,10 @@ export const AdminNotificationsPage: React.FC = () => {
             <Inbox size={24} />
           </span>
           <div>
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Tổng số</span>
+            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total</span>
             <h2 className="text-2xl font-extrabold text-white mt-1">{allNotifications.length}</h2>
             <span className="text-[10px] text-cyan-400 flex items-center gap-1 font-semibold mt-0.5">
-              Hộp thư đến
+              Inbox
             </span>
           </div>
         </div>
@@ -310,10 +261,10 @@ export const AdminNotificationsPage: React.FC = () => {
             <TrendingUp size={24} />
           </span>
           <div>
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Tỷ lệ đọc</span>
+            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Read Ratio</span>
             <h2 className="text-2xl font-extrabold text-white mt-1">{readRatio}%</h2>
             <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold mt-0.5">
-              Đã xử lý
+              Processed
             </span>
           </div>
         </div>
@@ -362,7 +313,7 @@ export const AdminNotificationsPage: React.FC = () => {
             <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-3xl space-y-1.5 self-start shadow-sm">
               <div className="flex items-center gap-2 mb-3 px-2">
                 <Filter className="w-3 h-3 text-slate-500" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Danh mục</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Categories</span>
               </div>
               {CATEGORIES.map((cat) => {
                 const isActive = selectedCategory === cat.id;
@@ -397,7 +348,7 @@ export const AdminNotificationsPage: React.FC = () => {
               {/* List Header */}
               <div className="flex items-center justify-between px-2">
                 <span className="text-xs font-bold text-slate-400">
-                  Hiển thị {filteredNotifications.length} thông báo
+                  Showing {filteredNotifications.length} notifications
                 </span>
                 <Button
                   variant="ghost"
@@ -407,7 +358,7 @@ export const AdminNotificationsPage: React.FC = () => {
                   leftIcon={<CheckCheck className="w-3.5 h-3.5" />}
                   className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-all cursor-pointer rounded-xl hover:bg-slate-800/60"
                 >
-                  Đọc tất cả
+                  Mark all as read
                 </Button>
               </div>
 
@@ -418,7 +369,7 @@ export const AdminNotificationsPage: React.FC = () => {
                     <div className="absolute inset-0 border-2 border-slate-800 rounded-full" />
                     <div className="absolute inset-0 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-500">Đang tải dữ liệu...</span>
+                  <span className="text-xs font-semibold text-slate-500">Loading data...</span>
                 </div>
               )}
 
@@ -426,8 +377,8 @@ export const AdminNotificationsPage: React.FC = () => {
               {!isLoading && filteredNotifications.length === 0 && (
                 <div className="bg-slate-900/40 rounded-3xl border border-dashed border-slate-800/80 py-20 text-center">
                   <Inbox className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Hộp thư trống</p>
-                  <p className="text-xs text-slate-500 mt-1">Không có thông báo trong danh mục này.</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Inbox Empty</p>
+                  <p className="text-xs text-slate-500 mt-1">No notifications in this category.</p>
                 </div>
               )}
 
@@ -500,7 +451,7 @@ export const AdminNotificationsPage: React.FC = () => {
                             {!notif.isRead && (
                               <button
                                 onClick={() => handleMarkAsRead(notif.id)}
-                                title="Đánh dấu đã đọc"
+                                title="Mark as read"
                                 className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-indigo-400 bg-slate-950 border border-slate-800 hover:border-indigo-500/30 rounded-xl transition-all duration-300 cursor-pointer shadow-inner"
                               >
                                 <Check size={14} />
@@ -536,28 +487,28 @@ export const AdminNotificationsPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500">Channel 01</span>
-                  <h2 className="text-base font-extrabold text-white tracking-tight mt-0.5">Thông báo qua Email</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Cấu hình gửi email tự động từ hệ thống.</p>
+                  <h2 className="text-base font-extrabold text-white tracking-tight mt-0.5">Email Notifications</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Configure automatic system emails.</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <ToggleSwitch
                   checked={settings.emailSecurity}
                   onChange={(val) => setSettings(prev => ({ ...prev, emailSecurity: val }))}
-                  label="Cảnh báo bảo mật quan trọng"
-                  description="Gửi ngay khi phát hiện đăng nhập trái phép hoặc đổi mật khẩu."
+                  label="Critical Security Alerts"
+                  description="Sent immediately upon unauthorized access or password changes."
                 />
                 <ToggleSwitch
                   checked={settings.emailSystem}
                   onChange={(val) => setSettings(prev => ({ ...prev, emailSystem: val }))}
-                  label="Báo cáo sức khỏe hệ thống"
-                  description="Email thống kê định kỳ hàng tuần về hiệu năng và lưu trữ."
+                  label="System Health Reports"
+                  description="Weekly statistics on performance and storage."
                 />
                 <ToggleSwitch
                   checked={settings.emailBilling}
                   onChange={(val) => setSettings(prev => ({ ...prev, emailBilling: val }))}
-                  label="Hóa đơn & Giao dịch"
-                  description="Xác nhận hóa đơn GTGT điện tử ngay khi thanh toán thành công."
+                  label="Billing & Transactions"
+                  description="Electronic invoice confirmation upon successful payment."
                 />
               </div>
             </div>
@@ -571,27 +522,27 @@ export const AdminNotificationsPage: React.FC = () => {
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500">Channel 02</span>
                   <h2 className="text-base font-extrabold text-white tracking-tight mt-0.5">Browser Push Alerts</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Thông báo đẩy trực tiếp trên trình duyệt.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Direct push notifications in browser.</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <ToggleSwitch
                   checked={settings.pushActivity}
                   onChange={(val) => setSettings(prev => ({ ...prev, pushActivity: val }))}
-                  label="Hoạt động thành viên"
-                  description="Khi có thay đổi nhân sự hoặc phân quyền trong nhóm."
+                  label="Member Activities"
+                  description="Role or team membership changes."
                 />
                 <ToggleSwitch
                   checked={settings.pushAi}
                   onChange={(val) => setSettings(prev => ({ ...prev, pushAi: val }))}
-                  label="Hoàn tất quy trình AI"
-                  description="Khi AI hoàn tất tạo lập website hoặc phân tích CV."
+                  label="AI Process Completion"
+                  description="When AI finishes building a website or analyzing."
                 />
                 <ToggleSwitch
                   checked={settings.pushBilling}
                   onChange={(val) => setSettings(prev => ({ ...prev, pushBilling: val }))}
-                  label="Trạng thái giao dịch"
-                  description="Thông tin thanh toán vừa phát sinh trong thời gian thực."
+                  label="Transaction Status"
+                  description="Real-time payment information."
                 />
               </div>
             </div>
@@ -601,78 +552,18 @@ export const AdminNotificationsPage: React.FC = () => {
               <button
                 onClick={() => {
                   setSettings({ emailSecurity: true, emailSystem: true, emailBilling: false, pushActivity: true, pushAi: true, pushBilling: true });
-                  toast({ title: 'Khôi phục cấu hình', description: 'Đã hoàn trả cài đặt về mặc định.', variant: 'info' });
+                  toast({ title: 'Restored', description: 'Settings restored to defaults.', variant: 'info' });
                 }}
                 className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
               >
-                ← Mặc định
+                ← Default
               </button>
               <button
-                onClick={() => toast({ title: 'Đã lưu', description: 'Cấu hình kênh nhận thông báo đã được cập nhật.', variant: 'success' })}
+                onClick={() => toast({ title: 'Saved', description: 'Notification channels configured.', variant: 'success' })}
                 className="bg-gradient-to-r from-indigo-500 to-sky-500 hover:opacity-90 text-white text-xs font-bold uppercase tracking-wider px-8 py-3.5 transition-all duration-300 rounded-2xl shadow-md cursor-pointer"
               >
-                Lưu cài đặt
+                Save Settings
               </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── SIMULATOR TAB ── */}
-        {activeTab === 'simulator' && (
-          <motion.div
-            key="simulator"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.2 }}
-            className="max-w-3xl"
-          >
-            <div className="border border-slate-800/80 bg-slate-900/40 rounded-3xl p-6 shadow-sm">
-              <div className="pb-6 border-b border-slate-800/60">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-px w-4 bg-orange-500" />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500">Dev Tools</span>
-                </div>
-                <h2 className="text-xl font-extrabold text-white tracking-tight">Mô phỏng sự kiện</h2>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Kích hoạt các sự kiện thông báo để kiểm tra khả năng hiển thị thời gian thực của hệ thống.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                {([
-                  { id: 'register' as const, label: 'Sự kiện Đăng ký', desc: 'User mới đăng ký tài khoản thành công.', icon: <Plus className="w-5 h-5" />, colorClass: 'text-cyan-400 border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10', tag: 'user.registered' },
-                  { id: 'site_ready' as const, label: 'AI Dựng Website', desc: 'Stitch Engine hoàn tất sinh giao diện.', icon: <Sparkles className="w-5 h-5" />, colorClass: 'text-amber-400 border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10', tag: 'site.generated' },
-                  { id: 'security' as const, label: 'Mối đe dọa Bảo mật', desc: 'Phát hiện đăng nhập bất thường từ IP lạ.', icon: <ShieldAlert className="w-5 h-5" />, colorClass: 'text-rose-400 border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10', tag: 'security.alert' },
-                  { id: 'payment' as const, label: 'Thanh toán hóa đơn', desc: 'Đơn hàng được chi trả qua PayOS.', icon: <DollarSign className="w-5 h-5" />, colorClass: 'text-yellow-400 border-yellow-500/20 bg-yellow-500/5 hover:bg-yellow-500/10', tag: 'payment.succeeded' },
-                ] as const).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => triggerSimulation(item.id)}
-                    className={`flex items-center gap-5 p-5 text-left transition-all duration-300 border rounded-3xl cursor-pointer relative overflow-hidden group shadow-sm bg-slate-950/20 border-slate-900`}
-                  >
-                    <div className={`p-3.5 flex items-center justify-center shrink-0 border rounded-2xl ${item.colorClass}`}>
-                      {item.icon}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-bold text-white tracking-tight">{item.label}</div>
-                      <div className="text-xs text-slate-400 leading-relaxed font-medium">{item.desc}</div>
-                      <div className="flex items-center gap-1.5 pt-0.5">
-                        <span className="text-[9px] font-mono text-slate-600">event:</span>
-                        <span className={`text-[9px] font-mono font-bold ${item.colorClass.split(' ')[0]}`}>{item.tag}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-start gap-3 p-4 border border-indigo-500/10 bg-indigo-500/5 rounded-2xl">
-              <Zap className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
-              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                Sau khi kích hoạt sự kiện, chuyển sang tab <strong className="text-indigo-400">Thông báo</strong> để xem kết quả.
-                Notification badge trên thanh header cũng sẽ cập nhật theo thời gian thực.
-              </p>
             </div>
           </motion.div>
         )}

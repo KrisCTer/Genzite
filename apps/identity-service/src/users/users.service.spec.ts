@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { IdentityProducer } from '../events/identity.producer';
 
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: PrismaService;
+  let producer: IdentityProducer;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,6 +19,20 @@ describe('UsersService', () => {
             user: {
               findUnique: jest.fn(),
             },
+            $transaction: jest.fn(),
+            userRole: {
+              deleteMany: jest.fn(),
+              create: jest.fn(),
+            },
+            auditLog: {
+              create: jest.fn(),
+            },
+          },
+        },
+        {
+          provide: IdentityProducer,
+          useValue: {
+            emitRoleAssigned: jest.fn(),
           },
         },
       ],
@@ -24,6 +40,7 @@ describe('UsersService', () => {
 
     service = module.get<UsersService>(UsersService);
     prisma = module.get<PrismaService>(PrismaService);
+    producer = module.get<IdentityProducer>(IdentityProducer);
   });
 
   afterEach(() => {

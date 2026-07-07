@@ -27,7 +27,6 @@ export type NavMenuConfig = {
 
 export const WORKSPACE_MENU: NavMenuConfig[] = [
   { label: 'Dashboard', key: WORKSPACE_BASE, icon: <PieChartOutlined />, roles: VIEWER_ROLES },
-  { label: 'Hồ sơ cá nhân', key: `${WORKSPACE_BASE}/profile`, icon: <UserOutlined />, roles: VIEWER_ROLES },
   { label: 'Notifications', key: `${WORKSPACE_BASE}/notifications`, icon: <BellOutlined />, roles: VIEWER_ROLES },
   {
     label: 'AI Services',
@@ -45,7 +44,6 @@ export const WORKSPACE_MENU: NavMenuConfig[] = [
 
 export const ADMIN_MENU: NavMenuConfig[] = [
   { label: 'Dashboard', key: ADMIN_BASE, icon: <PieChartOutlined />, roles: STAFF_ROLES },
-  { label: 'Hồ sơ cá nhân', key: `${ADMIN_BASE}/profile`, icon: <UserOutlined />, roles: STAFF_ROLES },
   { label: 'Identity (Users/Roles)', key: `${ADMIN_BASE}/identity`, icon: <TeamOutlined />, roles: ['ADMIN'] },
   { label: 'Media Library', key: `${ADMIN_BASE}/media`, icon: <PictureOutlined />, roles: STAFF_ROLES },
   { label: 'Data CMS', key: `${ADMIN_BASE}/cms`, icon: <DatabaseOutlined />, roles: STAFF_ROLES },

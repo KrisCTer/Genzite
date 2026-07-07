@@ -1,222 +1,120 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { fetchUsersApi } from '../../api/users';
-import { fetchCollectionsApi } from '../../api/cms';
-import { fetchSitesApi } from '../../api/sites';
-import { motion } from 'framer-motion';
-import { Users, Database, Globe, Sparkles, Shield, Bell, UserCircle, Clock } from 'lucide-react';
-import { useAuthStore } from '../../store/auth';
-
-const fadeUp = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-};
-
-const metricCards = [
-  {
-    key: 'users',
-    label: 'Người dùng hệ thống',
-    sub: 'tài khoản đăng ký',
-    path: '/admin/identity',
-    icon: Users,
-    accent: 'cyan',
-    getValue: (users: unknown[]) => users.length,
-  },
-  {
-    key: 'cms',
-    label: 'Mô hình dữ liệu CMS',
-    sub: 'bộ sưu tập',
-    path: '/admin/cms',
-    icon: Database,
-    accent: 'amber',
-    getValue: (collections: unknown[]) => collections.length,
-  },
-  {
-    key: 'sites',
-    label: 'Site AI Live',
-    sub: 'trang web',
-    path: '/admin/site',
-    icon: Globe,
-    accent: 'emerald',
-    getValue: (sites: unknown[]) => sites.length,
-  },
-] as const;
-
-const quickActions = [
-  { label: 'AI Canvas', desc: 'Thiết kế trang bằng AI', path: '/admin/site/canvas', icon: Sparkles, color: 'text-cyan-400' },
-  { label: 'Quản lý truy cập', desc: 'Users & roles', path: '/admin/identity', icon: Shield, color: 'text-amber-400' },
-  { label: 'Thông báo', desc: 'Hệ thống & sự kiện', path: '/admin/notifications', icon: Bell, color: 'text-indigo-400' },
-  { label: 'Hồ sơ cá nhân', desc: 'Tài khoản admin', path: '/admin/profile', icon: UserCircle, color: 'text-emerald-400' },
-];
-
-const accentMap = {
-  cyan: {
-    icon: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-    hover: 'hover:border-cyan-500/40 hover:shadow-cyan-500/10',
-    bar: 'bg-cyan-500',
-  },
-  amber: {
-    icon: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    hover: 'hover:border-amber-500/40 hover:shadow-amber-500/10',
-    bar: 'bg-amber-500',
-  },
-  emerald: {
-    icon: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    hover: 'hover:border-emerald-500/40 hover:shadow-emerald-500/10',
-    bar: 'bg-emerald-500',
-  },
-};
+import React from 'react';
 
 export const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const adminName = useAuthStore((s) => s.user?.name?.split(' ')[0]);
-  const { data: users } = useQuery({ queryKey: ['users'], queryFn: fetchUsersApi });
-  const { data: collections } = useQuery({ queryKey: ['cms-collections'], queryFn: () => fetchCollectionsApi('') });
-  const { data: sites } = useQuery({ queryKey: ['sites'], queryFn: fetchSitesApi });
-
-  const [timeStr, setTimeStr] = useState(new Date().toISOString());
-
-  useEffect(() => {
-    const clockTimer = setInterval(() => setTimeStr(new Date().toISOString()), 1000);
-    return () => clearInterval(clockTimer);
-  }, []);
-
-  const formattedTime = useMemo(
-    () => new Date(timeStr).toLocaleTimeString('vi-VN', { hour12: false }),
-    [timeStr],
-  );
-  const formattedDate = useMemo(
-    () =>
-      new Date(timeStr).toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-    [timeStr],
-  );
-  const welcomeGreeting = useMemo(() => {
-    const hour = new Date(timeStr).getHours();
-    if (hour < 12) return 'Chào buổi sáng';
-    if (hour < 18) return 'Chào buổi chiều';
-    return 'Chào buổi tối';
-  }, [timeStr]);
-
-  const dataMap: Record<string, unknown[]> = {
-    users: Array.isArray(users) ? users : [],
-    cms: Array.isArray(collections) ? collections : [],
-    sites: Array.isArray(sites) ? sites : [],
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 text-white select-none">
-      <motion.div initial="initial" animate="animate" className="space-y-6">
-        {/* Header */}
-        <motion.div {...fadeUp} transition={{ duration: 0.4 }} className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#2a3040]/80">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold tracking-[0.2em] text-cyan-500 uppercase">Admin Console</span>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              {welcomeGreeting}
-              {adminName ? `, ${adminName}` : ''}!
-            </h1>
-            <p className="text-[#94a3b8] text-sm max-w-lg">
-              Tổng quan hệ thống — dữ liệu đồng bộ thời gian thực.
-            </p>
-          </div>
-          <div className="inline-flex items-center gap-2 text-xs text-[#94a3b8] px-3 py-2 rounded-full bg-[#1c212c]/80 border border-[#2a3040] backdrop-blur-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="font-medium text-emerald-400/90">Hệ thống ổn định</span>
-          </div>
-        </motion.div>
+    <div className="flex-1 relative flex flex-col items-center justify-center bg-[#020409] overflow-y-auto h-full w-full">
+      <style dangerouslySetInnerHTML={{__html: `
+        .input-gradient-border {
+          position: relative;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(24px);
+          border-radius: 24px;
+          padding: 1px;
+          box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+        }
+        .input-gradient-border::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 1.5rem;
+          padding: 1px;
+          background: linear-gradient(to right, #4285f4, #9b72cb, #d96570, #f4af5f);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+          opacity: 0.4;
+        }
+      `}} />
 
-        {/* Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {metricCards.map((card, i) => {
-            const Icon = card.icon;
-            const accent = accentMap[card.accent];
-            const count = card.getValue(dataMap[card.key]);
-            return (
-              <motion.button
-                key={card.key}
-                type="button"
-                {...fadeUp}
-                transition={{ duration: 0.4, delay: i * 0.06 }}
-                onClick={() => navigate(card.path)}
-                className={`group relative text-left overflow-hidden rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5 transition-all duration-300 hover:shadow-lg ${accent.hover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50`}
-              >
-                <div className={`absolute top-0 left-0 right-0 h-0.5 ${accent.bar} opacity-60 group-hover:opacity-100 transition-opacity`} />
-                <div className="flex items-start justify-between gap-3">
-                  <div className={`p-2.5 rounded-xl border ${accent.icon}`}>
-                    <Icon size={20} strokeWidth={2} />
-                  </div>
-                  <span className="text-[10px] uppercase tracking-wider text-[#64748b] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                    Xem →
-                  </span>
-                </div>
-                <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8]">{card.label}</p>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold tabular-nums">{count.toString().padStart(2, '0')}</span>
-                  <span className="text-xs text-[#64748b]">{card.sub}</span>
-                </div>
-              </motion.button>
-            );
-          })}
+      {/* Top Action Icon */}
+      <div className="absolute top-6 left-6">
+        <button className="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-[#9aa0a6]">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+        </button>
+      </div>
+
+      {/* Top Right Action Icons */}
+      <div className="absolute top-6 right-6">
+        <button className="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-[#9aa0a6]">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+        </button>
+      </div>
+
+      {/* Center Hero Section */}
+      <div className="max-w-4xl w-full px-6 flex flex-col items-center pt-[15vh] pb-20">
+        {/* Heading */}
+        <div className="flex items-center gap-3 mb-10">
+          <h1 className="text-3xl font-light text-[#e3e3e3] tracking-tight">Build your ideas with Gemini</h1>
+          <div className="text-[#a8c7fa]">
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3L14.062 8.938L20 11L14.062 13.062L12 19L9.938 13.062L4 11L9.938 8.938L12 3Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path>
+            </svg>
+          </div>
         </div>
 
-        {/* Quick actions + clock */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <motion.div
-            {...fadeUp}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="lg:col-span-2 rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5 md:p-6"
-          >
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94a3b8] mb-4">Thao tác nhanh</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={action.path}
-                    type="button"
-                    onClick={() => navigate(action.path)}
-                    className="group flex items-center gap-3 p-4 rounded-xl border border-[#2a3040] bg-[#161a23]/80 hover:border-[#3d4659] hover:bg-[#161a23] transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50"
-                  >
-                    <span className={`p-2 rounded-lg bg-[#1c212c] border border-[#2a3040] ${action.color}`}>
-                      <Icon size={18} strokeWidth={2} />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-semibold text-white group-hover:text-cyan-50 transition-colors">
-                        {action.label}
-                      </span>
-                      <span className="block text-[11px] text-[#64748b] mt-0.5">{action.desc}</span>
-                    </span>
-                    <span className="text-[#475569] group-hover:text-cyan-400 transition-colors text-sm">→</span>
+        {/* Main Input Search Bar */}
+        <div className="w-full mb-10">
+          <div className="input-gradient-border group">
+            <div className="px-6 pt-6 pb-5 flex flex-col gap-4">
+              <textarea 
+                className="bg-transparent border-none focus:ring-0 w-full text-[16px] placeholder-[#64748b] text-[#e3e3e3] resize-none h-24 outline-none leading-relaxed" 
+                placeholder="Describe an app and let Gemini do the rest"
+              ></textarea>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[#9aa0a6]">
+                  <button className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors cursor-pointer">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
                   </button>
-                );
-              })}
+                  <button className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors cursor-pointer">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+                  </button>
+                </div>
+                <button className="flex items-center gap-2 bg-[#1A2235] hover:bg-[#202A40] border border-white/5 transition-all duration-200 px-5 py-2.5 rounded-full text-sm font-medium text-white shadow-sm cursor-pointer group-focus-within:bg-[#0066da] group-focus-within:border-transparent group-focus-within:hover:bg-[#0052b3]">
+                  <span className="text-[#a8c7fa] group-focus-within:text-white">✨</span>
+                  I'm feeling lucky
+                </button>
+              </div>
             </div>
-          </motion.div>
-
-          <motion.div
-            {...fadeUp}
-            transition={{ duration: 0.4, delay: 0.28 }}
-            className="rounded-2xl border border-[#2a3040] bg-gradient-to-br from-[#1c212c] to-[#161a23] p-6 flex flex-col items-center justify-center text-center min-h-[220px]"
-          >
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-[#64748b] mb-5">
-              <Clock size={14} />
-              Thời gian hệ thống
-            </div>
-            <p className="text-4xl font-extrabold tabular-nums tracking-tight bg-gradient-to-r from-white to-[#94a3b8] bg-clip-text text-transparent">
-              {formattedTime}
-            </p>
-            <p className="text-xs text-[#64748b] mt-3 capitalize leading-relaxed max-w-[200px]">{formattedDate}</p>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+
+        {/* Pill Buttons Row */}
+        <div className="flex flex-wrap justify-center gap-3 mb-20 overflow-x-auto max-w-full no-scrollbar pb-2">
+          <button className="flex items-center gap-2.5 px-4 h-[40px] bg-[#0A1124]/80 border border-white/5 rounded-xl hover:bg-[#131B31] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-200 text-[13px] font-medium text-[#cbd5e1] shadow-sm cursor-pointer">
+            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9981-.447-.9981-.9981s.447-.9981.9981-.9981.9981.447.9981.9981-.447.9981-.9981.9981zm-11.046 0c-.5511 0-.9981-.447-.9981-.9981s.447-.9981.9981-.9981.9981.447.9981.9981-.447.9981-.9981.9981zm11.414-5.4665l1.9218-3.3283c.123-.213.0494-.486-.1634-.609-.2127-.123-.4858-.0495-.6088.1633l-1.954 3.3842c-1.4284-.6522-3.0305-1.0205-4.7366-1.0205s-3.3082.3683-4.7366 1.0205l-1.954-3.3842c-.123-.2128-.396-.2863-.6088-.1633-.2127.123-.2864.396-.1634.609l1.9218 3.3283C3.606 11.2334 1.944 13.5654 1.666 16.326h20.318c-.278-2.7606-1.94-5.0926-5.1848-6.4511z"></path></svg>
+            Build an Android app
+          </button>
+          <button className="flex items-center gap-2.5 px-4 h-[40px] bg-[#0A1124]/80 border border-white/5 rounded-xl hover:bg-[#131B31] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-200 text-[13px] font-medium text-[#cbd5e1] shadow-sm cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><path d="M7.71 3.5l2.29 4h-5.42l-2.29-4h5.42z" fill="#0066da"></path><path d="M12.59 12h5.41l2.29 4h-5.41l-2.29-4z" fill="#00ac47"></path></svg>
+            Google Drive
+          </button>
+          <button className="flex items-center gap-2.5 px-4 h-[40px] bg-[#0A1124]/80 border border-white/5 rounded-xl hover:bg-[#131B31] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-200 text-[13px] font-medium text-[#cbd5e1] shadow-sm cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" fill="#0F9D58"></path></svg>
+            Google Sheets
+          </button>
+          <button className="flex items-center gap-2.5 px-4 h-[40px] bg-[#0A1124]/80 border border-white/5 rounded-xl hover:bg-[#131B31] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-200 text-[13px] font-medium text-[#cbd5e1] shadow-sm cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#EA4335"></path></svg>
+            Gmail
+          </button>
+          <button className="flex items-center gap-2.5 px-4 h-[40px] bg-[#0A1124]/80 border border-white/5 rounded-xl hover:bg-[#131B31] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-200 text-[13px] font-medium text-[#cbd5e1] shadow-sm cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z" fill="#4285F4"></path></svg>
+            Google Calendar
+          </button>
+          <button className="w-10 h-[40px] flex items-center justify-center bg-[#0A1124]/80 border border-white/5 rounded-xl hover:bg-[#131B31] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-200 text-[#cbd5e1] shadow-sm cursor-pointer">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom Discovery Section */}
+      <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between px-8 py-5 bg-[#0A1124] border border-[#1A2235] rounded-[24px] shadow-lg">
+        <h2 className="text-[16px] font-medium text-[#e3e3e3]">Discover and remix app ideas</h2>
+        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#131B31] border border-white/5 hover:border-white/10 hover:bg-[#1C2640] rounded-xl text-sm font-medium transition-all duration-200 text-[#e3e3e3] cursor-pointer shadow-sm hover:-translate-y-0.5">
+          Browse the app gallery
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+        </button>
+      </div>
     </div>
   );
 };
