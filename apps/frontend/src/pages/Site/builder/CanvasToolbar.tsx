@@ -13,7 +13,7 @@ import {
   BugOutlined,
 } from '@ant-design/icons';
 import { Dropdown, Modal, message, type MenuProps } from 'antd';
-import { Sparkles, Pen, Eye, ChevronDown, MoreVertical, Play, PlusSquare, RotateCcw, Flame, Smartphone, Layers, PlayCircle, Store, Globe, Megaphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Copy, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
+import { Sparkles, Pen, Eye, ChevronDown, MoreVertical, Play, PlusSquare, RotateCcw, Flame, Smartphone, Layers, PlayCircle, Store, Globe, Megaphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserPopover } from '@genzite/shared-ui';
@@ -32,15 +32,28 @@ interface CanvasToolbarProps {
   siteId?: string;
   site?: any;
   selectedId?: string | null;
+  canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
+  onDeviceChange?: (device: 'mobile' | 'tablet' | 'desktop' | 'full') => void;
+  onViewDetails?: () => void;
+  onViewCode?: () => void;
+  onDownload?: () => void;
+  onReloadPage?: () => void;
+  onDeletePage?: () => void;
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
-  onPreview,
   onPublish,
   siteTitle,
   siteId,
   site,
   selectedId,
+  canvasDevice,
+  onDeviceChange,
+  onViewDetails,
+  onViewCode,
+  onDownload,
+  onReloadPage,
+  onDeletePage,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -446,13 +459,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: '3',
+      onClick: () => onDeviceChange?.('mobile'),
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: canvasDevice === 'mobile' ? '#38bdf8' : '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Smartphone size={16} style={{ opacity: 0.7 }} />
+            <Smartphone size={16} style={{ opacity: canvasDevice === 'mobile' ? 1 : 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Mobile</span>
           </div>
-          <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: canvasDevice === 'mobile' ? '#38bdf8' : '#94A3B8', fontWeight: 500 }}>
             390×884
           </div>
         </div>
@@ -460,13 +474,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: '4',
+      onClick: () => onDeviceChange?.('tablet'),
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: canvasDevice === 'tablet' ? '#38bdf8' : '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Tablet size={16} style={{ opacity: 0.7 }} />
+            <Tablet size={16} style={{ opacity: canvasDevice === 'tablet' ? 1 : 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Tablet</span>
           </div>
-          <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: canvasDevice === 'tablet' ? '#38bdf8' : '#94A3B8', fontWeight: 500 }}>
             768×1024
           </div>
         </div>
@@ -474,13 +489,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: '5',
+      onClick: () => onDeviceChange?.('desktop'),
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: canvasDevice === 'desktop' ? '#38bdf8' : '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Monitor size={16} style={{ opacity: 0.7 }} />
+            <Monitor size={16} style={{ opacity: canvasDevice === 'desktop' ? 1 : 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Desktop</span>
           </div>
-          <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: canvasDevice === 'desktop' ? '#38bdf8' : '#94A3B8', fontWeight: 500 }}>
             1280×1024
           </div>
         </div>
@@ -488,9 +504,10 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: '6',
+      onClick: () => onDeviceChange?.('full'),
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
-          <ArrowUpDown size={16} style={{ opacity: 0.7 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: canvasDevice === 'full' ? '#38bdf8' : '#fff' }}>
+          <ArrowUpDown size={16} style={{ opacity: canvasDevice === 'full' ? 1 : 0.7 }} />
           <span style={{ fontSize: 14, fontWeight: 500 }}>Full Height</span>
         </div>
       ),
@@ -501,7 +518,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: '1',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 220, padding: '6px 4px', color: '#fff' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 220, padding: '6px 4px', color: '#fff' }}
+          onClick={() => {
+            if (onViewDetails) onViewDetails();
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Info size={16} style={{ opacity: 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>View Details</span>
@@ -515,7 +537,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: '2',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}
+          onClick={() => {
+            if (onViewCode) onViewCode();
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Code size={16} style={{ opacity: 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Xem mã</span>
@@ -529,20 +556,10 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: '3',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
-          <Copy size={16} style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Sao chép vào Figma</span>
-        </div>
-      ),
-    },
-    {
-      key: '4',
-      label: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Upload size={16} style={{ opacity: 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Xuất</span>
-            <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600, marginLeft: -4 }}>NEW</div>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             Ctrl⇧E
@@ -551,9 +568,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       ),
     },
     {
-      key: '5',
+      key: '4',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}
+          onClick={() => { if (onDownload) onDownload(); }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Download size={16} style={{ opacity: 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Tải xuống</span>
@@ -565,9 +585,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       ),
     },
     {
-      key: '6',
+      key: '5',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}
+          onClick={() => { if (onReloadPage) onReloadPage(); }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <RotateCw size={16} style={{ opacity: 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Tải lại</span>
@@ -580,9 +603,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     { type: 'divider', style: { borderColor: 'rgba(255,255,255,0.06)', margin: '8px 0' } },
     {
-      key: '7',
+      key: '6',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#ef4444' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#ef4444' }}
+          onClick={() => { if (onDeletePage) onDeletePage(); }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Trash2 size={16} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Xoá</span>

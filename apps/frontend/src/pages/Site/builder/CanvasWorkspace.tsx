@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { message } from 'antd';
+import { message, Modal, Spin } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { fetchWidgetsApi } from '../../../api/sites';
+import { fetchWidgetsApi, deletePageApi } from '../../../api/sites';
 import { uploadMediaFileApi } from '../../../api/media';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import html2canvas from 'html2canvas';
 import { 
   ZoomInOutlined, 
   ZoomOutOutlined, 
@@ -24,12 +27,16 @@ import {
   BookOutlined,
   UndoOutlined,
   RedoOutlined,
-  PlusOutlined
+  PlusOutlined,
+  CopyOutlined,
+  CloseOutlined
 } from '@ant-design/icons';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X, Monitor, Palette, Plus, MoreVertical, ChevronRight } from 'lucide-react';
 import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
+import AgentLogSidebar from './AgentLogSidebar';
+import { useAiLogStore } from '../../../store/aiLogs';
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 2;
@@ -106,9 +113,24 @@ interface CanvasWorkspaceProps {
   siteId: string;
   site?: any;
   onAIGenerated?: (jobId: string) => void;
+  onViewDetails?: () => void;
+  onViewCode?: () => void;
+  onDownload?: () => void;
+  onReloadPage?: () => void;
+  onDeletePage?: () => void;
 }
 
-const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, onAIGenerated }) => {
+const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ 
+  pages, 
+  siteId, 
+  site, 
+  onAIGenerated,
+  onViewDetails,
+  onViewCode,
+  onDownload,
+  onReloadPage,
+  onDeletePage,
+}) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -135,6 +157,18 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
 
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isStylesOpen, setIsStylesOpen] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('full');
+  const isGenerating = useAiLogStore(state => state.isGenerating);
+  
+  useEffect(() => {
+    if (isGenerating) {
+      setIsSidebarExpanded(true);
+    }
+  }, [isGenerating]);
+
   const queryClient = useQueryClient();
 
   const uploadMutation = useMutation({
@@ -163,10 +197,79 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
     topZCounter.current += 1;
     return topZCounter.current;
   }, []);
-  const [isGrapesSelected, setIsGrapesSelected] = useState(false);
 
-  // Fetch widgets across all pages to dynamically extract actual project colors
-  const { data: allPagesWidgets } = useQuery({
+  const deletePageMutation = useMutation({
+    mutationFn: (id: string) => deletePageApi(id),
+    onSuccess: () => {
+      message.success('Đã xoá trang!');
+      queryClient.invalidateQueries({ queryKey: ['site-pages', siteId] });
+      setSelectedId(null);
+    },
+    onError: () => {
+      message.error('Lỗi khi xoá trang!');
+    }
+  });
+
+  const handleDeletePage = () => {
+    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    if (!activePage) return;
+    
+    Modal.confirm({
+      title: 'Xoá trang',
+      content: `Bạn có chắc chắn muốn xoá trang "${activePage.title}" không?`,
+      okText: 'Xoá',
+      cancelText: 'Huỷ',
+      okButtonProps: { danger: true },
+      onOk: () => {
+        deletePageMutation.mutate(activePage.id);
+      }
+    });
+  };
+
+  const handleReloadPage = () => {
+    queryClient.invalidateQueries({ queryKey: ['site-all-widgets', siteId] });
+    message.success('Đã tải lại trang!');
+  };
+
+  const handleDownload = async () => {
+    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    if (!activePage) return;
+    
+    const hideMessage = message.loading('Đang chuẩn bị dữ liệu tải xuống...', 0);
+    try {
+      const zip = new JSZip();
+      
+      const htmlString = getActivePageCode();
+      zip.file(`${activePage.slug || 'index'}.html`, htmlString);
+      
+      const designPrompt = activePage?.settings?.designPrompt || site?.settings?.systemPrompt || 'No design prompt specified.';
+      zip.file('DESIGN.md', designPrompt);
+      
+      const boardEl = document.getElementById(`board-${activePage.id}`) || document.querySelector('.canvas-viewport') as HTMLElement;
+      if (boardEl) {
+        const canvas = await html2canvas(boardEl, {
+           useCORS: true,
+           scale: 2,
+           backgroundColor: '#F8FAFC'
+        });
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (blob) {
+          zip.file('screen.png', blob);
+        }
+      }
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `${activePage.slug || 'export'}.zip`);
+      hideMessage();
+      message.success('Tải xuống thành công!');
+    } catch (err) {
+      console.error(err);
+      hideMessage();
+      message.error('Lỗi khi tải xuống!');
+    }
+  };
+
+  const { data: allPagesWidgets, isFetching: isFetchingWidgets } = useQuery({
     queryKey: ['site-all-widgets', siteId, pages],
     queryFn: async () => {
       if (!pages || pages.length === 0) return [];
@@ -178,12 +281,53 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
     enabled: !!pages && pages.length > 0 && !!siteId,
   });
 
-  // Helper to dynamically extract real hex colors from live project widgets and settings
+  const getActivePageCode = useCallback(() => {
+    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    if (!activePage || !allPagesWidgets) return '';
+    
+    const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
+    const grapesWidget = pageWidgets.find((w: any) => w.type === 'GRAPESJS');
+    
+    let htmlContent = '';
+    let cssContent = '';
+    
+    if (grapesWidget) {
+      htmlContent = grapesWidget.contentConfig?.html || '';
+      cssContent = grapesWidget.contentConfig?.css || '';
+    } else {
+      htmlContent = pageWidgets.map((w: any) => w.contentConfig?.html || '').join('\n');
+    }
+    
+    return `<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>${activePage.title} | ${site?.name || 'Project'}</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {}
+    }
+  }
+</script>
+<style>
+${cssContent}
+</style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+  }, [pages, selectedId, allPagesWidgets, site]);
+
   const extractRealProjectColors = () => {
     const colorCounts: Record<string, number> = {};
     const addColor = (col?: string) => {
       if (!col || typeof col !== 'string') return;
-      // Match 3, 6, or 8 digit hex colors or rgb/hsl
       const matches = col.match(/#[0-9a-fA-F]{3,8}|rgb\([^)]+\)|hsl\([^)]+\)/g);
       if (matches) {
         matches.forEach(c => {
@@ -197,7 +341,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
       }
     };
 
-    // Scan site settings
     if (site?.settings) {
       JSON.stringify(site.settings, (_key, value) => {
         if (typeof value === 'string') addColor(value);
@@ -205,7 +348,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
       });
     }
 
-    // Scan all widgets (html, css, contentConfig)
     if (allPagesWidgets && Array.isArray(allPagesWidgets)) {
       allPagesWidgets.forEach(w => {
         if (w.contentConfig) {
@@ -217,18 +359,15 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
       });
     }
 
-    // Sort unique colors by frequency
     const sortedColors = Object.entries(colorCounts)
       .sort((a, b) => b[1] - a[1])
       .map(entry => entry[0]);
 
-    // Determine Primary, Secondary, Tertiary, Neutral with fallbacks if project has very few colors
     const primary = sortedColors[0] || (site?.settings?.primaryColor as string) || '#0F172A';
     const secondary = sortedColors[1] || (site?.settings?.secondaryColor as string) || '#334155';
     const tertiary = sortedColors[2] || '#2563EB';
     const neutral = sortedColors[3] || '#F8FAFC';
     
-    // Generate real shades/swatches based on hex color (blending with white/black or opacity steps)
     const generateShades = (baseHex: string) => {
       if (!baseHex.startsWith('#') || baseHex.length < 7) {
         return [baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex];
@@ -291,12 +430,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
     zIndex: 1
   });
 
-  useEffect(() => {
-    const handler = (e: any) => setIsGrapesSelected(e.detail);
-    window.addEventListener('grapes:selected', handler);
-    return () => window.removeEventListener('grapes:selected', handler);
-  }, []);
-
   const zoomIn = () => setZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2))));
   const zoomOut = () => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2))));
   const resetZoom = () => { setZoom(0.4); setPan({ x: 100, y: 100 }); };
@@ -306,7 +439,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
     if (!el) return;
     const handleNativeWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault(); // Prevents default browser zoom
+        e.preventDefault(); 
         const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
         setZoom(z => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, parseFloat((z + delta).toFixed(2)))));
       }
@@ -337,7 +470,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Deselect if clicking on empty canvas
     if ((e.target as HTMLElement).classList.contains('canvas-center') ||
         (e.target as HTMLElement).classList.contains('canvas-viewport')) {
       if (e.button === 0) {
@@ -359,7 +491,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
         y: panStart.current.py + (e.clientY - panStart.current.my),
       });
     }
-    // Track mouse position for CSS spotlight (scoped to workspace root to cover toolbar)
     if (workspaceRootRef.current) {
       const rect = workspaceRootRef.current.getBoundingClientRect();
       workspaceRootRef.current.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
@@ -399,20 +530,26 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
       />
       
       <CanvasToolbar 
-        zoom={zoom}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        onResetZoom={resetZoom}
+        zoom={zoom} 
+        onZoomIn={zoomIn} 
+        onZoomOut={zoomOut} 
+        onResetZoom={resetZoom} 
         onPreview={handlePreview}
         onPublish={handlePublish}
-        siteTitle={site?.name || siteId}
+        siteTitle={pages?.[0]?.title || 'Product Mockup Visualizer'}
         siteId={siteId}
         site={site}
         selectedId={selectedId}
+        canvasDevice={canvasDevice}
+        onDeviceChange={setCanvasDevice}
+        onViewDetails={onViewDetails || (() => { setIsDetailsOpen(true); setIsStylesOpen(false); })}
+        onViewCode={onViewCode || (() => setIsCodeModalOpen(true))}
+        onDownload={onDownload || handleDownload}
+        onReloadPage={onReloadPage || handleReloadPage}
+        onDeletePage={onDeletePage || handleDeletePage}
       />
       
       <div className="canvas-body" style={{ display: 'flex', position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {/* Left: AI Agent Task Logs & Structure (Floating) */}
         <div className="canvas-sidebar-left" style={{ 
           position: 'absolute', 
           left: 24, 
@@ -423,7 +560,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
           zIndex: 10,
           background: isSidebarExpanded 
             ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)' 
-            : 'rgba(17, 24, 39, 0.6)', // Solid dark square when collapsed
+            : 'rgba(17, 24, 39, 0.6)', 
           borderRadius: 16, 
           boxShadow: isSidebarExpanded ? '0 20px 50px rgba(0,0,0,0.6)' : '0 8px 30px rgba(56, 189, 248, 0.15)', 
           display: 'flex', flexDirection: 'column', overflow: 'hidden', 
@@ -431,7 +568,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
           backdropFilter: 'blur(24px)',
           transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s, border 0.3s, box-shadow 0.3s'
         }}>
-          {/* Merged Header */}
           <div style={{ 
             display: 'flex', alignItems: 'center', 
             justifyContent: isSidebarExpanded ? 'space-between' : 'center', 
@@ -473,7 +609,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
               )}
             </div>
 
-            {/* Right Controls: New Thread */}
             {isSidebarExpanded && (
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <button
@@ -503,7 +638,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
             overflow: 'hidden' 
           }}>
             <div id="portal-left-sidebar" style={{ width: 310, height: '100%', overflowY: 'auto' }}>
-              {/* Portaled from GrapesEditor */}
+              <AgentLogSidebar />
             </div>
           </div>
         </div>
@@ -514,7 +649,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onContextMenu={(e) => { e.preventDefault(); handleMouseDown(e); }} // Right click pan
+          onContextMenu={(e) => { e.preventDefault(); handleMouseDown(e); }} 
           style={{ 
             width: '100%',
             height: '100%',
@@ -524,7 +659,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
             background: 'transparent' 
           }}
         >
-          {/* Viewport with zoom + pan transform */}
           <div
             className="canvas-viewport"
             style={{
@@ -532,10 +666,9 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
               transformOrigin: '0 0',
               position: 'absolute',
               pointerEvents: (activeTool === 'pan' || isPanning) ? 'none' : 'auto',
-              width: 10000, height: 10000 // Very large logical space
+              width: 10000, height: 10000 
             }}
           >
-            {/* Board 1: Real Project Design System Board */}
             <DraggableBoard
               initialX={0}
               initialY={100}
@@ -549,7 +682,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                 fontFamily: site?.settings?.fontFamily || 'Inter, system-ui, sans-serif'
               }}
             >
-              {/* Board Title */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155' }}>
                   <BgColorsOutlined style={{ fontSize: 16, color: '#fff' }} />
@@ -562,7 +694,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                 </span>
               </div>
 
-              {/* Board Outer Glowing Frame */}
               <div
                 style={{
                   background: '#F8FAFC',
@@ -575,9 +706,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                   gap: 16
                 }}
               >
-                {/* Column 1: Real Project Color Palettes */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Primary Color Card */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Primary</span>
@@ -598,7 +727,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Secondary Color Card */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Secondary</span>
@@ -619,7 +747,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Tertiary Color Card */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Tertiary</span>
@@ -640,7 +767,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Neutral Color Card */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Neutral</span>
@@ -661,7 +787,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Live Extracted Palette Card */}
                   {projectColors.allExtracted.length > 0 && (
                     <div style={{ background: '#0F172A', borderRadius: 16, padding: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid #334155' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -685,9 +810,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                   )}
                 </div>
 
-                {/* Column 2: Typography Scale */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Headline */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: '24px 20px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Headline</span>
@@ -699,7 +822,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     <div style={{ fontSize: 12, color: '#94A3B8' }}>48px • Bold • 1.2 line height</div>
                   </div>
 
-                  {/* Body */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: '24px 20px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Body</span>
@@ -711,7 +833,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     <div style={{ fontSize: 12, color: '#94A3B8' }}>16px • Medium • 1.5 line height</div>
                   </div>
 
-                  {/* Label */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: '24px 20px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Label</span>
@@ -724,9 +845,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                   </div>
                 </div>
 
-                {/* Column 3: Buttons & Progress Lines */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Buttons Grid */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <button style={{ background: projectColors.primary, color: '#fff', border: 'none', padding: '12px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: site?.settings?.fontFamily || 'inherit' }}>
                       Primary
@@ -742,7 +861,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </button>
                   </div>
 
-                  {/* Progress Bars / Lines */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, flex: 1 }}>
                     <div style={{ width: '100%', height: 8, background: '#F1F5F9', borderRadius: 999, overflow: 'hidden' }}>
                       <div style={{ width: '75%', height: '100%', background: projectColors.primary, borderRadius: 999 }} />
@@ -755,7 +873,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Small Square & Label Buttons */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 44, height: 44, borderRadius: 10, background: '#1E3A8A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA' }}>
                       <EditOutlined style={{ fontSize: 18 }} />
@@ -767,9 +884,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                   </div>
                 </div>
 
-                {/* Column 4: Search, Navigation Bar & Badges */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Search Input Preview */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', color: '#64748B', fontSize: 14 }}>
                       <SearchOutlined />
@@ -777,7 +892,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Floating Nav Bar Preview */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: '28px 20px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 999, padding: '10px 24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: '#0F172A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -788,7 +902,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                     </div>
                   </div>
 
-                  {/* Square Tag Badges */}
                   <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ width: 42, height: 42, borderRadius: 8, background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
                       <ToolOutlined />
@@ -807,33 +920,42 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
               </div>
             </DraggableBoard>
 
-            {/* Boards 2+: Project Pages */}
-            {(pages || []).map((page: any, index: number) => (
-              <DraggableBoard
-                key={page.id}
-                initialX={(index + 1) * PAGE_SPACING}
-                initialY={100}
-                zoom={zoom}
-                activeTool={activeTool}
-                requestTopZ={requestTopZ}
-              >
-                <CanvasPageFrame
-                  pageId={page.id}
-                  pageTitle={page.title || 'Home'}
-                  siteName={site?.name || 'My Site'}
-                  globalSelectedId={selectedId}
-                  onSelectWidget={setSelectedId}
+            {(pages || []).map((page: any, index: number) => {
+              const isSelectedPage = selectedId?.includes(page.id) || (!selectedId && index === 0);
+              return (
+                <DraggableBoard
+                  key={page.id}
+                  initialX={(index + 1) * PAGE_SPACING}
+                  initialY={100}
+                  zoom={zoom}
                   activeTool={activeTool}
-                />
-              </DraggableBoard>
-            ))}
+                  requestTopZ={requestTopZ}
+                >
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    {isFetchingWidgets && isSelectedPage && (
+                      <div style={{ position: 'absolute', inset: -8, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', borderRadius: 12 }}>
+                        <Spin size="large" />
+                        <div style={{ marginTop: 16, color: '#38bdf8', fontWeight: 600, fontSize: 16, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>Đang tải lại dữ liệu...</div>
+                      </div>
+                    )}
+                    <CanvasPageFrame
+                      pageId={page.id}
+                      pageTitle={page.title || 'Home'}
+                      siteName={site?.name || 'My Site'}
+                      globalSelectedId={selectedId}
+                      onSelectWidget={setSelectedId}
+                      activeTool={activeTool}
+                      canvasDevice={canvasDevice}
+                    />
+                  </div>
+                </DraggableBoard>
+              );
+            })}
           </div>
         </div>
 
-        {/* Hidden Portal for GrapesJS Properties so it never breaks */}
         <div id="portal-right-sidebar" style={{ display: 'none' }} />
 
-        {/* Right: Floating Canvas Tool Pill (Figma / Excalidraw style) */}
         <div
           className="canvas-tools-right-pill"
           style={{
@@ -876,8 +998,8 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
                 onClick={() => {
                   if (tool.id === 'image') fileInputRef.current?.click();
                   if (tool.id === 'palette') {
-                    setZoom(0.4);
-                    setPan({ x: 100, y: 100 });
+                    setIsStylesOpen(!isStylesOpen);
+                    setIsDetailsOpen(false);
                   }
                   setActiveTool(tool.id as any);
                 }}
@@ -902,7 +1024,209 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
           <AIPromptBar compact onGenerated={onAIGenerated} siteId={siteId} />
         </div>
 
-        {/* Floating Controls at Bottom Right (Undo/Redo + Zoom) */}
+        {(() => {
+          if (!isDetailsOpen) return null;
+          
+          const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+          let pageHeight = 1000;
+          let extractedAssets: string[] = [];
+          
+          if (activePage && allPagesWidgets) {
+            const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
+            let maxH = 0;
+            pageWidgets.forEach((w: any) => {
+              const h = w.contentConfig?.geometry?.height || 200;
+              const y = w.contentConfig?.geometry?.y || 0;
+              if (y + h > maxH) maxH = y + h;
+              
+              const props = w.contentConfig?.props || {};
+              if (props.src) extractedAssets.push(props.src);
+              if (props.url) extractedAssets.push(props.url);
+              if (props.images && Array.isArray(props.images)) {
+                extractedAssets.push(...props.images.map((img: any) => img.url || img));
+              }
+            });
+            if (maxH > 0) pageHeight = maxH;
+          }
+          
+          extractedAssets = [...new Set(extractedAssets)].filter(url => typeof url === 'string' && url.startsWith('http'));
+
+          return (
+            <div style={{
+              position: 'absolute',
+              top: 80, 
+              right: 70, 
+              bottom: 90, 
+              width: 320,
+              background: 'rgba(17, 24, 39, 0.85)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              borderRadius: 16,
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 100,
+              color: '#F8FAFC',
+              overflow: 'hidden'
+            }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{site?.name ? `${site.name} - ` : ''}{activePage?.title || 'Home'}</span>
+                <button 
+                  onClick={() => setIsDetailsOpen(false)} 
+                  style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div style={{ padding: 20, overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Properties</div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, alignItems: 'center' }}>
+                    <span style={{ color: '#94A3B8' }}>Type</span>
+                    <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <Monitor size={12} style={{ opacity: 0.7 }} /> Design Screen
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, alignItems: 'center' }}>
+                    <span style={{ color: '#94A3B8' }}>Size</span>
+                    <span style={{ fontWeight: 500 }}>1440 x {pageHeight}</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, alignItems: 'center' }}>
+                    <span style={{ color: '#94A3B8' }}>DESIGN.md</span>
+                    <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 10px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                      {site?.name || 'My Project'}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, alignItems: 'center' }}>
+                    <span style={{ color: '#94A3B8' }}>Source</span>
+                    <span style={{ color: '#38bdf8', cursor: 'pointer', fontWeight: 500 }} onClick={() => setIsCodeModalOpen(true)}>{'</>'} View Code</span>
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Design Prompt</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.6, color: '#CBD5E1', background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    {activePage?.settings?.designPrompt || site?.settings?.systemPrompt || 'No design prompt specified for this project.'}
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Assets ({extractedAssets.length})</div>
+                  {extractedAssets.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      {extractedAssets.map((asset, i) => (
+                        <div key={i} style={{ width: '100%', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <img src={asset} alt="Asset" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic', padding: 16, textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 8 }}>
+                      No assets extracted yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {(() => {
+          if (!isStylesOpen) return null;
+          
+          const themes = [
+            { name: 'Earthen Atelier', font: 'Aa', colors: ['#E6D5C3', '#8C7362'], buttonBg: '#8C7362', buttonColor: '#F8FAFC' },
+            { name: 'Alexandria', font: 'Aa', colors: ['#2563EB', '#FCD34D'], buttonBg: '#2563EB', buttonColor: '#F8FAFC' },
+            { name: 'Bauhaus', font: 'Aa', colors: ['#DC2626', '#2563EB'], buttonBg: '#0F172A', buttonColor: '#F8FAFC' },
+            { name: 'Glacier', font: 'Aa', colors: ['#A78BFA', '#38BDF8'], buttonBg: '#38BDF8', buttonColor: '#0F172A' },
+            { name: 'Carbon', font: 'Aa', colors: ['#22C55E', '#2563EB'], buttonBg: '#2563EB', buttonColor: '#F8FAFC' },
+            { name: 'Neon Tokyo', font: 'Aa', colors: ['#2DD4BF', '#F43F5E'], buttonBg: '#F43F5E', buttonColor: '#F8FAFC' },
+            { name: 'Terra', font: 'Aa', colors: ['#D97706', '#65A30D'], buttonBg: '#D97706', buttonColor: '#F8FAFC' }
+          ];
+
+          return (
+            <div style={{
+              position: 'absolute',
+              top: 80, 
+              right: 70, 
+              bottom: 90, 
+              width: 320,
+              background: 'rgba(17, 24, 39, 0.85)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              borderRadius: 16,
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 100,
+              color: '#F8FAFC',
+              overflow: 'hidden'
+            }}>
+              <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, fontWeight: 600 }}>
+                  <Palette size={16} style={{ marginRight: 8, opacity: 0.8 }} /> DESIGN.md
+                </div>
+                <button 
+                  onClick={() => setIsStylesOpen(false)} 
+                  style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <div style={{ padding: '0 20px 20px', overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
+                <button style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}>
+                  <Plus size={16} style={{ opacity: 0.7 }} /> Bắt đầu với bản thiết kế của bạn
+                </button>
+                <button style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}>
+                  <Plus size={16} style={{ opacity: 0.7 }} /> Tạo mới
+                </button>
+
+                <div style={{ marginTop: 24, marginBottom: 12, fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>
+                  Chế độ đặt sẵn của Stitch
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {themes.map((theme, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#F8FAFC' }}>{theme.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span style={{ fontFamily: 'serif', fontSize: 16, fontWeight: 500 }}>Aa</span>
+                          
+                          <div style={{ width: 20, height: 20, borderRadius: '50%', overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ flex: 1, background: theme.colors[0] }} />
+                            <div style={{ flex: 1, background: theme.colors[1] }} />
+                          </div>
+
+                          <div style={{ background: theme.buttonBg, color: theme.buttonColor, fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 4 }}>
+                            Button
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', color: '#64748B', gap: 8 }}>
+                        <MoreVertical size={16} style={{ cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#64748B'} />
+                        <ChevronRight size={16} style={{ cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#64748B'} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <div 
           className="canvas-zoom-floating" 
           style={{ 
@@ -922,7 +1246,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
             WebkitBackdropFilter: 'blur(24px) saturate(140%)'
           }}
         >
-          {/* Global Undo/Redo for Canvas Workspace */}
           <button 
             className="canvas-tool-btn" 
             style={{ color: '#fff', opacity: canUndo ? 1 : 0.35, pointerEvents: canUndo ? 'auto' : 'none' }} 
@@ -946,8 +1269,76 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ pages, siteId, site, 
           <div className="canvas-divider" style={{ background: 'rgba(255, 255, 255, 0.15)', height: 16, width: 1, margin: '0 4px' }} />
           <button className="canvas-tool-btn" onClick={resetZoom} title="Fit to Screen"><FullscreenOutlined /></button>
         </div>
+        </div>
+
+        {/* Code Viewer Modal */}
+        <Modal
+          open={isCodeModalOpen}
+          onCancel={() => setIsCodeModalOpen(false)}
+          footer={null}
+          closable={false}
+          width={1000}
+          centered
+          styles={{
+            content: {
+              background: '#1e1e1e',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: 12,
+              padding: 0,
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.8)',
+              overflow: 'hidden'
+            },
+            mask: {
+              backdropFilter: 'blur(4px)',
+              background: 'rgba(0, 0, 0, 0.7)',
+            }
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', background: '#252526' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ed6a5e' }} />
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f4bf4f' }} />
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#61c554' }} />
+            </div>
+            <div style={{ color: '#ccc', fontSize: 13, fontFamily: 'var(--font-sans)', fontWeight: 500 }}>{site?.name || 'Project'} - Code View</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => { navigator.clipboard.writeText(getActivePageCode()); message.success('Đã sao chép mã!'); }}
+                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#ccc', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <CopyOutlined /> Sao chép mã
+              </button>
+              <button 
+                onClick={() => setIsCodeModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <CloseOutlined />
+              </button>
+            </div>
+          </div>
+          
+          <div style={{ padding: 20, maxHeight: '70vh', overflow: 'auto', background: '#1e1e1e', fontFamily: 'monospace', fontSize: 13, color: '#d4d4d4', lineHeight: 1.6 }} className="custom-scrollbar">
+            {getActivePageCode().split('\n').map((line, i) => {
+              let highlighted = line
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/(&lt;\/?)([a-zA-Z0-9\-]+)(.*?)(&gt;)/g, (_match, p1, tag, attrs, p4) => {
+                  const coloredAttrs = attrs.replace(/([a-zA-Z0-9\-]+)=(&quot;.*?&quot;|'.*?'|".*?")/g, 
+                    '<span style="color: #9cdcfe;">$1</span>=<span style="color: #ce9178;">$2</span>'
+                  );
+                  return `${p1}<span style="color: #569cd6;">${tag}</span>${coloredAttrs}${p4}`;
+                });
+                
+              return (
+                <div key={i} style={{ display: 'flex' }}>
+                  <span style={{ color: '#858585', minWidth: 40, userSelect: 'none', textAlign: 'right', paddingRight: 16 }}>{i + 1}</span>
+                  <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }} dangerouslySetInnerHTML={{ __html: highlighted || ' ' }} />
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
       </div>
-    </div>
   );
 };
 

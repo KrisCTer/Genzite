@@ -67,6 +67,7 @@ export class SitesService {
 
   async create(
     dto: {
+      id?: string;
       name: string;
       subdomain: string;
       description?: string;
@@ -85,6 +86,7 @@ export class SitesService {
     // Step 1: Create site
     const site = await this.prisma.site.create({
       data: {
+        ...(dto.id ? { id: dto.id } : {}),
         name: dto.name,
         subdomain: dto.subdomain,
         description: dto.description,

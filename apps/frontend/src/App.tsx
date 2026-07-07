@@ -197,9 +197,9 @@ const App: React.FC = () => {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
 
-                {/* Viewer workspace — regular users */}
+                {/* Canvas Builder (Global for all authenticated users) */}
                 <Route
-                  path={`${WORKSPACE_BASE}/site/canvas`}
+                  path="/project"
                   element={
                     <ProtectedRoute requireViewer>
                       <CanvasLayout />
@@ -224,18 +224,7 @@ const App: React.FC = () => {
                   {memberAiRoutes}
                 </Route>
 
-                {/* Staff admin console */}
-                <Route
-                  path={`${ADMIN_BASE}/site/canvas`}
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <CanvasLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<PageBuilder />} />
-                  <Route path=":siteId" element={<PageBuilder />} />
-                </Route>
+
 
                 <Route path={`${ADMIN_BASE}/site/pages/:pageId/builder`} element={<LegacyBuilderRedirect />} />
 
