@@ -4,6 +4,8 @@ import { KAFKA_TOPICS } from "@genzite/shared-types";
 import type {
   UserRegisteredEvent,
   SiteCreatedEvent,
+  CreditsAdjustedEvent,
+  RoleAssignedEvent,
 } from "@genzite/shared-types";
 import { NotificationsService } from "../in-app/notifications.service.js";
 import { EmailService } from "../email/email.service.js";
@@ -61,6 +63,37 @@ export class UserConsumer implements OnModuleInit {
 
         this.logger.log(
           `Site notification created for ${event.payload.ownerId}`,
+        );
+      },
+    );
+
+    this.kafkaConsumer.subscribe<RoleAssignedEvent["payload"]>(
+      KAFKA_TOPICS.ROLE_ASSIGNED,
+      async (event) => {
+        this.logger.log(
+          `Role assigned notification → user: ${event.payload.userId}, role: ${event.payload.roleName}`,
+        );
+
+        await this.notificationsService.createRoleAssignedNotification(
+          event.payload.userId,
+          event.payload.roleName,
+          event.payload.adminId,
+        );
+      },
+    );
+
+    this.kafkaConsumer.subscribe<CreditsAdjustedEvent["payload"]>(
+      KAFKA_TOPICS.CREDITS_ADJUSTED,
+      async (event) => {
+        this.logger.log(
+          `Credits adjusted notification → user: ${event.payload.userId}, admin: ${event.payload.adminId}, amount: ${event.payload.amount}`,
+        );
+
+        await this.notificationsService.createCreditsAdjustedNotification(
+          event.payload.userId,
+          event.payload.adminId,
+          event.payload.amount,
+          event.payload.newBalance,
         );
       },
     );

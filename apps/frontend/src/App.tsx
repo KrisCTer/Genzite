@@ -41,10 +41,6 @@ const SitesList = lazy(() => import('./pages/Site/SitesList'));
 const PagesList = lazy(() => import('./pages/Site/PagesList'));
 const PageBuilder = lazy(() => import('./pages/Site/PageBuilder'));
 
-const ResumeBuilder = lazy(() => import('./pages/AI/ResumeBuilder'));
-const InterviewSession = lazy(() => import('./pages/AI/InterviewSession'));
-const AgentLogs = lazy(() => import('./pages/AI/AgentLogs'));
-const AgentWorkspace = lazy(() => import('./pages/AI/AgentWorkspace'));
 const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage'));
 
 const FullPageLoader = () => (
@@ -113,7 +109,7 @@ const ProtectedRoute = ({
 
 const LegacyBuilderRedirect = () => {
   const { pageId } = useParams();
-  return <Navigate to={`${ADMIN_BASE}/site/canvas/${pageId}`} replace />;
+  return <Navigate to={`/project/${pageId}`} replace />;
 };
 
 const AuthenticatedHomeRedirect = () => {
@@ -127,10 +123,7 @@ const AuthenticatedHomeRedirect = () => {
 const memberAiRoutes = (
   <>
     <Route path="ai">
-      <Route path="resume" element={<ResumeBuilder />} />
-      <Route path="interview" element={<InterviewSession />} />
-      <Route path="generate" element={<Navigate to={`${WORKSPACE_BASE}/site/canvas`} replace />} />
-      <Route path="agent" element={<AgentWorkspace />} />
+      <Route path="generate" element={<Navigate to="/project" replace />} />
     </Route>
   </>
 );
@@ -138,11 +131,7 @@ const memberAiRoutes = (
 const staffAiRoutes = (
   <>
     <Route path="ai">
-      <Route path="resume" element={<ResumeBuilder />} />
-      <Route path="interview" element={<InterviewSession />} />
-      <Route path="generate" element={<Navigate to={`${ADMIN_BASE}/site/canvas`} replace />} />
-      <Route path="agent" element={<AgentWorkspace />} />
-      <Route path="logs" element={<AgentLogs />} />
+      <Route path="generate" element={<Navigate to="/project" replace />} />
     </Route>
   </>
 );
@@ -221,6 +210,7 @@ const App: React.FC = () => {
                   <Route index element={<MemberDashboard />} />
                   <Route path="profile" element={<Profile />} />
                   <Route path="notifications" element={<AdminNotificationsPage />} />
+
                   {memberAiRoutes}
                 </Route>
 

@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { IdentityProducer } from '../events/identity.producer.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly identityProducer: IdentityProducer
+  ) {}
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -74,6 +78,8 @@ export class UsersService {
         status: true,
         credits: true,
         createdAt: true,
+        avatarUrl: true,
+        metadata: true,
         roles: { include: { role: true } }
       },
       take: 50 // simple pagination for MVP
@@ -125,7 +131,7 @@ export class UsersService {
   }
 
   // --- INTERNAL METHODS ---
-  async updateRoles(id: string, roleNames: string[]) {
+  async updateRoles(id: string, roleNames: string[], adminId?: string) {
     if (!roleNames || roleNames.length === 0) {
       throw new BadRequestException('User must have at least one role');
     }
@@ -152,6 +158,12 @@ export class UsersService {
         data: { userId: id, action: 'ROLES_UPDATED_BY_ADMIN', details: { roles: roleNames } }
       })
     ]);
+
+    await this.identityProducer.emitRoleAssigned({
+      userId: id,
+      roleName: roleNames.join(', '),
+      adminId,
+    });
 
     return { message: 'Roles updated successfully', roles: roleNames };
   }
@@ -210,6 +222,15 @@ export class UsersService {
         details: { amount, adminId, newBalance: updated?.credits },
       },
     });
+
+    if (updated) {
+      await this.identityProducer.emitCreditsAdjusted({
+        userId: id,
+        adminId,
+        amount,
+        newBalance: updated.credits,
+      });
+    }
 
     return { success: true, adjusted: amount, credits: updated?.credits ?? 0 };
   }

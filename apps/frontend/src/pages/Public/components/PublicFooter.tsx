@@ -48,7 +48,7 @@ const PublicFooter: React.FC = () => {
   return (
     <Footer className="LandingPageFooter">
       <div className="footer-inner">
-        <div className="footer-logo">
+        <div className="footer-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <RocketOutlined className="logo-icon" />
           <span>Genzite</span>
         </div>

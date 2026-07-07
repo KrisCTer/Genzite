@@ -20,6 +20,69 @@ export class NotificationsService {
     });
   }
 
+  async createRoleAssignedNotification(userId: string, roleName: string, adminId?: string) {
+    const userNotif = await this.prisma.notification.create({
+      data: {
+        userId,
+        type: NotificationType.IN_APP,
+        title: "Quyền hạn thay đổi",
+        body: `Quản trị viên đã cập nhật phân quyền của bạn. Hiện tại bạn đang giữ vai trò: ${roleName}.`,
+        metadata: {
+          event: "role.assigned",
+          roleName,
+        },
+      },
+    });
+
+    if (adminId && adminId !== userId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: adminId,
+          type: NotificationType.IN_APP,
+          title: "Cập nhật quyền thành công",
+          body: `Bạn đã cập nhật quyền hạn cho người dùng ${userId} thành vai trò: ${roleName}.`,
+          metadata: {
+            event: "role.assigned.admin",
+            targetUserId: userId,
+            roleName,
+          },
+        },
+      });
+    }
+
+    return userNotif;
+  }
+
+  async createCreditsAdjustedNotification(userId: string, adminId: string, amount: number, newBalance: number) {
+    // 1. Notify the user
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        type: NotificationType.IN_APP,
+        title: "Tài khoản được cộng tiền",
+        body: `Admin đã nạp ${amount} GZ vào tài khoản của bạn. Số dư hiện tại: ${newBalance} GZ.`,
+        metadata: {
+          event: "credits.adjusted",
+          adminId,
+        },
+      },
+    });
+
+    // 2. Notify the admin
+    await this.prisma.notification.create({
+      data: {
+        userId: adminId,
+        type: NotificationType.IN_APP,
+        title: "Giao dịch thành công",
+        body: `Bạn đã nạp thành công ${amount} GZ cho user ${userId}.`,
+        metadata: {
+          event: "credits.adjusted",
+          targetUserId: userId,
+        },
+      },
+    });
+  }
+
   async findByUserId(userId: string, page = 1, limit = 20, unreadOnly = false) {
     return this.prisma.notification.findMany({
       where: {

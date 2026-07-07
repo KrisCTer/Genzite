@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Settings } from 'lucide-react';
+import { X, Settings, LayoutDashboard } from 'lucide-react';
 
 export interface UserPopoverProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export const UserPopover: React.FC<UserPopoverProps> = ({
   return (
     <div className="user-popover-menu" ref={menuRef} style={style}>
       <div className="user-popover-header">
-        <div className="user-popover-logo">Genzite</div>
+        <div className="user-popover-logo" onClick={() => window.location.href = '/'} style={{ cursor: 'pointer' }}>Genzite</div>
         <button className="user-popover-close" onClick={onClose}>
           <X size={16} />
         </button>
@@ -48,6 +48,9 @@ export const UserPopover: React.FC<UserPopoverProps> = ({
       </div>
 
       <div className="user-popover-actions">
+        <button className="user-popover-btn" onClick={() => window.location.href = '/workspace'}>
+          <LayoutDashboard size={16} /> Về Bảng điều khiển
+        </button>
         <button className="user-popover-btn">
           <Settings size={16} /> Cài đặt Genzite
         </button>

@@ -27,11 +27,22 @@ export interface UserUpdatedEvent extends BaseEvent {
   };
 }
 
+export interface CreditsAdjustedEvent extends BaseEvent {
+  type: "credits.adjusted";
+  payload: {
+    userId: string;
+    adminId: string;
+    amount: number;
+    newBalance: number;
+  };
+}
+
 export interface RoleAssignedEvent extends BaseEvent {
   type: "role.assigned";
   payload: {
     userId: string;
     roleName: string;
+    adminId?: string;
   };
 }
 
@@ -196,7 +207,8 @@ export type GenziteEvent =
   | CmsGeneratedEvent
   | ResumeAnalyzedEvent
   | InterviewCompletedEvent
-  | WidgetConfigChangedEvent;
+  | WidgetConfigChangedEvent
+  | CreditsAdjustedEvent;
 
 // --- Kafka Topic Names ---
 export const KAFKA_TOPICS = {
@@ -221,6 +233,7 @@ export const KAFKA_TOPICS = {
   AUDIT_LOG: 'audit.log',
   ORDER_CREATED: 'order.created',
   PAYMENT_COMPLETED: 'payment.completed',
+  CREDITS_ADJUSTED: 'credits.adjusted',
 } as const;
 
 
