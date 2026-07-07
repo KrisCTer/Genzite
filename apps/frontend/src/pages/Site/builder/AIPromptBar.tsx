@@ -48,7 +48,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
       onStarted(newSiteId);
     }
     
-    message.info('AI is generating your site…');
+    messageApi.info('AI is generating your site…');
     
     submitSiteGeneration(
       prompt.trim(),
@@ -57,13 +57,12 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
       (jobId, subdomain) => {
         isSubmittingRef.current = false;
         setPrompt('');
-        message.success('Site generated! Loading…');
+        messageApi.success('Site generated! Loading…');
         onGenerated?.(jobId, subdomain);
       },
       (error) => {
-        console.error("AI Generation Failed:", error);
         isSubmittingRef.current = false;
-        message.error(error || 'Failed to start generation');
+        messageApi.error(error || 'Failed to start generation');
       }
     );
   };

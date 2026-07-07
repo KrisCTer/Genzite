@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSitesApi, type Site } from '../../../api/sites';
 import { Search, LayoutGrid, Users, Monitor, Layout, Component } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAiLogStore } from '../../../store/aiLogs';
-import AgentLogSidebar from './AgentLogSidebar';
+import { useNavigate } from 'react-router-dom';
 import './ProjectSidebar.css';
 
 const MOCK_SITES = [
@@ -63,16 +61,6 @@ const ProjectSidebar: React.FC = () => {
     const h2 = (sum * 2) % 360;
     return `linear-gradient(135deg, hsl(${h1}, 70%, 50%), hsl(${h2}, 70%, 30%))`;
   };
-
-  const isGenerating = useAiLogStore(state => state.isGenerating);
-
-  if (isGenerating) {
-    return (
-      <div className="gz-project-sidebar" style={{ padding: 0, overflow: 'hidden', background: '#0F172A' }}>
-        <AgentLogSidebar />
-      </div>
-    );
-  }
 
   return (
     <div className="gz-project-sidebar">

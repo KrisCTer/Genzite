@@ -39,6 +39,7 @@ interface CanvasToolbarProps {
   onDownload?: () => void;
   onReloadPage?: () => void;
   onDeletePage?: () => void;
+  onPreview?: () => void;
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -54,6 +55,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onDownload,
   onReloadPage,
   onDeletePage,
+  onPreview,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
