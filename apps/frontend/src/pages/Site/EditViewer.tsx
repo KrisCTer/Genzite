@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/auth';
 import { Modal, Switch, message } from 'antd';
 import './CanvasBuilder.css';
 
-const PreviewViewer: React.FC = () => {
+const EditViewer: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const [device, setDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const user = useAuthStore((state) => state.user);
@@ -298,4 +298,4 @@ const PreviewViewer: React.FC = () => {
   );
 };
 
-export default PreviewViewer;
+export default EditViewer;
