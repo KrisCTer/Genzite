@@ -13,7 +13,7 @@ import {
   BugOutlined,
 } from '@ant-design/icons';
 import { Dropdown, Modal, message, type MenuProps } from 'antd';
-import { Sparkles, Pen, Eye, ChevronDown, MoreVertical, Play, PlusSquare, RotateCcw, Flame, Smartphone, Layers, PlayCircle, Store, Globe, Megaphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Copy, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
+import { Sparkles, Pen, Eye, ChevronDown, MoreVertical, Play, PlusSquare, RotateCcw, Flame, Smartphone, Layers, PlayCircle, Store, Globe, Megaphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserPopover } from '@genzite/shared-ui';
@@ -39,7 +39,6 @@ interface CanvasToolbarProps {
   onDownload?: () => void;
   onReloadPage?: () => void;
   onDeletePage?: () => void;
-  onPreview?: () => void;
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -55,7 +54,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onDownload,
   onReloadPage,
   onDeletePage,
-  onPreview,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
