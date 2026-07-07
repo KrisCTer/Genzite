@@ -13,7 +13,7 @@ interface LiveViewerProps {
 const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   const [searchParams] = useSearchParams();
   const { pageId: paramPageId } = useParams<{ pageId: string }>();
-  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && paramPageId.length > 20 ? paramPageId : undefined); // rudimentary check for UUID-like siteId if passed in path
+  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && (paramPageId.length > 20 || paramPageId.startsWith('gen-')) ? paramPageId : undefined); // check for UUID or gen- prefix
 
   const isParamActuallySiteId = paramPageId === siteId || paramPageId === 'preview' || paramPageId === '_';
   
