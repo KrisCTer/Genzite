@@ -8,6 +8,8 @@ interface User {
   avatarUrl?: string | null;
   status: 'ACTIVE' | 'LOCKED' | 'INACTIVE';
   createdAt: string;
+  metadata?: any;
+  credits?: number;
 }
 
 interface AuthState {

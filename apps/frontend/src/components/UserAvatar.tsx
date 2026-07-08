@@ -10,6 +10,7 @@ type UserAvatarProps = {
 
 const UserAvatar: React.FC<UserAvatarProps> = ({ size = 34, className }) => {
   const user = useAuthStore((s) => s.user);
+  const displayName = (user?.metadata as any)?.displayName || user?.name;
 
   if (user?.avatarUrl) {
     return (
@@ -27,7 +28,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ size = 34, className }) => {
     <Avatar
       size={size}
       className={className}
-      icon={!user?.name ? <UserOutlined /> : undefined}
+      icon={!displayName ? <UserOutlined /> : undefined}
       style={{
         backgroundColor: 'var(--color-accent)',
         cursor: 'pointer',
@@ -36,7 +37,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ size = 34, className }) => {
         flexShrink: 0,
       }}
     >
-      {user?.name?.charAt(0)?.toUpperCase()}
+      {displayName?.charAt(0)?.toUpperCase()}
     </Avatar>
   );
 };

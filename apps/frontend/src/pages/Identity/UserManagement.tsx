@@ -1,630 +1,443 @@
-import React, { useState } from 'react';
-import { Button, Avatar, Drawer, Form, Input, Select, Switch, message, Modal } from 'antd';
-import { 
-  PlusOutlined, 
-  UserOutlined, 
-  SearchOutlined, 
-  TeamOutlined, 
-  MailOutlined,
-  CloseOutlined,
-  WarningOutlined,
-  CheckCircleOutlined,
-  LockOutlined,
-} from '@ant-design/icons';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchUsersApi, lockUserApi, unlockUserApi, deactivateUserApi, adjustCreditsApi, updateRolesApi } from '../../api/users';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const { Option } = Select;
+import {
+  fetchUsersApi,
+  lockUserApi,
+  unlockUserApi,
+  adjustCreditsApi,
+  updateRolesApi,
+  deactivateUserApi,
+  type User,
+} from '../../api/users';
+import { message, Drawer, Spin, Modal } from 'antd';
+import { Search, Filter, Shield, ShieldAlert, Users, Lock, UserCheck, Plus, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import '../NotificationsStyle.css';
 
 const UserManagement: React.FC = () => {
   const queryClient = useQueryClient();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [form] = Form.useForm();
-  
-  const [searchTerm, setSearchTerm] = useState('');
+
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
-  const { data: serverUsers, isError } = useQuery({
+  // Drawer States
+  const [localRoles, setLocalRoles] = useState<string[]>([]);
+  const [creditsAmount, setCreditsAmount] = useState<string>('');
+
+  useEffect(() => {
+    document.title = 'User Management | Admin Console';
+  }, []);
+
+  const { data: users = [], isLoading, isError } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsersApi,
-    retry: false,
+    retry: 1,
+    staleTime: 30_000,
   });
 
-  const displayUsers = serverUsers || [];
-
-  const filteredUsers = displayUsers.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'ALL' || u.roles.includes(roleFilter);
-    const matchesStatus = statusFilter === 'ALL' || 
-                          (statusFilter === 'ACTIVE' && u.status === 'ACTIVE') || 
-                          (statusFilter === 'INACTIVE' && u.status !== 'ACTIVE');
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  const selectedUser = displayUsers.find(u => u.id === selectedUserId) || filteredUsers[0] || null;
-
-  const handleSelectUser = (id: string) => {
-    setSelectedUserId(id);
-  };
-
-  const handleOpenDrawer = () => {
-    form.resetFields();
-    form.setFieldsValue({ isActive: true, roles: ['VIEWER'] });
-    setDrawerOpen(true);
-  };
-
-  const handleCloseDrawer = () => {
-    setDrawerOpen(false);
-  };
-
-  const deactivateMutation = useMutation({
-    mutationFn: deactivateUserApi,
-    onSuccess: () => {
-      message.success('Đã thu hồi quyền truy cập thành công.');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      setSelectedUserId(null);
-    },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Không thể thu hồi quyền truy cập.';
-      message.error(msg);
-    }
-  });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] });
 
   const lockMutation = useMutation({
     mutationFn: lockUserApi,
-    onSuccess: () => {
-      message.success('Đã khóa tài khoản thành công.');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+    onSuccess: () => { 
+      message.success('Đã khóa tài khoản'); 
+      setSelectedUser(prev => prev ? { ...prev, status: 'LOCKED' } : null);
+      invalidate(); 
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Không thể khóa tài khoản.';
-      message.error(`Lỗi: ${msg}`);
-    }
+    onError: () => message.error('Thao tác thất bại'),
   });
-
   const unlockMutation = useMutation({
     mutationFn: unlockUserApi,
-    onSuccess: () => {
-      message.success('Đã mở khóa tài khoản thành công.');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+    onSuccess: () => { 
+      message.success('Đã mở khóa tài khoản'); 
+      setSelectedUser(prev => prev ? { ...prev, status: 'ACTIVE' } : null);
+      invalidate(); 
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Không thể mở khóa tài khoản.';
-      message.error(`Lỗi: ${msg}`);
-    }
+    onError: () => message.error('Thao tác thất bại'),
+  });
+  const rolesMutation = useMutation({
+    mutationFn: ({ id, roles }: { id: string; roles: string[] }) => updateRolesApi(id, roles),
+    onSuccess: () => { message.success('Đã cập nhật quyền hạn'); invalidate(); },
+    onError: () => message.error('Cập nhật quyền thất bại'),
+  });
+  const deactivateMutation = useMutation({
+    mutationFn: deactivateUserApi,
+    onSuccess: () => { 
+      message.success('Đã vô hiệu hóa / xóa tài khoản'); 
+      setIsDrawerOpen(false);
+      invalidate(); 
+    },
+    onError: () => message.error('Không thể xóa tài khoản này'),
+  });
+  const creditsMutation = useMutation({
+    mutationFn: ({ id, amount }: { id: string; amount: number }) => adjustCreditsApi(id, amount),
+    onSuccess: (data) => {
+      message.success(`Thành công! Số dư mới: ${data.credits.toLocaleString()}`);
+      setSelectedUser(prev => prev ? { ...prev, credits: data.credits } : null);
+      invalidate();
+    },
+    onError: () => message.error('Điều chỉnh tín dụng thất bại'),
   });
 
-  const adjustCreditsMutation = useMutation({
-    mutationFn: (data: { id: string; amount: number }) => adjustCreditsApi(data.id, data.amount),
-    onSuccess: () => {
-      message.success('Cập nhật tín dụng thành công.');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật tín dụng.');
-    },
-  });
+  // KPI Stats
+  const activeCount = useMemo(() => users.filter(u => u.status === 'ACTIVE').length, [users]);
+  const lockedCount = useMemo(() => users.filter(u => u.status === 'LOCKED').length, [users]);
 
-  const updateRolesMutation = useMutation({
-    mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
-    onSuccess: (_, variables) => {
-      message.success('Cập nhật quyền thành công.');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật quyền.');
-    }
-  });
+  // Filtering
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return users.filter(u => {
+      if (q && !u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q) && !u.id.includes(q)) return false;
+      if (roleFilter !== 'ALL' && !u.roles.includes(roleFilter)) return false;
+      if (statusFilter !== 'ALL' && u.status !== statusFilter) return false;
+      return true;
+    });
+  }, [users, search, roleFilter, statusFilter]);
 
-  const handleUpdateRoles = (roles: string[]) => {
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+  const openUserDetail = (user: User) => {
+    setSelectedUser(user);
+    setLocalRoles([...user.roles]);
+    setCreditsAmount('');
+    setIsDrawerOpen(true);
+  };
+
+  const handleRoleToggle = (role: string) => {
     if (!selectedUser) return;
-    updateRolesMutation.mutate({ id: selectedUser.id, roles });
+    let newRoles = [...localRoles];
+    if (newRoles.includes(role)) {
+      newRoles = newRoles.filter(r => r !== role);
+    } else {
+      newRoles.push(role);
+    }
+    setLocalRoles(newRoles);
+    if (newRoles.length === 0) { message.warning('Cần ít nhất 1 quyền hạn'); return; }
+    rolesMutation.mutate({ id: selectedUser.id, roles: newRoles });
   };
 
-  const handleSaveUser = () => {
-    message.info('Chức năng tạo tài khoản thủ công chưa được hỗ trợ. Vui lòng đăng ký qua cổng công khai.');
-    handleCloseDrawer();
+  const handleSaveCredits = () => {
+    if (!selectedUser) return;
+    const val = parseInt(creditsAmount, 10);
+    if (isNaN(val) || val === 0) return;
+    creditsMutation.mutate({ id: selectedUser.id, amount: val });
+    setCreditsAmount('');
   };
 
-  const handleDeleteUser = (id: string, name: string) => {
+  const handleLockToggle = () => {
+    if (!selectedUser) return;
+    if (selectedUser.status === 'LOCKED') unlockMutation.mutate(selectedUser.id);
+    else lockMutation.mutate(selectedUser.id);
+  };
+
+  const handleDeleteUser = () => {
+    if (!selectedUser) return;
     Modal.confirm({
-      title: 'Xác nhận thu hồi quyền',
-      content: `Bạn có chắc chắn muốn thu hồi quyền truy cập của ${name} vĩnh viễn không? Hành động này không thể hoàn tác.`,
-      okText: 'Thu hồi',
+      title: 'Cảnh báo nguy hiểm',
+      content: `Bạn có chắc chắn muốn xóa/vô hiệu hóa tài khoản ${selectedUser.name} không? Thao tác này có thể không thể phục hồi.`,
+      okText: 'Xóa ngay',
       okType: 'danger',
       cancelText: 'Hủy',
-      onOk: () => {
-        deactivateMutation.mutate(id);
-      }
+      onOk: () => deactivateMutation.mutate(selectedUser.id)
     });
   };
 
-  const handleToggleUserActive = (checked: boolean) => {
-    if (!selectedUser) return;
-    if (checked) {
-      unlockMutation.mutate(selectedUser.id);
-    } else {
-      Modal.confirm({
-        title: 'Khóa tài khoản',
-        content: `Bạn có chắc chắn muốn khóa tài khoản của ${selectedUser.name}? Người dùng sẽ bị đăng xuất và không thể đăng nhập lại.`,
-        okText: 'Khóa tài khoản',
-        okType: 'danger',
-        cancelText: 'Hủy',
-        onOk: () => {
-          lockMutation.mutate(selectedUser.id);
-        }
-      });
-    }
-  };
-
-  const handleDeductCredit = () => {
-    if (!selectedUser) return;
-    const amountStr = window.prompt('Nhập số credit muốn TRỪ:');
-    if (!amountStr) return;
-    const amount = parseInt(amountStr, 10);
-    if (isNaN(amount) || amount <= 0) {
-      message.error('Số tiền không hợp lệ');
-      return;
-    }
-    adjustCreditsMutation.mutate({ id: selectedUser.id, amount: -amount });
-  };
-
-  const handleRefundCredit = () => {
-    if (!selectedUser) return;
-    const amountStr = window.prompt('Nhập số credit muốn HOÀN LẠI:');
-    if (!amountStr) return;
-    const amount = parseInt(amountStr, 10);
-    if (isNaN(amount) || amount <= 0) {
-      message.error('Số tiền không hợp lệ');
-      return;
-    }
-    adjustCreditsMutation.mutate({ id: selectedUser.id, amount });
-  };
+  if (isError) {
+    return (
+      <div className="hub-root flex flex-col items-center justify-center min-h-[calc(100vh-56px)]">
+        <ShieldAlert size={48} className="text-rose-500 mb-4" />
+        <h2 className="text-white text-xl font-bold">Không có quyền truy cập</h2>
+      </div>
+    );
+  }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto flex flex-col w-full text-left font-sans text-sm text-[#94a3b8] px-4 md:px-6 py-4 select-none"
-    >
-      <style>{`
-        .custom-input {
-          background-color: #161a23 !important;
-          border: 1px solid #2a3040 !important;
-          border-radius: 8px !important;
-          color: #fff !important;
-        }
-        .custom-input:hover, .custom-input:focus {
-          border-color: #06b6d4 !important;
-        }
-        .custom-input:focus-visible {
-          outline: 2px solid #06b6d4 !important;
-          outline-offset: -1px;
-        }
-        .custom-select .ant-select-selector {
-          background-color: #161a23 !important;
-          border: 1px solid #2a3040 !important;
-          border-radius: 8px !important;
-          color: #fff !important;
-        }
-        .custom-switch.ant-switch-checked {
-          background-color: #10B981 !important;
-        }
-      `}</style>
-
-      {/* Header + stats */}
-      <div className="pb-6 mb-6 border-b border-[#2a3040]/80">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold tracking-[0.2em] text-cyan-500 uppercase">Security Operation</span>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Identity Directory</h1>
-            <p className="text-sm text-[#94a3b8] max-w-xl">Quản lý hồ sơ người dùng, phân quyền và tín dụng hệ thống.</p>
-          </div>
-
-          <div className="flex flex-wrap items-stretch gap-3">
-            {[
-              { label: 'Tổng tài khoản', value: displayUsers.length, icon: TeamOutlined, color: 'text-white' },
-              { label: 'Đang hoạt động', value: displayUsers.filter(u => u.status === 'ACTIVE').length, icon: CheckCircleOutlined, color: 'text-emerald-400' },
-              { label: 'Đã bị khóa', value: displayUsers.filter(u => u.status !== 'ACTIVE').length, icon: LockOutlined, color: 'text-rose-400' },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="flex items-center gap-3 rounded-xl border border-[#2a3040] bg-[#1c212c]/90 px-4 py-3 min-w-[130px]"
-              >
-                <span className="p-2 rounded-lg bg-[#161a23] border border-[#2a3040] text-[#64748b]">
-                  <stat.icon />
-                </span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#64748b] font-semibold m-0">{stat.label}</p>
-                  <p className={`text-xl font-extrabold tabular-nums m-0 mt-0.5 ${stat.color}`}>{stat.value}</p>
-                </div>
-              </div>
-            ))}
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={handleOpenDrawer}
-              className="bg-cyan-500 hover:bg-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none border-0 text-white font-semibold rounded-xl h-auto min-h-[56px] px-5 transition-all shadow-sm shadow-cyan-500/10 text-sm self-stretch"
-            >
-              Tạo tài khoản
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {isError && (
-        <div className="flex items-center justify-between gap-3 px-6 py-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl mb-8 text-sm text-yellow-300">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-            <span>Identity services unreachable. Check your connection.</span>
-          </div>
-          <button 
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['users'] })} 
-            className="font-semibold text-cyan-400 hover:underline bg-transparent border-0 cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded"
-          >
-            Thử lại
-          </button>
-        </div>
-      )}
-
-      {/* Main Grid: 5 / 7 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+    <div className="hub-root select-none">
+      <div className="hub-wrapper" style={{ maxWidth: '100%' }}>
         
-        {/* LEFT PANEL */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-4 flex flex-col gap-3">
-            <Input
-              placeholder="Tìm kiếm theo tên hoặc email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              prefix={<SearchOutlined className="text-[#64748b] mr-1" />}
-              className="custom-input h-11"
-              allowClear
-            />
+        {/* Header */}
+        <div className="hub-header">
+          <h1 className="hub-header-title">Quản lý người dùng</h1>
+          <p className="hub-header-desc">Hệ thống phân quyền, định danh và bảo mật tài khoản.</p>
+        </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: 'Tất cả', value: 'ALL' },
-                  { label: 'Admin', value: 'ADMIN' },
-                  { label: 'Editor', value: 'EDITOR' },
-                  { label: 'Viewer', value: 'VIEWER' },
-                ].map((btn) => (
-                  <button
-                    key={btn.value}
-                    onClick={() => setRoleFilter(btn.value)}
-                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
-                      roleFilter === btn.value
-                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/10'
-                        : 'bg-[#161a23] border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-[#3d4659]'
-                    }`}
-                  >
-                    {btn.label}
-                  </button>
-                ))}
+        {/* KPI Stats */}
+        <div className="hub-stats mb-8">
+          <div className="hub-stat-card">
+            <div className="hub-stat-icon cyan"><Users size={28} /></div>
+            <div className="hub-stat-info">
+              <span className="hub-stat-label">Tổng tài khoản</span>
+              <span className="hub-stat-value">{users.length}</span>
+            </div>
+          </div>
+          <div className="hub-stat-card">
+            <div className="hub-stat-icon green"><UserCheck size={28} /></div>
+            <div className="hub-stat-info">
+              <span className="hub-stat-label">Đang hoạt động</span>
+              <span className="hub-stat-value">{activeCount}</span>
+            </div>
+          </div>
+          <div className="hub-stat-card">
+            <div className="hub-stat-icon amber"><Lock size={28} /></div>
+            <div className="hub-stat-info">
+              <span className="hub-stat-label">Đang bị khóa</span>
+              <span className="hub-stat-value">{lockedCount}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Layout */}
+        <div className="hub-main" style={{ alignItems: 'start' }}>
+          
+          {/* Sidebar Filters */}
+          <div className="hub-sidebar">
+            <div className="hub-categories">
+              <div className="hub-cat-title">Tìm kiếm</div>
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]" size={16} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Email, tên..."
+                  style={{ paddingLeft: '40px' }}
+                  className="w-full h-10 pr-4 bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.1)] text-white rounded-xl text-sm outline-none focus:border-[#00e5ff] transition-all"
+                />
               </div>
 
-              <div className="w-36 shrink-0">
-                <Select
-                  value={statusFilter}
-                  onChange={(value) => setStatusFilter(value)}
-                  className="custom-select w-full"
-                  size="large"
-                >
-                  <Option value="ALL">Mọi trạng thái</Option>
-                  <Option value="ACTIVE">Đang hoạt động</Option>
-                  <Option value="INACTIVE">Đã bị khóa</Option>
-                </Select>
-              </div>
+              <div className="hub-cat-title">Trạng thái</div>
+              <button className={`hub-cat-btn ${statusFilter === 'ALL' ? 'active' : ''}`} onClick={() => setStatusFilter('ALL')}>
+                <div className="hub-cat-left"><Users className="hub-cat-icon" /> Tất cả</div>
+              </button>
+              <button className={`hub-cat-btn ${statusFilter === 'ACTIVE' ? 'active' : ''}`} onClick={() => setStatusFilter('ACTIVE')}>
+                <div className="hub-cat-left"><UserCheck className="hub-cat-icon text-emerald-400" /> Hoạt động</div>
+              </button>
+              <button className={`hub-cat-btn ${statusFilter === 'LOCKED' ? 'active' : ''}`} onClick={() => setStatusFilter('LOCKED')}>
+                <div className="hub-cat-left"><Lock className="hub-cat-icon text-rose-400" /> Đã khóa</div>
+              </button>
+
+              <div className="hub-cat-title mt-6">Vai trò</div>
+              <button className={`hub-cat-btn ${roleFilter === 'ALL' ? 'active' : ''}`} onClick={() => setRoleFilter('ALL')}>
+                <div className="hub-cat-left"><Filter className="hub-cat-icon" /> Tất cả quyền</div>
+              </button>
+              <button className={`hub-cat-btn ${roleFilter === 'ADMIN' ? 'active' : ''}`} onClick={() => setRoleFilter('ADMIN')}>
+                <div className="hub-cat-left"><Shield className="hub-cat-icon text-amber-400" /> Admin</div>
+              </button>
+              <button className={`hub-cat-btn ${roleFilter === 'EDITOR' ? 'active' : ''}`} onClick={() => setRoleFilter('EDITOR')}>
+                <div className="hub-cat-left"><Shield className="hub-cat-icon text-blue-400" /> Editor</div>
+              </button>
+              <button className={`hub-cat-btn ${roleFilter === 'VIEWER' ? 'active' : ''}`} onClick={() => setRoleFilter('VIEWER')}>
+                <div className="hub-cat-left"><Shield className="hub-cat-icon text-slate-400" /> Viewer</div>
+              </button>
+
+              <button className="hub-mark-all-btn mt-6 w-full flex justify-center" onClick={() => message.info('Tính năng đang phát triển')}>
+                <Plus size={16} /> Thêm người dùng mới
+              </button>
             </div>
           </div>
 
-          <div className="max-h-[560px] overflow-y-auto flex flex-col gap-2 pr-1">
-            <AnimatePresence initial={false}>
-              {filteredUsers.length === 0 ? (
-                <div className="text-center py-10 text-[#64748b] bg-[#1c212c]/60 border border-dashed border-[#2a3040] rounded-2xl">
-                  <TeamOutlined className="text-2xl mb-2 opacity-40" />
-                  <p className="m-0 text-sm">Không tìm thấy tài khoản phù hợp.</p>
-                </div>
-              ) : (
-                filteredUsers.map((user, idx) => {
-                  const isSelected = selectedUserId === user.id;
-                  const isAdmin = user.roles.includes('ADMIN');
-                  const isEditor = user.roles.includes('EDITOR');
+          {/* Grid Feed */}
+          <div className="hub-feed" style={{ flex: 1 }}>
+            <div className="hub-feed-header mb-4 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-white">Danh sách ({filtered.length})</h2>
+            </div>
 
-                  let indicatorBorder = 'border-l-4 border-[#94a3b8]';
-                  let activeBadgeColor = 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10';
-                  if (isAdmin) {
-                    indicatorBorder = 'border-l-4 border-amber-500';
-                    activeBadgeColor = 'text-amber-500 border-amber-500/20 bg-amber-500/10';
-                  } else if (isEditor) {
-                    indicatorBorder = 'border-l-4 border-cyan-500';
-                    activeBadgeColor = 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10';
-                  }
-
-                  return (
-                    <motion.button
-                      key={user.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      onClick={() => handleSelectUser(user.id)}
-                      className={`relative w-full text-left rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 transition-all ${
-                        isSelected 
-                          ? 'bg-cyan-500/5 border border-cyan-500/50 shadow-md shadow-cyan-500/5' 
-                          : 'bg-[#1c212c]/80 border border-[#2a3040] hover:border-[#3d4659] hover:bg-[#1c212c]'
-                      } p-3.5 flex items-center justify-between cursor-pointer ${indicatorBorder}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="relative">
-                          <Avatar 
-                            src={user.avatarUrl || undefined} 
-                            icon={!user.avatarUrl ? <UserOutlined /> : undefined}
-                            className="bg-[#161a23] border border-[#2a3040] text-[#94a3b8]"
-                            size="large"
+            {isLoading ? (
+              <div className="flex justify-center p-12"><Spin size="large" /></div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {paginatedUsers.map(user => {
+                    const isLocked = user.status === 'LOCKED';
+                    const mainRole = user.roles[0] || 'VIEWER';
+                    return (
+                      <div 
+                        key={user.id} 
+                        className={`hub-card cursor-pointer group hover:-translate-y-1 hover:shadow-lg transition-all duration-300 ${isLocked ? 'border-[rgba(248,81,73,0.3)]' : ''}`}
+                        onClick={() => openUserDetail(user)}
+                      >
+                        <div className={`hub-card-icon ${isLocked ? 'slate' : 'cyan'} overflow-hidden p-0`}>
+                          <img
+                            src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent((user.metadata as any)?.displayName || user.name)}&background=1e293b&color=00e5ff`}
+                            alt="Avatar"
+                            className="w-full h-full object-cover rounded-xl"
                           />
-                          {user.status === 'ACTIVE' ? (
-                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-[#1c212c] rounded-full"></span>
-                          ) : (
-                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-rose-500 border-2 border-[#1c212c] rounded-full"></span>
-                          )}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white text-base">{user.name}</span>
-                          <span className="text-xs text-[#94a3b8] mt-0.5">{user.email}</span>
+                        <div className="hub-card-content flex-1">
+                          <h3 className="hub-card-title group-hover:text-[#00e5ff] transition-colors">{(user.metadata as any)?.displayName || user.name}</h3>
+                          <p className="hub-card-desc">{user.email}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="hub-tag border border-[rgba(255,255,255,0.1)]">{mainRole}</span>
+                            <span className={`w-2 h-2 rounded-full ${isLocked ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                            <span className={`text-[11px] font-bold ${isLocked ? 'text-rose-500' : 'text-emerald-500'}`}>
+                              {isLocked ? 'Bị khóa' : 'Hoạt động'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="hub-card-right justify-center">
+                          <div style={{ padding: '8px 20px' }} className="text-[14px] font-black text-[#00e5ff] bg-[rgba(0,229,255,0.1)] rounded-full border-2 border-[rgba(0,229,255,0.3)] whitespace-nowrap flex items-center justify-center shadow-[0_0_15px_rgba(0,229,255,0.15)]">
+                            {user.credits?.toLocaleString() || '0'} CR
+                          </div>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <div className="flex flex-col items-end gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${activeBadgeColor}`}>
-                          {user.roles[0]}
-                        </span>
-                      </div>
-                    </motion.button>
-                  );
-                })
-              )}
-            </AnimatePresence>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8">
+                    <button 
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => prev - 1)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-[rgba(15,23,42,0.6)] text-[#64748b] hover:text-white disabled:opacity-50"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className="text-[#94a3b8] text-sm">Trang <strong className="text-white">{currentPage}</strong> / {totalPages}</span>
+                    <button 
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-[rgba(15,23,42,0.6)] text-[#64748b] hover:text-white disabled:opacity-50"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
-
-        {/* RIGHT PANEL */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <AnimatePresence mode="wait">
-            {!selectedUser ? (
-              <motion.div 
-                key="empty-state"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="rounded-2xl border border-dashed border-[#2a3040] bg-[#1c212c]/40 p-10 text-center text-[#64748b] flex flex-col items-center justify-center min-h-[360px]"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-[#161a23] border border-[#2a3040] flex items-center justify-center mb-4">
-                  <TeamOutlined className="text-2xl text-[#475569]" />
-                </div>
-                <span className="uppercase tracking-[0.15em] font-semibold text-xs text-[#94a3b8]">Chưa chọn tài khoản</span>
-                <p className="text-xs mt-2 max-w-xs leading-relaxed">Chọn một tài khoản bên trái để xem chi tiết và quản lý quyền.</p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key={selectedUser.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col gap-6"
-              >
-                {/* Details Card */}
-                <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5 md:p-6">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <Avatar 
-                        src={selectedUser.avatarUrl || undefined} 
-                        icon={!selectedUser.avatarUrl ? <UserOutlined /> : undefined}
-                        size={72}
-                        className="bg-[#161a23] border-2 border-[#2a3040] text-[#94a3b8] shrink-0"
-                      />
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-xl font-bold text-white m-0 truncate">{selectedUser.name}</h3>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
-                            selectedUser.roles.includes('ADMIN')
-                              ? 'text-amber-500 border-amber-500/20 bg-amber-500/10'
-                              : selectedUser.roles.includes('EDITOR')
-                              ? 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10'
-                              : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
-                          }`}>
-                            {selectedUser.roles.join(' · ')}
-                          </span>
-                        </div>
-                        <span className="text-[#94a3b8] text-sm flex items-center gap-2 truncate">
-                          <MailOutlined className="shrink-0" /> <span className="truncate">{selectedUser.email}</span>
-                        </span>
-                        <span className="text-[11px] text-[#64748b]">
-                          Tham gia: {new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 rounded-xl border border-[#2a3040] bg-[#161a23]/80 px-4 py-3 shrink-0">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] uppercase tracking-wider text-[#64748b] font-semibold">Trạng thái</span>
-                        <span className={`text-[10px] font-bold uppercase ${selectedUser.status === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {selectedUser.status === 'ACTIVE' ? 'Hoạt động' : selectedUser.status}
-                        </span>
-                      </div>
-                      <Switch 
-                        size="small"
-                        checked={selectedUser.status === 'ACTIVE'}
-                        onChange={(checked) => {
-                          setSelectedUserId(selectedUser.id);
-                          setTimeout(() => handleToggleUserActive(checked), 50);
-                        }}
-                        className="custom-switch"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94a3b8] mb-3">Phân quyền (Roles)</h3>
-                  <div className="flex flex-col gap-3">
-                    <p className="text-xs text-[#94a3b8] leading-relaxed">
-                      Chọn các quyền hạn cho tài khoản này. Quyền <span className="text-amber-400 font-semibold">ADMIN</span> có toàn quyền hệ thống.
-                    </p>
-                    <div className="flex gap-3 items-end">
-                      <Select
-                        mode="multiple"
-                        defaultValue={selectedUser.roles}
-                        key={selectedUser.id}
-                        onChange={handleUpdateRoles}
-                        loading={updateRolesMutation.isPending}
-                        disabled={updateRolesMutation.isPending}
-                        className="flex-1"
-                        placeholder="Chọn quyền..."
-                        style={{ minWidth: 200 }}
-                        options={[
-                          { value: 'ADMIN', label: 'ADMIN — Toàn quyền' },
-                          { value: 'EDITOR', label: 'EDITOR — Biên tập' },
-                          { value: 'VIEWER', label: 'VIEWER — Người xem' },
-                        ]}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedUser.roles.map(role => (
-                        <span key={role} className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${
-                          role === 'ADMIN' ? 'text-amber-500 border-amber-500/30 bg-amber-500/10'
-                          : role === 'EDITOR' ? 'text-cyan-400 border-cyan-400/30 bg-cyan-400/10'
-                          : 'text-[#94a3b8] border-[#94a3b8]/20 bg-[#94a3b8]/10'
-                        }`}>{role}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#2a3040] bg-[#1c212c]/90 p-5">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[#94a3b8] mb-4">Quản lý tín dụng</h3>
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] uppercase tracking-wider text-[#94a3b8] font-semibold">Số dư hiện tại</span>
-                      <span className="text-2xl font-extrabold text-cyan-400 tabular-nums">
-                        {selectedUser.credits !== undefined ? selectedUser.credits : '0'} CR
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        onClick={handleRefundCredit}
-                        loading={adjustCreditsMutation.isPending}
-                        className="bg-[#161a23] border border-[#2a3040] text-[#10B981] hover:text-[#10B981] hover:border-[#10B981] rounded-lg h-10 px-4 text-xs uppercase font-bold tracking-wider"
-                      >
-                        + Hoàn Credit
-                      </Button>
-                      <Button
-                        onClick={handleDeductCredit}
-                        loading={adjustCreditsMutation.isPending}
-                        className="bg-[#161a23] border border-[#2a3040] text-rose-500 hover:text-rose-500 hover:border-rose-500 rounded-lg h-10 px-4 text-xs uppercase font-bold tracking-wider"
-                      >
-                        - Trừ Credit
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-rose-500/25 bg-rose-500/5 p-5">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex flex-col gap-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <WarningOutlined className="text-rose-500 text-lg" />
-                        <span className="uppercase tracking-wider font-bold text-rose-500 text-base">Vùng Nguy Hiểm</span>
-                      </div>
-                      <p className="text-rose-200/70 text-sm m-0 leading-relaxed">
-                        Thu hồi quyền truy cập sẽ vô hiệu hóa hoàn toàn tài khoản này. Người dùng sẽ bị đăng xuất khỏi tất cả thiết bị ngay lập tức.
-                      </p>
-                    </div>
-                    <Button 
-                      danger 
-                      onClick={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
-                      loading={deactivateMutation.isPending}
-                      className="bg-transparent border-2 border-rose-500 hover:bg-rose-500 hover:text-white focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none text-rose-500 font-bold rounded-lg h-12 px-6 text-xs uppercase tracking-wider transition-all shrink-0"
-                    >
-                      Thu Hồi Quyền
-                    </Button>
-                  </div>
-                </div>
-
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
       </div>
 
+      {/* Detail Drawer */}
       <Drawer
-        title={<span className="font-bold text-white uppercase tracking-wider text-sm">Đăng ký tài khoản mới</span>}
+        title={<div style={{ fontSize: '16px', fontWeight: 'bold', color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Thiết lập Tài khoản</div>}
         placement="right"
-        onClose={handleCloseDrawer}
-        open={drawerOpen}
-        width={400}
-        closeIcon={<CloseOutlined className="text-[#94a3b8] hover:text-white" />}
+        onClose={() => setIsDrawerOpen(false)}
+        open={isDrawerOpen}
+        width={420}
+        closeIcon={<X style={{ color: '#64748b' }} />}
         styles={{
-          header: { background: '#1c212c', borderBottom: '1px solid #2a3040', padding: '24px' },
-          body: { background: '#161a23', padding: '24px' }
+          header: { borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '20px 24px', background: '#0f172a' },
+          body: { padding: 0, background: '#0f172a' },
         }}
       >
-        <Form form={form} layout="vertical" onFinish={handleSaveUser} requiredMark={false} className="flex flex-col gap-6">
-          <Form.Item
-            name="name"
-            label={<span className="text-[#94a3b8] text-sm font-semibold">Họ và tên</span>}
-            rules={[{ required: true, message: 'Thiếu tên người dùng' }]}
-            className="mb-0"
-          >
-            <Input placeholder="Nhập họ và tên" className="custom-input h-11" />
-          </Form.Item>
+        {selectedUser && (
+          <div className="h-full flex flex-col">
+            <div style={{ padding: '24px 32px' }} className="flex-1 overflow-y-auto custom-scrollbar">
+              <div style={{ padding: '24px', marginBottom: '32px' }} className="bg-[rgba(30,41,59,0.4)] rounded-2xl flex flex-col items-center text-center border border-[rgba(255,255,255,0.05)]">
+                <div className="w-[88px] h-[88px] rounded-2xl overflow-hidden mb-4 border border-[rgba(255,255,255,0.1)] relative">
+                  <img src={selectedUser.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent((selectedUser.metadata as any)?.displayName || selectedUser.name)}&background=1e293b&color=00e5ff`} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <h3 className="text-white font-bold text-[18px] mb-1">{(selectedUser.metadata as any)?.displayName || selectedUser.name}</h3>
+                <p className="text-[13px] text-[#64748b]">{selectedUser.email}</p>
+              </div>
 
-          <Form.Item
-            name="email"
-            label={<span className="text-[#94a3b8] text-sm font-semibold">Địa chỉ Email</span>}
-            rules={[{ required: true, message: 'Thiếu email', type: 'email' }]}
-            className="mb-0"
-          >
-            <Input placeholder="name@domain.com" className="custom-input h-11" />
-          </Form.Item>
+              <div style={{ marginBottom: '32px' }}>
+                <div style={{ gap: '8px', marginBottom: '16px' }} className="flex items-center">
+                  <Shield size={16} className="text-[#00e5ff]" />
+                  <h4 className="text-[12px] font-bold text-white uppercase tracking-widest">Vai trò hệ thống</h4>
+                </div>
+                <div style={{ gap: '12px' }} className="flex items-center">
+                  {['ADMIN', 'EDITOR', 'VIEWER'].map(role => {
+                    const active = localRoles.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        onClick={() => handleRoleToggle(role)}
+                        disabled={rolesMutation.isPending}
+                        className={`flex-1 h-[40px] rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                          active 
+                            ? 'bg-[rgba(0,229,255,0.1)] border-[#00e5ff] text-[#00e5ff] shadow-[0_0_10px_rgba(0,229,255,0.2)]' 
+                            : 'bg-[rgba(30,41,59,0.4)] border-[rgba(255,255,255,0.1)] text-[#64748b] hover:border-[#00e5ff] hover:text-[#00e5ff] hover:bg-[rgba(0,229,255,0.05)]'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <Form.Item
-            name="roles"
-            label={<span className="text-[#94a3b8] text-sm font-semibold">Quyền truy cập</span>}
-            rules={[{ required: true, message: 'Thiếu quyền' }]}
-            className="mb-0"
-          >
-            <Select mode="multiple" className="custom-select text-sm h-auto min-h-[44px]">
-              <Option value="ADMIN">Quản trị viên (ADMIN)</Option>
-              <Option value="EDITOR">Biên tập (EDITOR)</Option>
-              <Option value="VIEWER">Thành viên (VIEWER)</Option>
-            </Select>
-          </Form.Item>
+              <div style={{ marginBottom: '32px', paddingTop: '32px' }} className="border-t border-[rgba(255,255,255,0.05)]">
+                <div style={{ marginBottom: '16px' }} className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold text-white uppercase tracking-widest">Điều chỉnh Tín dụng</span>
+                  <div className="text-right">
+                    <span className="text-[13px] font-bold text-[#00e5ff]">{selectedUser.credits?.toLocaleString() || '0'} CR</span>
+                  </div>
+                </div>
+                <div style={{ gap: '12px' }} className="flex items-center h-[42px]">
+                  <div className="flex-1 h-full relative">
+                    <input
+                      type="number"
+                      value={creditsAmount}
+                      onChange={e => setCreditsAmount(e.target.value)}
+                      placeholder="Nhập số lượng..."
+                      style={{ paddingLeft: '16px', paddingRight: '40px' }}
+                      className="w-full h-full bg-[rgba(30,41,59,0.4)] border border-[rgba(255,255,255,0.1)] rounded-xl text-[14px] text-white font-bold outline-none focus:border-[#00e5ff]"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSaveCredits}
+                    disabled={!creditsAmount || creditsMutation.isPending}
+                    style={{ padding: '0 24px' }}
+                    className="h-full bg-[#00e5ff] hover:bg-[#00cce6] hover:shadow-[0_0_15px_rgba(0,229,255,0.4)] cursor-pointer text-[#0f172a] rounded-xl text-[13px] font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    NẠP
+                  </button>
+                </div>
+              </div>
 
-          <div className="flex gap-4 mt-8 pt-6 border-t border-[#2a3040]">
-            <Button 
-              onClick={handleCloseDrawer} 
-              className="flex-1 bg-transparent border border-[#2a3040] text-[#94a3b8] hover:text-white hover:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:outline-none rounded-lg h-11 transition-all uppercase tracking-wider text-xs font-bold"
-            >
-              Hủy
-            </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              className="flex-1 bg-cyan-500 border-0 text-white font-bold rounded-lg h-11 hover:bg-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none transition-all uppercase tracking-wider text-xs shadow-sm"
-            >
-              Tạo mới
-            </Button>
+              <div style={{ paddingTop: '32px' }} className="border-t border-[rgba(255,255,255,0.05)]">
+                <h4 style={{ marginBottom: '16px' }} className="text-[12px] font-bold text-white uppercase tracking-widest">Bảo mật</h4>
+                <div style={{ padding: '0 20px', marginBottom: '12px' }} className="h-14 bg-[rgba(30,41,59,0.4)] border border-[rgba(255,255,255,0.05)] rounded-xl flex items-center justify-between">
+                  <div style={{ gap: '12px' }} className="flex items-center">
+                    <ShieldAlert size={18} className={selectedUser.status === 'LOCKED' ? 'text-rose-500' : 'text-emerald-500'} />
+                    <span className="text-[14px] font-semibold text-white">Khóa khẩn cấp</span>
+                  </div>
+                  <button
+                    onClick={handleLockToggle}
+                    disabled={lockMutation.isPending || unlockMutation.isPending}
+                    className={`w-12 h-7 rounded-full relative cursor-pointer hover:shadow-lg transition-colors ${selectedUser.status === 'LOCKED' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-emerald-500 hover:bg-emerald-600'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all shadow-sm ${selectedUser.status === 'LOCKED' ? 'left-1' : 'left-6'}`} />
+                  </button>
+                </div>
+
+                <div style={{ padding: '0 16px' }} className="h-14 bg-[rgba(244,63,94,0.05)] border border-[rgba(244,63,94,0.2)] rounded-xl flex items-center justify-between">
+                  <div style={{ gap: '12px' }} className="flex items-center">
+                    <Trash2 size={18} className="text-rose-500" />
+                    <span className="text-[14px] font-semibold text-rose-500">Xóa tài khoản</span>
+                  </div>
+                  <button
+                    onClick={handleDeleteUser}
+                    disabled={deactivateMutation.isPending}
+                    style={{ padding: '6px 16px' }}
+                    className="bg-rose-500 hover:bg-rose-600 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] cursor-pointer text-white rounded-lg text-[12px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    XÓA
+                  </button>
+                </div>
+
+                <p style={{ marginTop: '16px' }} className="text-[12px] text-[#64748b] leading-relaxed">
+                  Trạng thái khóa sẽ vô hiệu hóa truy cập. Xóa tài khoản sẽ loại bỏ hoàn toàn dữ liệu.
+                </p>
+              </div>
+            </div>
           </div>
-        </Form>
+        )}
       </Drawer>
-    </motion.div>
+    </div>
   );
 };
 

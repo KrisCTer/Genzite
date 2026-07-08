@@ -13,7 +13,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi, type AppNotification } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
 import { logoutApi } from '../api/auth';
-import { useNotificationStore } from '../store/notifications';
 import { hasMemberAccess, getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
 import { resolveUserRoles } from '../utils/jwt';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
@@ -67,7 +66,12 @@ const AdminLayout: React.FC = () => {
   const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
   const notificationsPath = getNotificationsPath(effectiveRoles);
   const profilePath = getProfilePath(effectiveRoles);
-  const { simulatedNotifications, markSimulatedAsRead, markAllSimulatedAsRead } = useNotificationStore();
+  
+  const isFullWidthPage = location.pathname.includes('/notifications') || 
+                          location.pathname.includes('/identity') || 
+                          location.pathname.includes('/profile') || 
+                          location.pathname === WORKSPACE_BASE || 
+                          location.pathname === ADMIN_BASE;
 
   const handleLogout = async () => {
     try {
@@ -86,37 +90,15 @@ const AdminLayout: React.FC = () => {
     retry: 1,
   });
 
-  const displayNotifications = (notifications && notifications.length > 0) ? notifications : simulatedNotifications;
+  const displayNotifications = notifications || [];
 
   const markReadMutation = useMutation({
-    mutationFn: async (id: string) => {
-      try {
-        return await markNotificationAsReadApi(id);
-      } catch {
-        markSimulatedAsRead(id);
-        return {
-          id,
-          userId: 'mock-user-id',
-          title: 'Mock read notification',
-          body: '',
-          type: 'IN_APP',
-          isRead: true,
-          createdAt: new Date().toISOString()
-        } as AppNotification;
-      }
-    },
+    mutationFn: markNotificationAsReadApi,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: async () => {
-      try {
-        return await markAllNotificationsAsReadApi();
-      } catch {
-        markAllSimulatedAsRead();
-        return { success: true };
-      }
-    },
+    mutationFn: markAllNotificationsAsReadApi,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
@@ -328,15 +310,16 @@ const AdminLayout: React.FC = () => {
             </Dropdown>
           </div>
         </Header>
-        <Content style={{ padding: '24px 28px', overflow: 'auto' }}>
+        <Content style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto' }}>
           <div
             style={{
               padding: 0,
               minHeight: 360,
-              maxWidth: 1280,
+              maxWidth: isFullWidthPage ? '100%' : 1280,
               margin: '0 auto',
               width: '100%',
               background: 'transparent',
+              height: isFullWidthPage ? '100%' : 'auto',
             }}
           >
             <Outlet />
