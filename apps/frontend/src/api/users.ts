@@ -17,6 +17,11 @@ export const fetchUsersApi = async () => {
   return response.data;
 };
 
+export const getUserByIdApi = async (id: string) => {
+  const response = await apiClient.get<User>(`/users/${id}`);
+  return response.data;
+};
+
 export const getMeApi = async () => {
   const response = await apiClient.get<User>('/users/me');
   return response.data;
