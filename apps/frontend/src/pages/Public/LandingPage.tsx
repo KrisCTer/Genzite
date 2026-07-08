@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Layout, Typography, Button, Input, Collapse, message } from 'antd';
+import { Layout, Typography, Button, Input, Collapse, message, FloatButton } from 'antd';
 import { motion } from 'framer-motion';
 import {
   SquareTerminal,
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
-import { getPostLoginPath, hasStaffAccess } from '../../utils/userNav';
+import { getPostLoginPath, hasStaffAccess, getHomePath } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
 import './LandingPage.css';
 import './FeaturesPage.css';
@@ -172,7 +172,7 @@ const LandingPage: React.FC = () => {
   const staffAccess = hasStaffAccess(roles);
   const goToWorkspace = () => {
     if (token) {
-      navigate(getPostLoginPath(roles));
+      navigate('/project');
       return;
     }
     navigate('/login');
@@ -280,11 +280,17 @@ const LandingPage: React.FC = () => {
           </Paragraph>
           <div className="hero-actions">
             <Button type="primary" size="large" className="hero-cta" onClick={goToWorkspace}>
-              {!token ? 'Get Started for Free' : staffAccess ? 'Vào Admin' : 'Vào Workspace'}
+              {!token ? 'Get Started for Free' : 'Join Workspace'}
             </Button>
-            <Button type="default" size="large" className="hero-secondary" onClick={goToWorkspace}>
-              {!token ? 'Explore Platform' : staffAccess ? 'Dashboard' : 'Không gian của tôi'}
-            </Button>
+            {!token ? (
+              <Button type="default" size="large" className="hero-secondary" onClick={() => document.getElementById(anchors.features)?.scrollIntoView({ behavior: 'smooth' })}>
+                Explore Platform
+              </Button>
+            ) : (
+              <Button type="default" size="large" className="hero-secondary" onClick={() => navigate(getHomePath(roles))}>
+                Join Dashboard
+              </Button>
+            )}
           </div>
         </div>
       </Content>
@@ -643,6 +649,7 @@ const LandingPage: React.FC = () => {
       </Content>
 
       <PublicFooter />
+      <FloatButton.BackTop style={{ right: 24, bottom: 24 }} />
     </Layout>
   );
 };

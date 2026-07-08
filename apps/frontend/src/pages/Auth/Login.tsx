@@ -94,7 +94,7 @@ const Login: React.FC = () => {
     mutationFn: loginApi,
     onSuccess: (data) => {
       setLoginError(null);
-      message.success('Đăng nhập thành công!');
+      message.success('Login Success!');
       const roles = normalizeRoles(resolveUserRoles(data.user.roles, data.accessToken));
       const normalizedUser = {
         ...data.user,
@@ -167,7 +167,7 @@ const Login: React.FC = () => {
 
   return (
     <div
-      className="relative flex items-center justify-center min-h-screen overflow-hidden  px-4"
+      className="relative flex items-center justify-center min-h-screen overflow-hidden px-4 bg-[#1a1f2b]"
     >
       {/* ── ANT DESIGN overrides to support beautiful centering ── */}
       <style>{`
@@ -229,12 +229,12 @@ const Login: React.FC = () => {
 
             {/* ── LEFT SLOT: Sign-In form (Symmetric centered design) ── */}
             <div className="gz-login w-1/2 h-full flex flex-col justify-center items-center p-12 text-center">
-              <div className="w-full max-w-[320px] h-[296px] flex flex-col justify-start text-left">
+              <div className="w-full max-w-[320px] flex flex-col justify-center gap-4 text-left">
                 {/* Header */}
-                <div className="text-center animate-fade-in-down m-10">
+                <div className="text-center animate-fade-in-down">
                   <h2 className="text-3xl font-extrabold text-white tracking-tight">Sign In</h2>
                   {loginError && (
-                    <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20">
+                    <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20 mt-4">
                       {loginError}
                     </div>
                   )}
@@ -254,6 +254,7 @@ const Login: React.FC = () => {
                       { required: true, message: 'Email is required' },
                       { type: 'email', message: 'Enter a valid email' },
                     ]}
+                    className="!mb-0"
                   >
                     <Input placeholder="Email address" className={inputCls} autoComplete="email" />
                   </Form.Item>
@@ -261,12 +262,13 @@ const Login: React.FC = () => {
                   <Form.Item
                     name="password"
                     rules={[{ required: true, message: 'Password is required' }]}
+                    className="!mb-0"
                   >
                     <Input.Password placeholder="Password" className={inputCls} autoComplete="current-password" />
                   </Form.Item>
 
                   {/* Forgot password centered below inputs */}
-                  <div className="text-center mt-2">
+                  <div className="text-center">
                     <Link
                       to="/forgot-password"
                       className="text-xs font-medium text-slate-400 hover:text-[#06b6d4] cursor-pointer transition-colors"
@@ -276,7 +278,7 @@ const Login: React.FC = () => {
                   </div>
 
                   {/* CTA — Centered Sign In Button */}
-                  <div className="mt-5 text-center">
+                  <div className="text-center">
                     <Button
                       type="primary"
                       htmlType="submit"
@@ -288,7 +290,7 @@ const Login: React.FC = () => {
                   </div>
 
                   {/* Centered Social Logins directly below Sign In button */}
-                  <div className="mt-4 flex items-center justify-center gap-3">
+                  <div className="flex items-center justify-center gap-3">
                     <button
                       type="button"
                       onClick={() => handleSocialLogin('Google')}
@@ -310,12 +312,12 @@ const Login: React.FC = () => {
 
             {/* ── RIGHT SLOT: Sign-Up form (Symmetric centered design) ── */}
             <div className="gz-login w-1/2 h-full flex flex-col justify-center items-center p-12 text-center">
-              <div className="w-full max-w-[320px] h-[296px] flex flex-col justify-start text-left">
+              <div className="w-full max-w-[320px] flex flex-col justify-center gap-4 text-left">
                 {/* Header */}
-                <div className="text-center animate-fade-in-down mb-6">
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Sign Up</h2>
+                <div className="text-center animate-fade-in-down">
+                  <h2 className="text-3xl font-extrabold text-white tracking-tight">Sign Up</h2>
                   {registerError && (
-                    <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20">
+                    <div className="text-sm font-medium text-rose-400 bg-rose-500/10 px-3 py-2 rounded-md border border-rose-500/20 mt-4">
                       {registerError}
                     </div>
                   )}
@@ -333,12 +335,14 @@ const Login: React.FC = () => {
                     <Form.Item
                       name="firstName"
                       rules={[{ required: true, message: 'Required' }]}
+                      className="!mb-0"
                     >
                       <Input placeholder="First name" className={inputCls} />
                     </Form.Item>
                     <Form.Item
                       name="lastName"
                       rules={[{ required: true, message: 'Required' }]}
+                      className="!mb-0"
                     >
                       <Input placeholder="Last name" className={inputCls} />
                     </Form.Item>
@@ -350,6 +354,7 @@ const Login: React.FC = () => {
                       { required: true, message: 'Email is required' },
                       { type: 'email', message: 'Enter a valid email' },
                     ]}
+                    className="!mb-0"
                   >
                     <Input placeholder="Email address" className={inputCls} autoComplete="email" />
                   </Form.Item>
@@ -360,6 +365,7 @@ const Login: React.FC = () => {
                       { required: true, message: 'Password is required' },
                       { min: 8, message: 'Minimum 8 characters' },
                     ]}
+                    className="!mb-0"
                   >
                     <Input.Password placeholder="Password" className={inputCls} autoComplete="new-password" />
                   </Form.Item>
@@ -371,6 +377,7 @@ const Login: React.FC = () => {
                       validator: (_, value: boolean) =>
                         value ? Promise.resolve() : Promise.reject(new Error('Accept terms to continue')),
                     }]}
+                    className="!mb-0"
                   >
                     <label className="flex items-center justify-center gap-2 text-[11px] text-slate-400 cursor-pointer select-none mx-auto">
                       <input type="checkbox" className="accent-cyan-500 w-3.5 h-3.5 rounded" />
@@ -379,7 +386,7 @@ const Login: React.FC = () => {
                   </Form.Item>
 
                   {/* CTA — Centered pill button */}
-                  <div className="mt-6 text-center">
+                  <div className="text-center">
                     <Button type="primary" htmlType="submit" className={ctaBtnCls}>
                       Join Us
                     </Button>
@@ -433,17 +440,19 @@ const Login: React.FC = () => {
 
               {/* Panel content — Symmetric Centered Text Block */}
               <div className="relative z-10 w-full h-full flex flex-col justify-center items-center p-12 text-center">
-                <div className="w-full max-w-[280px] h-[296px] flex flex-col items-center">
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight mb-8">
-                    {isSignUp ? 'Welcome Back!' : 'Hello Friend!'}
-                  </h2>
+                <div className="w-full max-w-[280px] flex flex-col justify-center items-center text-center gap-4">
+                  <div>
+                    <h2 className="text-3xl font-extrabold text-white tracking-tight">
+                      {isSignUp ? 'Welcome Back!' : 'Hello Friend!'}
+                    </h2>
+                  </div>
                   <p className="text-slate-200 text-sm leading-relaxed">
                     {isSignUp
                       ? 'To keep connected with us please login with your personal info.'
                       : 'Enter your personal details and start your journey with us.'}
                   </p>
 
-                  <div className="mt-auto w-full flex flex-col items-center">
+                  <div className="w-full flex flex-col items-center">
                     <button
                       type="button"
                       onClick={() => setIsSignUp(!isSignUp)}

@@ -31,7 +31,7 @@ const Profile: React.FC = () => {
   });
 
   useEffect(() => {
-    document.title = 'Hồ sơ cá nhân | Genzite';
+    document.title = 'Profile | Genzite';
   }, []);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const Profile: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: updateMeApi,
     onSuccess: (updatedUser) => {
-      message.success('Cập nhật hồ sơ thành công!');
+      message.success('Profile updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['me'] });
       patchUser({
         name: updatedUser.name ?? user?.name,
@@ -73,22 +73,22 @@ const Profile: React.FC = () => {
       setIsModified(false);
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Cập nhật thất bại');
+      message.error(error.response?.data?.message || 'Update failed');
     }
   });
 
   const passwordMutation = useMutation({
     mutationFn: changePasswordApi,
     onSuccess: () => {
-      message.success('Đổi mật khẩu thành công!');
+      message.success('Password changed successfully!');
       pwdForm.resetFields();
     },
     onError: (error: any) => {
       const errorCode = error.response?.data?.errorCode;
       if (errorCode === 'AUTH_INVALID_OLD_PASSWORD') {
-        message.error('Mật khẩu hiện tại không chính xác.');
+        message.error('Current password is incorrect.');
       } else {
-        message.error(error.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại.');
+        message.error(error.response?.data?.message || 'Failed to change password. Please check again.');
       }
     }
   });
@@ -114,7 +114,7 @@ const Profile: React.FC = () => {
 
   const handleChangePassword = async (values: any) => {
     if (values.password !== values.confirmPassword) {
-      message.error('Mật khẩu mới không khớp!');
+      message.error('New passwords do not match!');
       return;
     }
     passwordMutation.mutate({ 
@@ -163,8 +163,8 @@ const Profile: React.FC = () => {
         
         {/* Header */}
         <div className="hub-header">
-          <h1 className="hub-header-title">Hồ Sơ Cá Nhân</h1>
-          <p className="hub-header-desc">Quản lý định danh và bảo mật tài khoản của bạn trong không gian Genzite.</p>
+          <h1 className="hub-header-title">Personal Profile</h1>
+          <p className="hub-header-desc">Manage your identity and account security in the Genzite workspace.</p>
         </div>
 
         {/* Main Content Layout */}
@@ -177,8 +177,8 @@ const Profile: React.FC = () => {
                 className="relative group cursor-pointer" 
                 style={{ marginBottom: 20 }}
                 onClick={() => setIsAvatarModalVisible(true)}
-                title="Thay đổi ảnh đại diện"
-                aria-label="Thay đổi ảnh đại diện"
+                title="Change Avatar"
+                aria-label="Change Avatar"
               >
                 <div style={{ width: 120, height: 120, borderRadius: 24, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
                   {displayAvatar ? (
@@ -223,15 +223,15 @@ const Profile: React.FC = () => {
                   <Wallet size={16} /> <span>{credits.toLocaleString()} Credits</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#a1a1aa', fontSize: 13, textAlign: 'left' }}>
-                  <CalendarDays size={16} /> <span>Tham gia: {createdAt ? new Date(createdAt).toLocaleDateString('vi-VN') : '--'}</span>
+                  <CalendarDays size={16} /> <span>Joined: {createdAt ? new Date(createdAt).toLocaleDateString('en-US') : '--'}</span>
                 </div>
               </div>
             </div>
 
             <div className="hub-categories">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Trạng thái bảo mật</span>
-                <span className="hub-tag" style={{ color: '#00e5ff', borderColor: 'rgba(0,229,255,0.2)', background: 'rgba(0,229,255,0.1)' }}>Mạnh</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Security Status</span>
+                <span className="hub-tag" style={{ color: '#00e5ff', borderColor: 'rgba(0,229,255,0.2)', background: 'rgba(0,229,255,0.1)' }}>Strong</span>
               </div>
               <div style={{ width: '100%', background: 'rgba(255,255,255,0.05)', height: 6, borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{ background: '#00e5ff', height: '100%', width: '100%', borderRadius: 3 }}></div>
@@ -247,8 +247,8 @@ const Profile: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div className="hub-card-icon cyan"><User size={24} /></div>
                 <div>
-                  <h3 className="hub-card-title" style={{ color: '#fff' }}>Thông tin cơ bản</h3>
-                  <p className="hub-card-desc">Cập nhật định danh hiển thị của bạn</p>
+                  <h3 className="hub-card-title" style={{ color: '#fff' }}>Basic Information</h3>
+                  <p className="hub-card-desc">Update your display identity</p>
                 </div>
               </div>
 
@@ -259,20 +259,20 @@ const Profile: React.FC = () => {
                 onValuesChange={() => setIsModified(true)}
               >
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                  <Form.Item name="name" label={<span style={labelStyle}>Họ và tên</span>} style={{ marginBottom: 0 }}>
-                    <Input style={inputStyle} aria-label="Họ và tên" />
+                  <Form.Item name="name" label={<span style={labelStyle}>Full Name</span>} style={{ marginBottom: 0 }}>
+                    <Input style={inputStyle} aria-label="Full Name" />
                   </Form.Item>
-                  <Form.Item name="displayName" label={<span style={labelStyle}>Tên hiển thị</span>} style={{ marginBottom: 0 }}>
-                    <Input placeholder="Tên phụ (nickname)" style={inputStyle} aria-label="Tên hiển thị" />
+                  <Form.Item name="displayName" label={<span style={labelStyle}>Display Name</span>} style={{ marginBottom: 0 }}>
+                    <Input placeholder="Nickname" style={inputStyle} aria-label="Display Name" />
                   </Form.Item>
                 </div>
 
                 <div style={{ marginTop: 24 }}>
-                  <Form.Item name="email" label={<span style={labelStyle}>Địa chỉ Email</span>} style={{ marginBottom: 0 }}>
-                    <Input disabled suffix={<Lock size={16} style={{ color: '#64748b' }} />} style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: '#64748b', cursor: 'not-allowed' }} aria-label="Địa chỉ Email" />
+                  <Form.Item name="email" label={<span style={labelStyle}>Email Address</span>} style={{ marginBottom: 0 }}>
+                    <Input disabled suffix={<Lock size={16} style={{ color: '#64748b' }} />} style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: '#64748b', cursor: 'not-allowed' }} aria-label="Email Address" />
                   </Form.Item>
                   <p style={{ color: '#64748b', fontSize: 12, marginTop: 8, fontStyle: 'italic' }}>
-                    Email này được liên kết với định danh bảo mật và không thể thay đổi trực tiếp.
+                    This email is linked to your security identity and cannot be changed directly.
                   </p>
                 </div>
 
@@ -281,10 +281,10 @@ const Profile: React.FC = () => {
                     type="submit" 
                     className="hub-card-action-btn"
                     disabled={!isModified || updateMutation.isPending}
-                    aria-label="Cập nhật thông tin"
+                    aria-label="Update Information"
                     style={{ opacity: (!isModified || updateMutation.isPending) ? 0.5 : 1, cursor: (!isModified || updateMutation.isPending) ? 'not-allowed' : 'pointer' }}
                   >
-                    Cập nhật thông tin
+                    Update Information
                   </button>
                 </div>
               </Form>
@@ -295,8 +295,8 @@ const Profile: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div className="hub-card-icon rose"><ShieldCheck size={24} /></div>
                 <div>
-                  <h3 className="hub-card-title" style={{ color: '#fff' }}>Đổi mật khẩu</h3>
-                  <p className="hub-card-desc">Tăng cường lớp bảo vệ cho tài khoản</p>
+                  <h3 className="hub-card-title" style={{ color: '#fff' }}>Change Password</h3>
+                  <p className="hub-card-desc">Enhance your account protection</p>
                 </div>
               </div>
 
@@ -307,30 +307,30 @@ const Profile: React.FC = () => {
               >
                 <Form.Item 
                   name="oldPassword" 
-                  label={<span style={labelStyle}>Mật khẩu hiện tại</span>} 
-                  rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại' }]}
+                  label={<span style={labelStyle}>Current Password</span>} 
+                  rules={[{ required: true, message: 'Please enter your current password' }]}
                   style={{ marginBottom: 20 }}
                 >
-                  <Input.Password placeholder="••••••••" style={inputStyle} aria-label="Mật khẩu hiện tại" />
+                  <Input.Password placeholder="••••••••" style={inputStyle} aria-label="Current Password" />
                 </Form.Item>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                   <Form.Item 
                     name="password" 
-                    label={<span style={labelStyle}>Mật khẩu mới</span>} 
-                    rules={[{ required: true, message: 'Vui lòng nhập mật khẩu mới' }]}
+                    label={<span style={labelStyle}>New Password</span>} 
+                    rules={[{ required: true, message: 'Please enter a new password' }]}
                     style={{ marginBottom: 0 }}
                   >
-                    <Input.Password placeholder="••••••••" style={inputStyle} aria-label="Mật khẩu mới" />
+                    <Input.Password placeholder="••••••••" style={inputStyle} aria-label="New Password" />
                   </Form.Item>
 
                   <Form.Item 
                     name="confirmPassword" 
-                    label={<span style={labelStyle}>Xác nhận mật khẩu mới</span>} 
-                    rules={[{ required: true, message: 'Vui lòng xác nhận mật khẩu mới' }]}
+                    label={<span style={labelStyle}>Confirm New Password</span>} 
+                    rules={[{ required: true, message: 'Please confirm your new password' }]}
                     style={{ marginBottom: 0 }}
                   >
-                    <Input.Password placeholder="••••••••" style={inputStyle} aria-label="Xác nhận mật khẩu mới" />
+                    <Input.Password placeholder="••••••••" style={inputStyle} aria-label="Confirm New Password" />
                   </Form.Item>
                 </div>
 
@@ -339,14 +339,14 @@ const Profile: React.FC = () => {
                     type="submit" 
                     className="hub-card-action-btn"
                     disabled={passwordMutation.isPending}
-                    aria-label="Đổi mật khẩu"
+                    aria-label="Change Password"
                     style={{ 
                       opacity: passwordMutation.isPending ? 0.5 : 1, 
                       cursor: passwordMutation.isPending ? 'not-allowed' : 'pointer', 
                       background: 'linear-gradient(135deg, #f43f5e, #8b5cf6)' 
                     }}
                   >
-                    Đổi mật khẩu
+                    Change Password
                   </button>
                 </div>
               </Form>
@@ -358,7 +358,7 @@ const Profile: React.FC = () => {
 
       {/* Update Avatar Modal */}
       <Modal
-        title={<span style={{ color: '#fff', fontWeight: 'bold' }}>Cập nhật ảnh đại diện</span>}
+        title={<span style={{ color: '#fff', fontWeight: 'bold' }}>Update Avatar</span>}
         open={isAvatarModalVisible}
         onCancel={() => setIsAvatarModalVisible(false)}
         footer={null}
@@ -370,7 +370,7 @@ const Profile: React.FC = () => {
         closeIcon={<span style={{ color: '#a1a1aa' }}>✕</span>}
       >
         <div style={{ paddingTop: 16 }}>
-          <p style={{ color: '#a1a1aa', marginBottom: 16, fontSize: 14 }}>Vui lòng nhập đường dẫn (URL) của hình ảnh bạn muốn sử dụng làm ảnh đại diện.</p>
+          <p style={{ color: '#a1a1aa', marginBottom: 16, fontSize: 14 }}>Please enter the URL of the image you want to use as your avatar.</p>
           <Input 
             value={avatarUrlInput}
             onChange={(e) => setAvatarUrlInput(e.target.value)}
@@ -378,14 +378,14 @@ const Profile: React.FC = () => {
             style={{ ...inputStyle, marginBottom: 24 }}
             prefix={<Link size={16} style={{ color: '#64748b', marginRight: 8 }} />}
             onPressEnter={handleUpdateAvatar}
-            aria-label="Đường dẫn ảnh đại diện"
+            aria-label="Avatar URL"
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
             <button 
               onClick={() => setIsAvatarModalVisible(false)}
               className="hub-tab-btn"
             >
-              Hủy
+              Cancel
             </button>
             <button 
               onClick={handleUpdateAvatar}
@@ -393,7 +393,7 @@ const Profile: React.FC = () => {
               className="hub-card-action-btn"
               style={{ opacity: (!avatarUrlInput.trim() || updateMutation.isPending) ? 0.5 : 1 }}
             >
-              Áp dụng
+              Apply
             </button>
           </div>
         </div>

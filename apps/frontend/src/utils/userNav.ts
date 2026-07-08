@@ -14,15 +14,15 @@ export type UserNavItem = {
 
 export const WORKSPACE_NAV_ITEMS: UserNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', path: WORKSPACE_BASE, roles: VIEWER_ROLES },
-  { key: 'profile', label: 'Hồ sơ cá nhân', path: `${WORKSPACE_BASE}/profile`, roles: VIEWER_ROLES },
+  { key: 'profile', label: 'Profile', path: `${WORKSPACE_BASE}/profile`, roles: VIEWER_ROLES },
   { key: 'canvas', label: 'AI Canvas', path: '/project', roles: VIEWER_ROLES },
 ];
 
 export const ADMIN_NAV_ITEMS: UserNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', path: ADMIN_BASE, roles: STAFF_ROLES },
-  { key: 'profile', label: 'Hồ sơ cá nhân', path: `${ADMIN_BASE}/profile`, roles: STAFF_ROLES },
-  { key: 'notifications', label: 'Thông báo', path: `${ADMIN_BASE}/notifications`, roles: STAFF_ROLES },
-  { key: 'identity', label: 'Quản lý người dùng', path: `${ADMIN_BASE}/identity`, roles: ['ADMIN'] },
+  { key: 'profile', label: 'Profile', path: `${ADMIN_BASE}/profile`, roles: STAFF_ROLES },
+  { key: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/notifications`, roles: STAFF_ROLES },
+  { key: 'identity', label: 'User Management', path: `${ADMIN_BASE}/identity`, roles: ['ADMIN'] },
 
   { key: 'media', label: 'Media Library', path: `${ADMIN_BASE}/media`, roles: STAFF_ROLES },
   { key: 'cms', label: 'Data CMS', path: `${ADMIN_BASE}/cms`, roles: STAFF_ROLES },
