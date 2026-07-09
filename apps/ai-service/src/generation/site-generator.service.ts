@@ -18,6 +18,7 @@ export interface GeneratedWidget {
 }
 
 export interface GeneratedPage {
+  id?: string;
   title: string;
   slug: string;
   widgets?: GeneratedWidget[];
@@ -25,8 +26,11 @@ export interface GeneratedPage {
 
 export interface GeneratedSite {
   site: {
+    id?: string;
     name: string;
     subdomain: string;
+    description?: string;
+    settings?: any;
   };
   pages: GeneratedPage[];
   projectId?: string;

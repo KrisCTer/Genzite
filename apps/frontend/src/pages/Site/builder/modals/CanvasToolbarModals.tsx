@@ -7,6 +7,7 @@ import {
   ApiOutlined, BarChartOutlined, SafetyCertificateOutlined, DownOutlined, CloseOutlined,
   RightOutlined, SettingOutlined, QuestionCircleOutlined
 } from '@ant-design/icons';
+import { Trash2 } from 'lucide-react';
 
 
 export interface CanvasToolbarModalsProps {
@@ -47,6 +48,13 @@ export interface CanvasToolbarModalsProps {
   setBugReportText: (val: string) => void;
   user?: any;
   handleShare?: () => void;
+
+  isDeleteProjectModalOpen?: boolean;
+  setIsDeleteProjectModalOpen?: (val: boolean) => void;
+  handleConfirmDeleteProject?: () => void;
+  isDeletingProject?: boolean;
+  siteTitle?: string;
+  site?: any;
 }
 
 
@@ -66,7 +74,9 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
   defaultFullscreen, setDefaultFullscreen,
   includeChatHistory, setIncludeChatHistory,
   bugReportText, setBugReportText,
-  user, handleShare
+  user, handleShare,
+  isDeleteProjectModalOpen, setIsDeleteProjectModalOpen,
+  handleConfirmDeleteProject, isDeletingProject, siteTitle, site
 }) => {
   return (
     <>
@@ -162,7 +172,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             lineHeight: 1.6,
             fontFamily: 'var(--font-sans)',
           }}>
-            {promptVal || 'Chưa có thông tin prompt cho ứng dụng này.'}
+            {promptVal || 'No prompt information provided for this app.'}
           </div>
         </div>
 
@@ -1072,6 +1082,133 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
           onFocus={(e) => { e.target.style.borderColor = '#52525B'; }}
           onBlur={(e) => { e.target.style.borderColor = '#27272A'; }}
         />
+      </Modal>
+
+      {/* Delete Project Modal - Synchronized with aiLogs UI */}
+      <Modal
+        open={isDeleteProjectModalOpen}
+        onCancel={() => setIsDeleteProjectModalOpen?.(false)}
+        footer={null}
+        closable={false}
+        width={460}
+        centered
+        styles={{
+          content: {
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 20,
+            padding: '24px',
+            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
+            backdropFilter: 'blur(24px) saturate(140%)',
+          },
+          mask: {
+            backdropFilter: 'blur(6px)',
+            background: 'rgba(0, 0, 0, 0.65)',
+          }
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#EF4444',
+            flexShrink: 0
+          }}>
+            <Trash2 size={22} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Delete Project</h3>
+            <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm permanent deletion of all project data</p>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.025)',
+          borderRadius: 12,
+          border: '1px solid rgba(255, 255, 255, 0.07)',
+          padding: '16px',
+          marginBottom: 24,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
+              <span style={{ color: '#06B6D4' }}>✦</span>
+              <span>Project to delete:</span>
+            </div>
+            <span style={{ color: '#fff', fontWeight: 600 }}>{siteTitle || site?.name || 'Current Project'}</span>
+          </div>
+
+          <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
+            Are you sure you want to delete this project? All pages, widget configurations, and AI generation history will be permanently deleted.
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 12,
+            color: '#F87171',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: '8px 12px',
+            borderRadius: 8
+          }}>
+            <span style={{ fontSize: 14 }}>⚠️</span>
+            <span>This action cannot be undone.</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => setIsDeleteProjectModalOpen?.(false)}
+            style={{
+              padding: '9px 18px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: 8,
+              color: '#CBD5E1',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontFamily: 'var(--font-sans)'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDeleteProject}
+            disabled={isDeletingProject}
+            style={{
+              padding: '9px 20px',
+              background: isDeletingProject ? 'rgba(239, 68, 68, 0.5)' : '#EF4444',
+              border: '1px solid rgba(239, 68, 68, 0.8)',
+              borderRadius: 8,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: isDeletingProject ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              transition: 'all 0.2s',
+              fontFamily: 'var(--font-sans)'
+            }}
+          >
+            {isDeletingProject ? 'Deleting...' : 'Delete Project'}
+          </button>
+        </div>
       </Modal>
     </>
   );

@@ -71,6 +71,7 @@ export class SitesService {
       name: string;
       subdomain: string;
       description?: string;
+      settings?: any;
     },
     userId: string,
   ) {
@@ -90,6 +91,7 @@ export class SitesService {
         name: dto.name,
         subdomain: dto.subdomain,
         description: dto.description,
+        settings: dto.settings,
         ownerId: userId,
       },
     });
@@ -111,6 +113,7 @@ export class SitesService {
     dto: {
       name?: string;
       subdomain?: string;
+      description?: string;
       settings?: any;
     },
     userId: string,
@@ -134,6 +137,7 @@ export class SitesService {
       data: {
         name: dto.name,
         subdomain: dto.subdomain,
+        description: dto.description,
         settings: dto.settings,
       },
     });

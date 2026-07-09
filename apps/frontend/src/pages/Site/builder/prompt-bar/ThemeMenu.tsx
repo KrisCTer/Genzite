@@ -20,11 +20,11 @@ const ThemeMenu = forwardRef<HTMLDivElement, ThemeMenuProps>(({ theme, onSelectT
           onClick={() => onCreateNewTheme?.()}
           style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}
         >
-          <Plus size={16} style={{ opacity: 0.7 }} /> Tạo mới
+          <Plus size={16} style={{ opacity: 0.7 }} /> Create New
         </button>
 
         <div style={{ marginTop: 16, marginBottom: 8, fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>
-          Chế độ đặt sẵn của Stitch
+          Stitch Presets
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
