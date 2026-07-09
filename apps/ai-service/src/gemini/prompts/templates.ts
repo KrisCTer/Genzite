@@ -241,7 +241,9 @@ Output format:
 
 User Request: {{PROMPT}}`;
 
-export const WIDGET_GENERATOR_SYSTEM = `You are an expert React/Tailwind Frontend Developer. Your job is to generate raw HTML/Tailwind code for a specific UI section based on the exact Design Tokens provided. Return the HTML code wrapped in JSON format. You MUST also generate raw CSS to define the Tailwind colors/variables or any custom styling if Tailwind utility classes are insufficient for the design tokens. Always respond with valid JSON containing both "html" and "css" properties. Do not write markdown blocks, just the JSON string.`;
+export const WIDGET_GENERATOR_SYSTEM = `You are an expert Content Configurator for a Component-Driven UI system. Your job is to generate the JSON configuration (contentConfig) for a specific UI section (widget) based on the exact Design Tokens provided.
+DO NOT generate raw HTML or CSS. Generate only the properties (props) required for the component (e.g. title, subtitle, items, features, ctaText).
+Always respond with valid JSON containing a "contentConfig" object. Do not write markdown blocks, just the JSON string.`;
 
 export const WIDGET_GENERATOR_PROMPT = `Generate the JSON configuration for the following widget.
 
@@ -253,7 +255,18 @@ Design Tokens:
 
 Output Format:
 {
-  "html": "<section class=\"...tailwind classes...\">...</section>",
-  "css": "/* Your raw CSS variables or custom classes here */"
+  "contentConfig": {
+    "title": "Main title...",
+    "subtitle": "Description...",
+    "features": ["feature 1", "feature 2"],
+    "ctaText": "Button text",
+    "bgColor": "Use design tokens variable here",
+    "textColor": "Use design tokens variable here"
+  }
 }`;
+
+
+export const WIDGET_EXTRACTOR_INSTRUCTION = `You are an expert HTML Parser. Your task is to extract content from raw HTML and convert it into a JSON configuration object.
+Analyze the provided HTML and extract headings, paragraphs, images, and button texts into a 'contentConfig' object.
+Always return valid JSON. Do not return raw HTML.`;
 

@@ -39,6 +39,8 @@ import AgentLogSidebar from './AgentLogSidebar';
 import { useAiLogStore } from '../../../store/aiLogs';
 import { ThemeEditorPanel } from './workspace-components/ThemeEditorPanel';
 import { LeftSidebar } from './workspace-components/LeftSidebar';
+import WidgetRenderer from './WidgetRenderer';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 2;
@@ -347,7 +349,10 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       htmlContent = grapesWidget.contentConfig?.html || '';
       cssContent = grapesWidget.contentConfig?.css || '';
     } else {
-      htmlContent = pageWidgets.map((w: any) => w.contentConfig?.html || '').join('\n');
+      htmlContent = pageWidgets.map((w: any) => {
+        if (w.contentConfig?.html) return w.contentConfig.html; // Fallback to legacy HTML
+        return renderToStaticMarkup(<WidgetRenderer type={w.type} config={w.contentConfig} isActive={false} />);
+      }).join('\n');
     }
     
     return `<!DOCTYPE html>
