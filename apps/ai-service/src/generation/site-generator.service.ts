@@ -110,6 +110,7 @@ export class SiteGeneratorService {
     userId?: string,
     model?: string,
     siteId?: string,
+    theme?: string,
     onProgress?: (step: string, percent: number) => void
   ): Promise<GeneratedSite> {
     // STEP 0: Security Check (Guardrail)
@@ -129,6 +130,27 @@ export class SiteGeneratorService {
     });
 
     try {
+      // PARSE TARGET PAGE
+      let pageTitle = "Home";
+      let pageSlug = "home";
+      
+      let targetPageId: string | undefined;
+      const targetPageMatch = prompt.match(/\[TARGET_PAGE:([a-zA-Z0-9-]+)\]/);
+      if (targetPageMatch) {
+        targetPageId = targetPageMatch[1];
+        prompt = prompt.replace(/\[TARGET_PAGE:[a-zA-Z0-9-]+\]\s*/, '').trim();
+      } else {
+        const createMatch = prompt.match(/(?:Create|Tạo trang)\s+([a-zA-Z0-9 ]+?)(?:\s+Page)?$/i) 
+                         || prompt.match(/(?:Create|Tạo)\s+([a-zA-Z0-9 ]+?)(?:\s+Page)?$/i);
+        if (createMatch && createMatch[1] && createMatch[1].trim().length > 0) {
+          pageTitle = createMatch[1].trim();
+          pageSlug = pageTitle.toLowerCase().replace(/\s+/g, '-');
+        } else {
+          pageSlug = `page-${Date.now()}`;
+          pageTitle = "New Page";
+        }
+      }
+
       // STEP 1: Parallelize RAG - Extract Golden Template from Database
       onProgress?.('Initializing generation...', 15);
       const [goldenTemplate] = await Promise.all([
@@ -139,7 +161,7 @@ export class SiteGeneratorService {
       this.logger.log(`Current GENERATION_MODE from config: ${this.config.get<string>('GENERATION_MODE')} -> Parsed: ${genMode}`);
 
       if (genMode === 'hybrid') {
-        return await this.generateHybrid(prompt, taskLog, siteId, onProgress);
+        return await this.generateHybrid(prompt, taskLog, pageTitle, pageSlug, targetPageId, siteId, theme, onProgress);
       }
 
       // --- STITCH MODE (LEGACY) ---
@@ -238,8 +260,9 @@ export class SiteGeneratorService {
       const extractionResult = {
         site: { name: "Generated Site", subdomain: siteId || `gen-${Date.now()}` },
         pages: [{
-          title: "Home",
-          slug: "home",
+          ...(targetPageId ? { id: targetPageId } : {}),
+          title: pageTitle,
+          slug: pageSlug,
           widgets: [{ 
             type: "GRAPESJS", 
             contentConfig: { html: htmlContent },
@@ -289,7 +312,11 @@ export class SiteGeneratorService {
   private async generateHybrid(
     prompt: string,
     taskLog: any,
+    pageTitle: string,
+    pageSlug: string,
+    targetPageId?: string,
     siteId?: string,
+    theme?: string,
     onProgress?: (step: string, percent: number) => void
   ): Promise<GeneratedSite> {
     try {
@@ -312,34 +339,42 @@ export class SiteGeneratorService {
 
       onProgress?.('Generating primary design (Stitch)...', 30);
 
-      // STAGE 1: Execute Stitch Workers
+      // STAGE 1: Execute Stitch Workers (with try-catch so auth errors fall back gracefully)
       const stitchPromises = stitchSections.map(async (sec) => {
-        // Fallback to Stitch for Header/Hero
-        const { stitch } = await import('@google/stitch-sdk');
-        const apiKey = this.config.get<string>('STITCH_API_KEY') || this.config.get<string>('GEMINI_API_KEY');
-        if (apiKey) process.env.STITCH_API_KEY = apiKey;
-        const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
-        const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
-        const htmlUrl = await screen.getHtml();
-        
-        let htmlContent = '';
         try {
-          const res = await fetch(htmlUrl);
-          htmlContent = await res.text();
-        } catch (e) {
-          htmlContent = '<!-- Failed to fetch -->';
+          const { stitch } = await import('@google/stitch-sdk');
+          const apiKey = this.config.get<string>('STITCH_API_KEY') || this.config.get<string>('GEMINI_API_KEY');
+          if (apiKey) process.env.STITCH_API_KEY = apiKey;
+          const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
+          const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
+          const htmlUrl = await screen.getHtml();
+          
+          let htmlContent = '';
+          try {
+            const res = await fetch(htmlUrl);
+            htmlContent = await res.text();
+          } catch (e) {
+            htmlContent = '<!-- Failed to fetch -->';
+          }
+          
+          const extractionResult = await this.ai.generateJson<any>(
+            `Convert this HTML to JSON widget format:\n${htmlContent.substring(0, 10000)}`, 
+            { model: 'meta/llama-3.3-70b-instruct', systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION }
+          );
+          
+          return {
+            type: sec.type,
+            sortOrder: sec.sortOrder,
+            contentConfig: extractionResult?.pages?.[0]?.widgets?.[0]?.contentConfig || { title: sec.type }
+          };
+        } catch (e: any) {
+          this.logger.warn(`Stitch worker stage 1 failed for ${sec.type} (${e?.message || e}). Falling back to tokens.`);
+          return {
+            type: sec.type,
+            sortOrder: sec.sortOrder,
+            contentConfig: { title: sec.type, bgColor: "var(--gz-dark-1)", textColor: "var(--color-text-primary)" }
+          };
         }
-        
-        const extractionResult = await this.ai.generateJson<any>(
-          `Convert this HTML to JSON widget format:\n${htmlContent.substring(0, 10000)}`, 
-          { model: 'meta/llama-3.3-70b-instruct', systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION }
-        );
-        
-        return {
-          type: sec.type,
-          sortOrder: sec.sortOrder,
-          contentConfig: extractionResult?.pages?.[0]?.widgets?.[0]?.contentConfig || { title: sec.type }
-        };
       });
 
       const stitchWidgets = await Promise.all(stitchPromises);
@@ -356,8 +391,7 @@ export class SiteGeneratorService {
          extractedText = heroWidget.contentConfig.textColor;
       }
 
-      // DYNAMIC DESIGN TOKENS
-      const DESIGN_TOKENS = `
+      let DESIGN_TOKENS = `
         MANDATORY: You MUST ONLY use valid Tailwind CSS classes. Do NOT use string interpolation like \`\${...}\` or raw CSS variables like \`var(...)\` in class names.
         Use the following custom Tailwind theme values:
         - Background Colors: bg-surface-container-lowest, bg-surface-container, bg-surface-container-high
@@ -366,6 +400,10 @@ export class SiteGeneratorService {
         - Padding: p-6, py-12, px-4
         - Border Radius: rounded-xl, rounded-2xl
       `;
+
+      if (theme) {
+         DESIGN_TOKENS += `\n\nCRITICAL: The user has selected the "${theme}" design system theme. Make sure you adjust background colors, accent colors, gradients, UI elements, and typography appropriately to reflect this specific theme's visual aesthetic.`;
+      }
 
       onProgress?.('Workers are building sections to match theme...', 60);
 
@@ -389,21 +427,31 @@ export class SiteGeneratorService {
           return {
             type: sec.type,
             sortOrder: sec.sortOrder,
-            htmlContent: widgetResult.html || `<!-- Missing HTML for ${sec.type} -->`,
-            cssContent: widgetResult.css || ''
+            htmlContent: widgetResult?.html || `<!-- Missing HTML for ${sec.type} -->`,
+            cssContent: widgetResult?.css || ''
           };
         } catch (e) {
           this.logger.warn(`Worker ${modelName} failed for ${sec.type}, falling back...`);
-          const fallbackResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
-            model: 'meta/llama-3.3-70b-instruct',
-            systemInstruction: WIDGET_GENERATOR_SYSTEM,
-          });
-          return {
-            type: sec.type,
-            sortOrder: sec.sortOrder,
-            htmlContent: fallbackResult.html || `<!-- Missing HTML for ${sec.type} -->`,
-            cssContent: fallbackResult.css || ''
-          };
+          try {
+            const fallbackResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
+              model: 'meta/llama-3.3-70b-instruct',
+              systemInstruction: WIDGET_GENERATOR_SYSTEM,
+            });
+            return {
+              type: sec.type,
+              sortOrder: sec.sortOrder,
+              htmlContent: fallbackResult?.html || `<!-- Missing HTML for ${sec.type} -->`,
+              cssContent: fallbackResult?.css || ''
+            };
+          } catch (fallbackErr: any) {
+            this.logger.error(`All workers failed for ${sec.type}: ${fallbackErr.message}`);
+            return {
+              type: sec.type,
+              sortOrder: sec.sortOrder,
+              htmlContent: `<section class="py-12 px-6 bg-surface-container rounded-2xl text-center my-6"><h2 class="text-3xl font-bold text-on-surface mb-4">${sec.type}</h2><p class="text-on-surface-variant max-w-2xl mx-auto">${sec.briefing}</p></section>`,
+              cssContent: ''
+            };
+          }
         }
       };
 
@@ -467,10 +515,11 @@ export class SiteGeneratorService {
       const generatedSubdomain = siteId ? siteId : `gen-${Date.now()}`;
       const result: GeneratedSite = {
         generationMode: 'hybrid',
-        site: { name: planResult.siteName || "Hybrid Site", subdomain: generatedSubdomain, ...(siteId ? { id: siteId } : {}) },
+        site: { name: planResult.siteName || "Hybrid Site", subdomain: generatedSubdomain, description: prompt, settings: { prompt }, ...(siteId ? { id: siteId } : {}) },
         pages: [{
-          title: "Home",
-          slug: "home",
+          ...(targetPageId ? { id: targetPageId } : {}),
+          title: pageTitle,
+          slug: pageSlug,
           widgets: [{
             type: "GRAPESJS",
             contentConfig: { html: fullHtml, css: fullCss },

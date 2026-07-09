@@ -23,6 +23,7 @@ async function bootstrap() {
       undefined,
       undefined,
       undefined,
+      undefined,
       (step, percent) => {
         console.log(`[Progress] ${step} - ${percent}%`);
       }

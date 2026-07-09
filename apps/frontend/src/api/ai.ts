@@ -1,7 +1,7 @@
 import apiClient from './client';
 
 // ============ Generation API ============
-export const generateSiteApi = async (data: { prompt: string; model?: string; siteId?: string }) => {
+export const generateSiteApi = async (data: { prompt: string; model?: string; siteId?: string, theme?: string }) => {
   const response = await apiClient.post<{ message: string; jobId: string }>('/ai/generate-site', data);
   return response.data;
 };

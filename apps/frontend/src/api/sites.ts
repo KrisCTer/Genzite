@@ -80,7 +80,14 @@ export const fetchWidgetsApi = async (pageId: string) => {
   return response.data;
 };
 
+/** Public version — no auth token required. Used by the /live viewer for anonymous access. */
+export const fetchWidgetsPublicApi = async (pageId: string) => {
+  const response = await apiClient.get<Widget[]>(`/sites/pages/${pageId}/widgets/public`);
+  return response.data;
+};
+
 export const replaceWidgetsApi = async (pageId: string, widgets: Array<{ type: string; contentConfig: Record<string, unknown>; sortOrder: number }>) => {
   const response = await apiClient.put<Widget[]>(`/sites/pages/${pageId}/widgets`, { widgets });
   return response.data;
 };
+

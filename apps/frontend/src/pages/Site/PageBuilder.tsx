@@ -1,7 +1,7 @@
 import React from 'react';
 import { Spin } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchPagesApi, fetchSiteByIdApi } from '../../api/sites';
 import { useParams, useNavigate } from 'react-router-dom';
 import AIPromptBar from './builder/AIPromptBar';
@@ -13,16 +13,17 @@ import './CanvasBuilder.css';
 const PageBuilder: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isGenerating = useAiLogStore(state => state.isGenerating);
 
-  const { data: pages, isLoading, isError } = useQuery({
+  const { data: pages, isLoading, isFetching: isFetchingPages, isError } = useQuery({
     queryKey: ['site-pages', siteId],
     queryFn: () => fetchPagesApi(siteId!),
     enabled: !!siteId,
     retry: 1,
   });
 
-  const { data: site } = useQuery({
+  const { data: site, isFetching: isFetchingSite } = useQuery({
     queryKey: ['site', siteId],
     queryFn: () => fetchSiteByIdApi(siteId!),
     enabled: !!siteId,
@@ -32,6 +33,11 @@ const PageBuilder: React.FC = () => {
   const isWelcomeMode = !siteId;
 
   const handleAIGenerated = (_jobId: string, subdomain?: string) => {
+    const targetId = subdomain || siteId;
+    if (targetId) {
+      queryClient.invalidateQueries({ queryKey: ['site-pages', targetId] });
+      queryClient.invalidateQueries({ queryKey: ['site', targetId] });
+    }
     if (subdomain && subdomain !== siteId) {
       navigate(`/project/${subdomain}`, { replace: true });
     }
@@ -85,9 +91,75 @@ const PageBuilder: React.FC = () => {
     );
   }
 
-  if (isLoading && !isGenerating) return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
-  if (isError && !isGenerating) return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'red' }}>Failed to load site.</div>;
-
+  if ((isLoading || isFetchingPages || isFetchingSite) && !isGenerating && !pages) {
+    return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
+  }
+  if (isError && !isGenerating && !isFetchingPages) {
+    return (
+      <div 
+        className="canvas-builder" 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#09090b',
+          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      >
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: 16,
+          padding: '64px 48px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          maxWidth: 480,
+          textAlign: 'center'
+        }}>
+          <h1 style={{
+            fontSize: 96,
+            fontWeight: 800,
+            color: 'rgba(255, 255, 255, 0.08)',
+            margin: 0,
+            lineHeight: 1
+          }}>
+            404
+          </h1>
+          <p style={{
+            fontSize: 20,
+            fontWeight: 500,
+            color: '#e2e8f0',
+            marginTop: 24,
+            marginBottom: 40,
+            lineHeight: 1.4
+          }}>
+            Trang này không tồn tại hoặc không được chia sẻ với bạn.
+          </p>
+          <button 
+            onClick={() => navigate('/project')}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 24,
+              padding: '12px 24px',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+          >
+            Chuyển đến Trang chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="canvas-builder">
       <CanvasWorkspace

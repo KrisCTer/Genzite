@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { message, Modal, Spin } from 'antd';
+import { message, Modal, Spin, ColorPicker, Popover } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { fetchWidgetsApi, deletePageApi } from '../../../api/sites';
@@ -37,6 +37,8 @@ import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
 import AgentLogSidebar from './AgentLogSidebar';
 import { useAiLogStore } from '../../../store/aiLogs';
+import { ThemeEditorPanel } from './workspace-components/ThemeEditorPanel';
+import { LeftSidebar } from './workspace-components/LeftSidebar';
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 2;
@@ -135,6 +137,45 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  const submitSiteGeneration = useAiLogStore(state => state.submitSiteGeneration);
+  const [isApplyingTheme, setIsApplyingTheme] = useState(false);
+
+  const handleApplyThemeToSelection = () => {
+    if (!selectedId) {
+      message.warning('Please select a page first');
+      return;
+    }
+    
+    const themeOverrides = {
+      themeId: detailThemeId,
+      mode: themeMode,
+      radius: themeRadius,
+      colors: themeColorOverrides,
+      fonts: themeFonts,
+    };
+    
+    setIsApplyingTheme(true);
+    message.info('Applying design system to selected page...');
+    
+    submitSiteGeneration(
+      `[TARGET_PAGE:${selectedId}] Cập nhật lại giao diện trang hiện tại để khớp hoàn toàn với Design System và bộ màu được cung cấp.`,
+      'gemini-2.5-flash',
+      siteId || `gen-${Date.now()}`,
+      JSON.stringify(themeOverrides),
+      (jobId, subdomain) => {
+        setIsApplyingTheme(false);
+        message.success('Design applied successfully! Loading...');
+        if (onAIGenerated) {
+          onAIGenerated(jobId);
+        }
+      },
+      (error) => {
+        setIsApplyingTheme(false);
+        message.error(error || 'Failed to apply design');
+      }
+    );
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasCenterRef = useRef<HTMLDivElement>(null);
   const workspaceRootRef = useRef<HTMLDivElement>(null);
@@ -159,6 +200,16 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isStylesOpen, setIsStylesOpen] = useState(false);
+  const [detailThemeId, setDetailThemeId] = useState<string | null>(null);
+  const [detailThemeTab, setDetailThemeTab] = useState<'Theme' | 'DESIGN.md'>('Theme');
+  const [themeColorOverrides, setThemeColorOverrides] = useState<Record<string, string>>({});
+  const [themeFonts, setThemeFonts] = useState<Record<string, string>>({});
+  const [expandedFontRole, setExpandedFontRole] = useState<string | null>(null);
+  const [fontSearch, setFontSearch] = useState('');
+  const [themeScheme, setThemeScheme] = useState('Fidelity');
+  const [themeMode, setThemeMode] = useState<'light'|'dark'>('light');
+  const [themeRadius, setThemeRadius] = useState<number>(4);
+  const [isThemeSchemeOpen, setIsThemeSchemeOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('full');
   const isGenerating = useAiLogStore(state => state.isGenerating);
@@ -536,7 +587,7 @@ ${htmlContent}
         onResetZoom={resetZoom} 
         onPreview={handlePreview}
         onPublish={handlePublish}
-        siteTitle={pages?.[0]?.title || 'Product Mockup Visualizer'}
+        siteTitle={site?.name || pages?.[0]?.title || 'Ứng dụng của tôi'}
         siteId={siteId}
         site={site}
         selectedId={selectedId}
@@ -550,98 +601,10 @@ ${htmlContent}
       />
       
       <div className="canvas-body" style={{ display: 'flex', position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        <div className="canvas-sidebar-left" style={{ 
-          position: 'absolute', 
-          left: 24, 
-          top: 80, 
-          bottom: isSidebarExpanded ? 24 : 'auto', 
-          width: isSidebarExpanded ? 310 : 56, 
-          height: isSidebarExpanded ? 'auto' : 56,
-          zIndex: 10,
-          background: isSidebarExpanded 
-            ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)' 
-            : 'rgba(17, 24, 39, 0.6)', 
-          borderRadius: 16, 
-          boxShadow: isSidebarExpanded ? '0 20px 50px rgba(0,0,0,0.6)' : '0 8px 30px rgba(56, 189, 248, 0.15)', 
-          display: 'flex', flexDirection: 'column', overflow: 'hidden', 
-          border: isSidebarExpanded ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(56, 189, 248, 0.3)', 
-          backdropFilter: 'blur(24px)',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s, border 0.3s, box-shadow 0.3s'
-        }}>
-          <div style={{ 
-            display: 'flex', alignItems: 'center', 
-            justifyContent: isSidebarExpanded ? 'space-between' : 'center', 
-            padding: isSidebarExpanded ? '14px 16px' : '0', 
-            height: isSidebarExpanded ? 'auto' : '100%',
-            width: isSidebarExpanded ? 'auto' : '100%',
-            background: isSidebarExpanded ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
-            backgroundImage: isSidebarExpanded ? 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)' : 'none',
-            backgroundSize: '16px 16px',
-            backgroundPosition: '0 0',
-            borderBottom: isSidebarExpanded ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
-            flexShrink: 0
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isSidebarExpanded ? 'auto' : '100%', height: isSidebarExpanded ? 'auto' : '100%', justifyContent: isSidebarExpanded ? 'flex-start' : 'center' }}>
-              <button
-                onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: 0,
-                  width: isSidebarExpanded ? 'auto' : '100%',
-                  height: isSidebarExpanded ? 'auto' : '100%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer',
-                  opacity: 0.9,
-                  transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '0.9'}
-                title={isSidebarExpanded ? "Thu gọn (Collapse)" : "Mở rộng (Expand)"}
-              >
-                <Sparkles size={isSidebarExpanded ? 18 : 24} color="#38bdf8" />
-              </button>
-
-              {isSidebarExpanded && (
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '0.01em' }}>
-                  Gemini
-                </span>
-              )}
-            </div>
-
-            {isSidebarExpanded && (
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#94A3B8',
-                    cursor: 'pointer',
-                    padding: 4,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16
-                  }}
-                  title="Cuộc trò chuyện mới"
-                >
-                  <PlusOutlined />
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <div style={{ 
-            flex: 1, 
-            opacity: isSidebarExpanded ? 1 : 0, 
-            visibility: isSidebarExpanded ? 'visible' : 'hidden',
-            transition: 'opacity 0.2s ease, visibility 0.2s ease',
-            overflow: 'hidden' 
-          }}>
-            <div id="portal-left-sidebar" style={{ width: 310, height: '100%', overflowY: 'auto' }}>
-              <AgentLogSidebar />
-            </div>
-          </div>
-        </div>
+        <LeftSidebar 
+          isSidebarExpanded={isSidebarExpanded} 
+          setIsSidebarExpanded={setIsSidebarExpanded} 
+        />
 
         <div
           className="canvas-center"
@@ -1020,8 +983,29 @@ ${htmlContent}
           })}
         </div>
 
-        <div className="canvas-prompt-wrapper">
-          <AIPromptBar compact onGenerated={onAIGenerated} siteId={siteId} />
+<div className="canvas-prompt-wrapper">
+          <AIPromptBar 
+            compact 
+            onGenerated={onAIGenerated} 
+            siteId={siteId} 
+            selectedPage={pages?.find((p: any) => selectedId?.includes(p.id))}
+            onClearSelection={() => setSelectedId(null)}
+            onSelectTheme={(id) => {
+              setDetailThemeId(id);
+            }}
+            onCreateNewTheme={() => {
+              setDetailThemeId('custom');
+              setIsStylesOpen(true);
+            }}
+            themeOverrides={{
+              themeId: detailThemeId,
+              mode: themeMode,
+              radius: themeRadius,
+              colors: themeColorOverrides,
+              fonts: themeFonts,
+              scheme: themeScheme
+            }}
+          />
         </div>
 
         {(() => {
@@ -1137,95 +1121,34 @@ ${htmlContent}
             </div>
           );
         })()}
-
-        {(() => {
-          if (!isStylesOpen) return null;
-          
-          const themes = [
-            { name: 'Earthen Atelier', font: 'Aa', colors: ['#E6D5C3', '#8C7362'], buttonBg: '#8C7362', buttonColor: '#F8FAFC' },
-            { name: 'Alexandria', font: 'Aa', colors: ['#2563EB', '#FCD34D'], buttonBg: '#2563EB', buttonColor: '#F8FAFC' },
-            { name: 'Bauhaus', font: 'Aa', colors: ['#DC2626', '#2563EB'], buttonBg: '#0F172A', buttonColor: '#F8FAFC' },
-            { name: 'Glacier', font: 'Aa', colors: ['#A78BFA', '#38BDF8'], buttonBg: '#38BDF8', buttonColor: '#0F172A' },
-            { name: 'Carbon', font: 'Aa', colors: ['#22C55E', '#2563EB'], buttonBg: '#2563EB', buttonColor: '#F8FAFC' },
-            { name: 'Neon Tokyo', font: 'Aa', colors: ['#2DD4BF', '#F43F5E'], buttonBg: '#F43F5E', buttonColor: '#F8FAFC' },
-            { name: 'Terra', font: 'Aa', colors: ['#D97706', '#65A30D'], buttonBg: '#D97706', buttonColor: '#F8FAFC' }
-          ];
-
-          return (
-            <div style={{
-              position: 'absolute',
-              top: 80, 
-              right: 70, 
-              bottom: 90, 
-              width: 320,
-              background: 'rgba(17, 24, 39, 0.85)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              borderRadius: 16,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-              display: 'flex',
-              flexDirection: 'column',
-              zIndex: 100,
-              color: '#F8FAFC',
-              overflow: 'hidden'
-            }}>
-              <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, fontWeight: 600 }}>
-                  <Palette size={16} style={{ marginRight: 8, opacity: 0.8 }} /> DESIGN.md
-                </div>
-                <button 
-                  onClick={() => setIsStylesOpen(false)} 
-                  style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              
-              <div style={{ padding: '0 20px 20px', overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
-                <button style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}>
-                  <Plus size={16} style={{ opacity: 0.7 }} /> Bắt đầu với bản thiết kế của bạn
-                </button>
-                <button style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}>
-                  <Plus size={16} style={{ opacity: 0.7 }} /> Tạo mới
-                </button>
-
-                <div style={{ marginTop: 24, marginBottom: 12, fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>
-                  Chế độ đặt sẵn của Stitch
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {themes.map((theme, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#F8FAFC' }}>{theme.name}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontFamily: 'serif', fontSize: 16, fontWeight: 500 }}>Aa</span>
-                          
-                          <div style={{ width: 20, height: 20, borderRadius: '50%', overflow: 'hidden', display: 'flex', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <div style={{ flex: 1, background: theme.colors[0] }} />
-                            <div style={{ flex: 1, background: theme.colors[1] }} />
-                          </div>
-
-                          <div style={{ background: theme.buttonBg, color: theme.buttonColor, fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 4 }}>
-                            Button
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', color: '#64748B', gap: 8 }}>
-                        <MoreVertical size={16} style={{ cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#64748B'} />
-                        <ChevronRight size={16} style={{ cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#64748B'} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {isStylesOpen && (
+          <ThemeEditorPanel
+            detailThemeId={detailThemeId}
+            setDetailThemeId={setDetailThemeId}
+            detailThemeTab={detailThemeTab}
+            setDetailThemeTab={setDetailThemeTab}
+            themeColorOverrides={themeColorOverrides}
+            setThemeColorOverrides={setThemeColorOverrides}
+            themeFonts={themeFonts}
+            setThemeFonts={setThemeFonts}
+            expandedFontRole={expandedFontRole}
+            setExpandedFontRole={setExpandedFontRole}
+            fontSearch={fontSearch}
+            setFontSearch={setFontSearch}
+            themeScheme={themeScheme}
+            setThemeScheme={setThemeScheme}
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
+            themeRadius={themeRadius}
+            setThemeRadius={setThemeRadius}
+            isThemeSchemeOpen={isThemeSchemeOpen}
+            setIsThemeSchemeOpen={setIsThemeSchemeOpen}
+            handleApplyThemeToSelection={handleApplyThemeToSelection}
+            isApplyingTheme={isApplyingTheme}
+            selectedId={selectedId}
+            setIsStylesOpen={setIsStylesOpen}
+          />
+        )}
 
         <div 
           className="canvas-zoom-floating" 

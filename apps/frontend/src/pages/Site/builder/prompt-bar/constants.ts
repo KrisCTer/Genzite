@@ -14,22 +14,21 @@ export const QUICK_PROMPTS = [
 ];
 
 export const THEME_OPTIONS = [
-  { id: 'cyberpunk', label: 'Cyberpunk', colors: ['#ff003c', '#00f0ff', '#fcee09'] },
-  { id: 'aurora', label: 'Aurora', colors: ['#00e5ff', '#3b82f6', '#8b5cf6'] },
-  { id: 'sunset', label: 'Sunset', colors: ['#ff7e5f', '#feb47b', '#facc15'] },
-  { id: 'forest', label: 'Forest', colors: ['#22c55e', '#10b981', '#14b8a6'] },
-  { id: 'lava', label: 'Lava', colors: ['#ef4444', '#f97316', '#f59e0b'] },
-  { id: 'oceanic', label: 'Oceanic', colors: ['#0ea5e9', '#3b82f6', '#6366f1'] },
-  { id: 'midnight', label: 'Midnight', colors: ['#8b5cf6', '#c084fc', '#e879f9'] },
-  { id: 'earth', label: 'Earth', colors: ['#d97706', '#b45309', '#78350f'] },
-  { id: 'berry', label: 'Berry', colors: ['#ec4899', '#db2777', '#9d174d'] },
-  { id: 'monochrome', label: 'Monochrome', colors: ['#d4d4d8', '#71717a', '#27272a'] },
+  { id: 'bauhaus', label: 'Bauhaus', colors: ['#171717', '#DC2626', '#2563EB'] },
+  { id: 'glacier', label: 'Glacier', colors: ['#38BDF8', '#A78BFA', '#F472B6'] },
+  { id: 'carbon', label: 'Carbon', colors: ['#2563EB', '#27272A', '#22C55E'] },
+  { id: 'neon-tokyo', label: 'Neon Tokyo', colors: ['#F43F5E', '#FBBF24', '#2DD4BF'] },
+  { id: 'terra', label: 'Terra', colors: ['#78716C', '#92400E', '#166534'] },
+  { id: 'obsidian', label: 'Obsidian', colors: ['#8B5CF6', '#3F3F46', '#10B981'] },
+  { id: 'sahara', label: 'Sahara', colors: ['#F97316', '#451A03', '#B45309'] }
 ];
 
 export const COMPACT_QUICK_PROMPTS = [
-  { text: 'Add a search bar to the header', badge: '1' },
-  { text: 'Change the logo to an icon logo', badge: '2' },
-  { text: 'Make the hero section darker', badge: '3' },
-  { text: 'Add customer testimonials', badge: '4' },
+  { text: 'Create Home Page', badge: '1' },
+  { text: 'Create Products Page', badge: '2' },
+  { text: 'Create About Page', badge: '3' },
+  { text: 'Create Contact Page', badge: '4' },
+  { text: 'Create Pricing Page', badge: '5' },
+  { text: 'Create Login Page', badge: '6' },
 ];
 

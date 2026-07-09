@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
-import { fetchWidgetsApi, fetchPagesApi, type Widget } from '../../api/sites';
+import { fetchWidgetsPublicApi, fetchPagesApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
-import { ArrowLeftOutlined, InfoCircleOutlined, CloseOutlined } from '@ant-design/icons';
+import GrapesEditor from '../Site/builder/GrapesEditor';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import CartDrawer from '../../components/CartDrawer';
 
 interface LiveViewerProps {
@@ -11,9 +12,33 @@ interface LiveViewerProps {
 }
 
 const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
+  const [scale, setScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (!propSiteId) {
+        setScale(1);
+        return;
+      }
+      if (!containerRef.current) return;
+      const rect = containerRef.current.parentElement?.getBoundingClientRect();
+      const availableWidth = rect ? rect.width - 64 : window.innerWidth;
+      const targetWidth = 1440;
+      if (availableWidth < targetWidth) {
+        setScale(availableWidth / targetWidth);
+      } else {
+        setScale(1);
+      }
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   const [searchParams] = useSearchParams();
   const { pageId: paramPageId } = useParams<{ pageId: string }>();
-  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && (paramPageId.length > 20 || paramPageId.startsWith('gen-')) ? paramPageId : undefined); // check for UUID or gen- prefix
+  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && (paramPageId.length > 20 || paramPageId.startsWith('gen-') || paramPageId.startsWith('gen_')) ? paramPageId : undefined); // check for UUID or gen- prefix
 
   const isParamActuallySiteId = paramPageId === siteId || paramPageId === 'preview' || paramPageId === '_';
   
@@ -21,7 +46,6 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [resolvedPageId, setResolvedPageId] = useState<string | null>(isParamActuallySiteId ? null : (paramPageId || null));
-  const [showBanner, setShowBanner] = useState(isParamActuallySiteId);
 
   useEffect(() => {
     // Dynamically inject Tailwind CDN so that AI-generated classes work at runtime in Live View
@@ -70,7 +94,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
     const targetPageId = resolvedPageId || (isParamActuallySiteId ? null : paramPageId);
     if (targetPageId) {
       setLoading(true);
-      fetchWidgetsApi(targetPageId)
+      fetchWidgetsPublicApi(targetPageId)
         .then(data => {
           setWidgets(data);
           setError(false);
@@ -104,21 +128,33 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
     );
   }
 
+  // Constants for default widget geometry
+  const WIDGET_DEFAULTS: Record<string, { w: number; h: number }> = {
+    HEADER: { w: 1440, h: 72 },
+    HERO: { w: 1440, h: 480 },
+    TEXT: { w: 760, h: 200 },
+    TEXTCONTENT: { w: 760, h: 200 },
+    FEATURELIST: { w: 1440, h: 320 },
+    IMAGEGALLERY: { w: 1440, h: 360 },
+    TESTIMONIAL: { w: 1440, h: 300 },
+    STATS: { w: 1440, h: 200 },
+    CTA: { w: 1440, h: 240 },
+    FOOTER: { w: 1440, h: 120 },
+    GRAPESJS: { w: 1440, h: 1000 },
+  };
+
   // Map widgets to include stacking geometry
   let yOffset = 0;
   const mappedWidgets = [...widgets].sort((a, b) => a.sortOrder - b.sortOrder).map(widget => {
-    // Basic defaults
-    const defaults = { w: 1440, h: 300 };
-    if (widget.type.toUpperCase() === 'HEADER') defaults.h = 100;
-    if (widget.type.toUpperCase() === 'HERO') defaults.h = 600;
-    if (widget.type.toUpperCase() === 'FOOTER') defaults.h = 150;
-
+    const defaults = WIDGET_DEFAULTS[widget.type?.toUpperCase()] || { w: 760, h: 200 };
     const geom = widget.contentConfig?.geometry || {};
+    const isGrapes = widget.type === 'GRAPESJS';
+    
     const finalGeom = {
       x: geom.x ?? 0,
       y: geom.y ?? yOffset,
-      width: geom.width ?? defaults.w,
-      height: geom.height ?? defaults.h,
+      width: isGrapes ? Math.max(geom.width ?? defaults.w, 1440) : (geom.width ?? defaults.w),
+      height: isGrapes ? Math.max(geom.height ?? defaults.h, 1000) : (geom.height ?? defaults.h),
     };
     
     // Only increment yOffset if this widget didn't have a fixed Y saved
@@ -157,22 +193,64 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
         </Link>
       )}
 
-      <div style={{ position: 'relative', width: '1440px', margin: '0 auto', minHeight: `${Math.max(yOffset, 1000)}px` }}>
-        {mappedWidgets.map(widget => (
-          <div key={widget.id} style={{ 
-            position: 'absolute',
-            left: widget._geom.x,
-            top: widget._geom.y,
-            width: widget._geom.width,
-            height: widget._geom.height
-          }}>
-            <WidgetRenderer
-              type={widget.type}
-              config={widget.contentConfig}
-              isActive={false}
-            />
-          </div>
-        ))}
+      <div ref={containerRef} style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ 
+          position: 'relative', 
+          width: propSiteId ? '1440px' : '100%', 
+          minWidth: propSiteId ? '1440px' : '100%', 
+          margin: '0 auto', 
+          minHeight: `${Math.max(yOffset, 1000)}px`, 
+          display: 'flex', 
+          flexDirection: 'column',
+          transform: propSiteId ? `scale(${scale})` : 'none',
+          transformOrigin: 'top center'
+        }}>
+        {mappedWidgets.map(widget => {
+          const isManual = !!widget.contentConfig?.geometry;
+          const isGrapes = widget.type === 'GRAPESJS';
+          return (
+            <div key={widget.id} style={{ 
+              position: isManual ? 'absolute' : 'relative',
+              left: isManual ? widget._geom.x : undefined,
+              top: isManual ? widget._geom.y : undefined,
+              width: isManual ? widget._geom.width : '100%',
+              height: isManual || isGrapes ? widget._geom.height : 'auto',
+              minHeight: isManual ? undefined : widget._geom.height
+            }}>
+              {isGrapes ? (
+                <iframe
+                  title="GrapesJS Content"
+                  style={{ width: '100%', height: '100%', minHeight: '800px', border: 'none', background: 'transparent' }}
+                  srcDoc={`
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+                        <style>
+                          body { margin: 0; padding: 0; font-family: sans-serif; box-sizing: border-box; }
+                          *, *::before, *::after { box-sizing: inherit; }
+                          ${widget.contentConfig?.css || ''}
+                        </style>
+                      </head>
+                      <body>
+                        ${widget.contentConfig?.html || ''}
+                      </body>
+                    </html>
+                  `}
+                />
+              ) : (
+                <WidgetRenderer
+                  type={widget.type}
+                  config={widget.contentConfig}
+                  isActive={false}
+                />
+              )}
+            </div>
+          );
+        })}
+        </div>
       </div>
       
       {/* Cart Drawer for E-commerce flow */}

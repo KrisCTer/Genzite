@@ -393,32 +393,21 @@
   border-radius: 2px;
 }
 
-/* Widget label on hover (Figma style) */
-.canvas-widget-label {
-  position: absolute; top: -30px; left: 0;
-  color: var(--color-text-muted);
-  font-size: 14px; font-weight: var(--weight-semi); padding: 4px 0;
-  white-space: nowrap;
-  opacity: 0.6; transition: opacity var(--duration-fast) var(--ease-out), color 0.2s;
-  pointer-events: auto; /* Allow dragging */
-  cursor: grab;
-  z-index: var(--z-tooltip);
-  font-family: var(--font-sans);
-  display: flex; align-items: center; gap: 6px;
-}
-.canvas-widget-frame.selected .canvas-widget-label,
-.canvas-widget-frame:hover .canvas-widget-label { opacity: 1; color: var(--color-text-primary); }
 
-/* Delete button */
+/* Delete button (Hidden in favor of Canva Floating Toolbar) */
 .canvas-widget-delete {
-  position: absolute; top: 6px; right: 6px; z-index: var(--z-tooltip);
-  width: 22px; height: 22px; border-radius: var(--radius-sm); border: none;
-  background: var(--gz-error); color: #fff;
-  font-size: 11px; cursor: pointer; display: none;
-  align-items: center; justify-content: center;
-  box-shadow: var(--shadow-md);
+  display: none !important;
 }
-.canvas-widget-frame.selected .canvas-widget-delete { display: flex; }
+
+/* Canva Floating Toolbar container inside widget frame */
+.canvas-floating-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  pointer-events: none;
+}
 
 /* ─── Right Sidebar (Properties) ────────────────────────── */
 .canvas-sidebar-right {
