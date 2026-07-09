@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
-import { ArrowUp, Palette, Sparkles, ChevronDown, Plus, Smartphone, Monitor } from 'lucide-react';
+import { ArrowUp, Palette, Sparkles, ChevronDown, Plus, Smartphone, Monitor, X, Wand2, Brain } from 'lucide-react';
 import { message } from 'antd';
 import './AIPromptBar.css';
 
@@ -14,9 +14,14 @@ interface AIPromptBarProps {
   onStarted?: (siteId: string) => void;
   compact?: boolean;
   siteId?: string;
+  selectedPage?: any;
+  onClearSelection?: () => void;
+  themeOverrides?: any;
+  onCreateNewTheme?: () => void;
+  onSelectTheme?: (themeId: string) => void;
 }
 
-const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compact = false, siteId }) => {
+const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compact = false, siteId, selectedPage, onClearSelection, themeOverrides, onCreateNewTheme, onSelectTheme }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState<string | undefined>(undefined);
@@ -50,10 +55,16 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
     
     messageApi.info('AI is generating your site…');
     
+    let finalPrompt = prompt.trim();
+    if (selectedPage) {
+      finalPrompt = `[TARGET_PAGE:${selectedPage.id}] ${finalPrompt}`;
+    }
+    
     submitSiteGeneration(
-      prompt.trim(),
+      finalPrompt,
       model || 'gemini-2.5-flash',
       newSiteId,
+      themeOverrides ? JSON.stringify(themeOverrides) : theme,
       (jobId, subdomain) => {
         isSubmittingRef.current = false;
         setPrompt('');
@@ -98,6 +109,31 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
     <>
       {contextHolder}
       <div className={`ai-prompt-bar ${compact ? 'compact' : ''} ${isGenerating ? 'generating' : ''}`}>
+        {selectedPage && (
+          <div style={{ padding: '12px 16px 0 16px' }}>
+            <div className="ai-prompt-selected-page" style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', 
+              background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', 
+              color: '#38bdf8', fontSize: 12, fontWeight: 500, borderRadius: 20, 
+              width: 'fit-content'
+            }}>
+              <Monitor size={14} />
+              <span>Target: {selectedPage.title || 'Current Page'}</span>
+              <button 
+                onClick={onClearSelection} 
+                style={{ 
+                  background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', 
+                  padding: 2, display: 'flex', marginLeft: 4, borderRadius: '50%', 
+                  transition: 'background 0.2s' 
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </div>
+        )}
         {compact && !isGenerating && (
           <div className="ai-prompt-quick compact-quick">
             {COMPACT_QUICK_PROMPTS.map((item, idx) => (
@@ -203,8 +239,16 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
                 {showThemeMenu && (
                   <ThemeMenu 
                     ref={themeMenuRef} 
-                    theme={theme} 
-                    onSelectTheme={(id) => { setTheme(id); setShowThemeMenu(false); }} 
+                    theme={themeOverrides?.themeId || theme} 
+                    onSelectTheme={(id) => { 
+                      setTheme(id); 
+                      setShowThemeMenu(false); 
+                      onSelectTheme?.(id);
+                    }} 
+                    onCreateNewTheme={() => {
+                      setShowThemeMenu(false);
+                      onCreateNewTheme?.();
+                    }}
                   />
                 )}
               </div>
@@ -217,11 +261,17 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
                   ref={modelBtnRef}
                   title="Select Model"
                 >
-                  <Sparkles size={14} className="ai-model-btn-icon" />
+                  {model === 'llama-3.3-70b-versatile' ? (
+                    <Wand2 size={14} className="ai-model-btn-icon" />
+                  ) : model === 'deepseek-chat' ? (
+                    <Brain size={14} className="ai-model-btn-icon" />
+                  ) : (
+                    <Sparkles size={14} className="ai-model-btn-icon" />
+                  )}
                   <span>
                     {model === 'gemini-2.0-pro' ? '2.0 Pro' : 
                      model === 'llama-3.3-70b-versatile' ? 'Llama 3.3' : 
-                     model === 'deepseek-chat' ? 'DeepSeek' : '3 Flash'}
+                     model === 'deepseek-chat' ? 'DeepSeek' : '2.5 Flash'}
                   </span>
                   <ChevronDown size={14} className="ai-model-btn-chevron" />
                 </button>

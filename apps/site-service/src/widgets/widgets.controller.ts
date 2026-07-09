@@ -6,6 +6,13 @@ import { WidgetValidationPipe } from "./pipes/widget-validation.pipe.js";
 export class WidgetsController {
   constructor(private readonly widgetsService: WidgetsService) {}
 
+  @Get('public')
+  async findWidgetsPublic(
+    @Param('pageId') pageId: string,
+  ) {
+    return this.widgetsService.findByPageIdPublic(pageId);
+  }
+
   @Get()
   async findWidgets(
     @Param("pageId") pageId: string,

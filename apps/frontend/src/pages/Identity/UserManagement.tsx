@@ -88,6 +88,17 @@ const UserManagement: React.FC = () => {
   const activeCount = useMemo(() => users.filter(u => u.status === 'ACTIVE').length, [users]);
   const lockedCount = useMemo(() => users.filter(u => u.status === 'LOCKED').length, [users]);
 
+  const updateRolesMutation = useMutation({
+    mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
+    onSuccess: () => {
+      message.success('Cập nhật quyền thành công.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật quyền.');
+    }
+  });
+
   // Filtering
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

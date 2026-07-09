@@ -64,6 +64,17 @@ export class PagesService {
     });
   }
 
+  async findById(id: string, siteId: string, userId: string) {
+    await this.verifySiteOwnership(siteId, userId);
+    
+    return this.prisma.page.findFirst({
+      where: {
+        id,
+        siteId,
+      },
+    });
+  }
+
   async findBySlug(siteId: string, slug: string, userId: string) {
     await this.verifySiteOwnership(siteId, userId);
     

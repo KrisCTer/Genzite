@@ -11,4 +11,8 @@ export class GenerateSiteDto {
   @IsOptional()
   @IsString()
   siteId?: string;
+
+  @IsOptional()
+  @IsString()
+  theme?: string;
 }

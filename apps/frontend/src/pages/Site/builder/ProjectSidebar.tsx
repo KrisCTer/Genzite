@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchSitesApi, type Site } from '../../../api/sites';
+import { fetchSitesApi } from '../../../api/sites';
 import { Search, LayoutGrid, Users, Monitor, Layout, Component } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './ProjectSidebar.css';
-
-const MOCK_SITES = [
-  { id: '1', name: 'UI Design Replica', createdAt: new Date().toISOString(), icon: 'Monitor', thumb: 'bg-1' },
-  { id: '2', name: 'Genzite_Part_1783146500956', createdAt: new Date(Date.now() - 86400000).toISOString(), icon: 'Monitor', thumb: 'bg-2' },
-  { id: '3', name: 'Genzite_Part_1783146500941', createdAt: new Date(Date.now() - 86400000).toISOString(), icon: 'Layout', thumb: 'bg-3' },
-  { id: '4', name: 'Genzite_Part_1783145256884', createdAt: new Date(Date.now() - 86400000).toISOString(), icon: 'Layout', thumb: 'bg-4' },
-  { id: '5', name: 'Genzite_Part_1783145256888', createdAt: new Date(Date.now() - 86400000).toISOString(), icon: 'Component', thumb: 'bg-5' },
-];
 
 const ProjectSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mine' | 'shared'>('mine');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
-  const { data: apiSites = [], isLoading } = useQuery({
+  const { data: apiSites = [] } = useQuery({
     queryKey: ['sites'],
     queryFn: fetchSitesApi,
   });

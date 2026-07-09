@@ -11,6 +11,7 @@ export interface SiteGenerationJobData {
   ownerId: string;
   model?: string;
   siteId?: string;
+  theme?: string;
 }
 
 export interface CmsGenerationJobData {
@@ -47,7 +48,7 @@ export class SiteGenerationWorker extends WorkerHost {
   }
 
   async process(job: Job<SiteGenerationJobData>): Promise<any> {
-    const { prompt, ownerId, model, siteId } = job.data;
+    const { prompt, ownerId, model, siteId, theme } = job.data;
     this.logger.log(`Processing site generation: job=${job.id}, owner=${ownerId}`);
 
     const result = await this.siteGenerator.generate(
@@ -55,6 +56,7 @@ export class SiteGenerationWorker extends WorkerHost {
       ownerId, 
       model,
       siteId,
+      theme,
       async (step, percent) => {
         await job.updateProgress({ step, percent });
       }

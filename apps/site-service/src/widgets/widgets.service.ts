@@ -102,4 +102,18 @@ export class WidgetsService {
       },
     });
   }
+
+  async findByPageIdPublic(pageId: string) {
+    // Public read — no ownership check, used by /live viewer
+    const page = await this.prisma.page.findUnique({ where: { id: pageId } });
+    if (!page) throw new NotFoundException('Page not found');
+
+    return this.prisma.widget.findMany({
+      where: { pageId },
+      include: {
+        page: { select: { siteId: true } },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
 }

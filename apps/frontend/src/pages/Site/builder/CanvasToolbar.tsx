@@ -6,7 +6,6 @@ import {
   LeftOutlined,
   DownloadOutlined,
   CopyOutlined,
-  QuestionCircleOutlined,
   SettingOutlined,
   DeleteOutlined,
   MessageOutlined,
@@ -151,7 +150,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     updateSetting('includeChatHistory', val);
   };
 
-  const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'Product Mockup Visualizer');
+  const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'Ứng dụng của tôi');
   const [nameVal, setNameVal] = useState('');
   const [descVal, setDescVal] = useState('');
   const [promptVal, setPromptVal] = useState('');
@@ -182,20 +181,37 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   };
 
   const handleOpenRename = () => {
-    setNameVal(displayTitle || 'Product Mockup Visualizer');
-    setDescVal(
-      site?.description ||
-      'An AI-powered application that takes a product image and visualizes it in various marketing mediums like coffee mugs, billboards, and t-shirts.'
-    );
-    setPromptVal(
-      site?.settings?.prompt ||
-      'Create an app that takes a product image and visualizes it in various marketing mediums like coffee mugs, billboards, and t-shirts using generative AI. Ensure product consistency between each frame using nano banana'
-    );
+    let savedPrompt = '';
+    if (siteId) {
+      try {
+        const savedLogStr = localStorage.getItem(`genzite_ai_logs_${siteId}`);
+        if (savedLogStr) {
+          const parsedLog = JSON.parse(savedLogStr);
+          if (parsedLog && parsedLog.activePrompt) savedPrompt = parsedLog.activePrompt;
+        }
+      } catch (e) {}
+    }
+
+    let settingsPrompt = '';
+    if (site?.settings) {
+      if (typeof site.settings === 'string') {
+        try { settingsPrompt = JSON.parse(site.settings).prompt || ''; } catch (e) {}
+      } else if (typeof site.settings === 'object') {
+        settingsPrompt = (site.settings as any).prompt || '';
+      }
+    }
+
+    const realPrompt = settingsPrompt || site?.description || useAiLogStore.getState().activePrompt || savedPrompt || '';
+    const realDesc = site?.description || settingsPrompt || useAiLogStore.getState().activePrompt || savedPrompt || '';
+
+    setNameVal(displayTitle || site?.name || siteTitle || 'Ứng dụng mới');
+    setDescVal(realDesc);
+    setPromptVal(realPrompt);
     setIsRenameModalOpen(true);
   };
 
   const handleSaveRename = async () => {
-    setDisplayTitle(nameVal || 'Product Mockup Visualizer');
+    setDisplayTitle(nameVal || site?.name || 'Ứng dụng mới');
     setIsRenameModalOpen(false);
     message.success('Đã cập nhật thông tin ứng dụng!');
 
@@ -205,7 +221,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           name: nameVal,
           description: descVal,
           settings: {
-            ...site?.settings,
+            ...(typeof site?.settings === 'object' && site?.settings ? site.settings : {}),
             prompt: promptVal,
           },
         });

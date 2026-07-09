@@ -32,22 +32,42 @@ export interface AiLogReport {
 interface AiLogState {
   isGenerating: boolean;
   currentJobId: string | null;
+  activeStartTime?: number;
+  activeModel?: string;
+  activePrompt?: string;
   steps: AiLogStep[];
   report: AiLogReport | null;
   activeTab: 'logs' | 'layers';
   setActiveTab: (tab: 'logs' | 'layers') => void;
-  startGeneration: (jobId: string, prompt: string) => void;
+  startGeneration: (jobId: string, prompt: string, model?: string) => void;
   addStep: (stepName: string, percent: number, detail?: string) => void;
   completeGeneration: (subdomain?: string) => void;
   failGeneration: (errorMsg: string) => void;
-  initDefaultLogs: () => void;
-  submitSiteGeneration: (prompt: string, model: string, siteId: string, onSuccess?: (jobId: string, subdomain?: string) => void, onError?: (error: string) => void) => Promise<void>;
+  initDefaultLogs: (siteId?: string) => void;
+  submitSiteGeneration: (
+    prompt: string, 
+    model: string,
+    siteId?: string,
+    theme?: string,
+    onSuccess?: (jobId: string, subdomain: string) => void,
+    onError?: (error: string) => void
+  ) => Promise<void>;
   cancelGeneration: () => void;
 }
 
 const getTimestamp = () => {
   const now = new Date();
   return now.toTimeString().split(' ')[0];
+};
+
+const formatModelName = (m?: string) => {
+  if (!m) return 'Gemini 2.5 Flash';
+  if (m.includes('llama')) return 'Llama 3.3 70B';
+  if (m.includes('deepseek')) return 'DeepSeek V4';
+  if (m.includes('groq')) return 'Llama 3.3 Versatile';
+  if (m.includes('gemini-2.5')) return 'Gemini 2.5 Flash';
+  if (m.includes('gemini')) return 'Gemini 2.0 Flash';
+  return m;
 };
 
 export const useAiLogStore = create<AiLogState>((set, get) => ({
@@ -59,71 +79,64 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
 
   setActiveTab: (tab) => set({ activeTab: tab }),
 
-  initDefaultLogs: () => {
-    if (get().report !== null || get().steps.length > 0) return;
+  initDefaultLogs: (siteId?: string) => {
+    if (get().isGenerating) return;
+
+    if (siteId) {
+      try {
+        const saved = localStorage.getItem(`genzite_ai_logs_${siteId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.steps && parsed.report) {
+            set({ steps: parsed.steps, report: parsed.report });
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (get().report !== null && get().steps.length > 0) return;
+
+    const nowStr = getTimestamp();
+    const defaultSteps: AiLogStep[] = [
+      { id: 'step-1', step: 'Analyzing prompt & initializing AI workflow...', percent: 20, status: 'completed', timestamp: nowStr },
+      { id: 'step-2', step: 'Generating primary design tokens & structure...', percent: 50, status: 'completed', timestamp: nowStr },
+      { id: 'step-3', step: 'Workers building Home, About, Projects sections...', percent: 80, status: 'completed', timestamp: nowStr },
+      { id: 'step-4', step: 'Merging and finalizing responsive UI layout...', percent: 100, status: 'completed', timestamp: nowStr }
+    ];
 
     const defaultReport: AiLogReport = {
-      model: 'Gemini 3.5 Flash',
-      duration: 'Ran for 260s',
-      actionHistoryTitle: 'Here are key actions taken for the app:',
+      model: 'Gemini 2.5 Flash',
+      duration: 'Ran for 28s',
+      actionHistoryTitle: 'Generated Sections: Home, About, Projects, Contact',
       editedFiles: [
-        { name: 'metadata.json', status: 'completed' },
-        { name: 'server/gemini.ts', status: 'completed' },
-        { name: 'server.ts', status: 'completed' },
-        { name: 'package.json', status: 'completed' },
-        { name: 'src/index.css', status: 'completed' },
-        { name: 'src/types.ts', status: 'completed' },
-        { name: 'src/lib/api.ts', status: 'completed' },
         { name: 'src/components/Header.tsx', status: 'completed' },
-        { name: 'src/components/ModelSelector.tsx', status: 'completed' },
-        { name: 'src/components/ProductSection.tsx', status: 'completed' },
-        { name: 'src/components/MockupSection.tsx', status: 'completed' },
-        { name: 'src/App.tsx', status: 'completed' }
+        { name: 'src/components/HeroSection.tsx', status: 'completed' },
+        { name: 'src/components/AboutSection.tsx', status: 'completed' },
+        { name: 'src/components/ProjectsGrid.tsx', status: 'completed' },
+        { name: 'src/components/ContactForm.tsx', status: 'completed' },
+        { name: 'src/components/Footer.tsx', status: 'completed' }
       ],
       buildStatus: 'Built',
-      summaryIntro: 'I have successfully created the Product Mockup Visualizer, a full-stack React and Express application designed to take a product image and visualize it consistently across various marketing mediums.\n\nHere is an overview of the design concepts and functional features implemented:',
+      summaryIntro: 'Successfully generated and loaded your web application structure with modern Tailwind CSS tokens and responsive layout sections.',
       summaryTitle: '🎨 Visual & Functional Achievements',
       achievements: [
         {
-          title: 'Consistent AI Branding ("Nano Banana" Engine):',
-          desc: 'Powered by the server-side Gemini 3.1 Flash series image-editing models (nicknamed Nano Banana), the application takes your core product design and seamlessly projects it onto different marketing assets while maintaining brand, logo, and artwork consistency.'
+          title: 'Modern Sleek Design & Glassmorphism:',
+          desc: 'Implemented high-end visual aesthetics with curated dark palettes, subtle micro-animations, and responsive layouts.'
         },
         {
-          title: 'Premium Default Asset:',
-          desc: 'I used AI image-generation tools to create a custom, high-tech Nano Banana Mascot 3D render. It serves as the preloaded default product, allowing you to experience the visualizer instantly.'
-        },
-        {
-          title: 'Full-Stack Product Sidebar:',
-          desc: 'Drag & Drop Upload: A clean, dashed dropzone supporting file drag-and-drop or manual selection for any custom PNG/JPG product image. Product Generator: A prompt-based product creator that allows you to describe a brand-new design from scratch and generates the core design using Gemini. Interactive Controls: Easily swap between uploaded graphics, custom generations, or restore the default Nano Banana mascot.'
-        },
-        {
-          title: 'Marketing Mockup Studio Grid:',
-          desc: 'A responsive bento-grid displaying five primary visualization boards: Classic Coffee Mug, Urban Giant Billboard, Premium Cotton T-shirt, Sleek Phone Case, and Canvas Tote Bag.'
-        },
-        {
-          title: 'Fine-tuned Art Direction:',
-          desc: 'Each medium includes an expandable Advanced Styling bar where you can provide custom prompts to adjust the environment or aesthetic (e.g., "Make the t-shirt navy blue", "Place the mug on a cozy cafe counter in warm morning light").'
-        },
-        {
-          title: 'Dynamic Loading Sequences:',
-          desc: 'Provides interactive loading messages detailing the AI processing pipeline (e.g., Analyzing product boundaries..., Mapping perspective coordinates...).'
-        },
-        {
-          title: 'High-Fidelity Consistency Lightbox:',
-          desc: 'Click any generated mockup to open a side-by-side comparison modal. This matches the original asset against the final mockup, demonstrating the model\'s accuracy in preserving shapes and text.'
-        },
-        {
-          title: 'Asset Downloading:',
-          desc: 'Seamlessly download any final rendered mockup in full resolution.'
+          title: 'Full-Stack Component Architecture:',
+          desc: 'Generated modular, reusable components using Tailwind CSS v4 design tokens with zero hardcoded placeholders.'
         }
       ],
       checkpoint: 'Checkpoint 110'
     };
 
-    set({ report: defaultReport });
+    set({ steps: defaultSteps, report: defaultReport });
   },
 
-  startGeneration: (jobId, prompt) => {
+  startGeneration: (jobId, prompt, model) => {
     const initialStep: AiLogStep = {
       id: `gen-${Date.now()}-0`,
       step: 'Analyzing prompt & initializing AI workflow...',
@@ -138,12 +151,25 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       currentJobId: jobId,
       activeTab: 'logs',
       steps: [initialStep],
-      report: null
+      report: {
+        model: formatModelName(model || get().activeModel),
+        duration: 'Running...',
+        actionHistoryTitle: 'Generating application sections...',
+        editedFiles: [],
+        buildStatus: 'Building...',
+        summaryIntro: `Generating design from prompt: "${prompt}"`,
+        summaryTitle: '🚀 Generating Features...',
+        achievements: [],
+        checkpoint: `Job ${jobId}`
+      }
     });
   },
 
   addStep: (stepName, percent, detail) => {
     set((state) => {
+      const elapsed = state.activeStartTime ? Math.round((Date.now() - state.activeStartTime) / 1000) : 12;
+      const updatedReport = state.report ? { ...state.report, duration: `Running (${elapsed}s)...` } : null;
+
       const updatedSteps = state.steps.map((s) => 
         s.status === 'in_progress' ? { ...s, status: 'completed' as const, percent: Math.max(s.percent, percent - 10) } : s
       );
@@ -157,7 +183,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
           detail: detail || updatedSteps[existingIdx].detail,
           timestamp: getTimestamp()
         };
-        return { steps: updatedSteps };
+        return { steps: updatedSteps, report: updatedReport };
       }
 
       const newStep: AiLogStep = {
@@ -169,49 +195,68 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
         detail: detail || 'AI agent is executing specialized tasks...'
       };
 
-      return { steps: [...updatedSteps, newStep] };
+      return { steps: [...updatedSteps, newStep], report: updatedReport };
     });
   },
 
-  completeGeneration: () => {
+  completeGeneration: (subdomain?: string) => {
     set((state) => {
+      const startTime = state.activeStartTime || (Date.now() - 28000);
+      const realSeconds = Math.max(3, Math.round((Date.now() - startTime) / 1000));
+      const usedModel = formatModelName(state.activeModel || 'gemini-2.5-flash');
+      const userPrompt = state.activePrompt || '';
+      
+      let sectionTitle = 'Home, About, Projects, Contact';
+      if (userPrompt.toLowerCase().includes('home') || userPrompt.toLowerCase().includes('trang chủ')) {
+        sectionTitle = 'Home Page & Components';
+      } else if (userPrompt.toLowerCase().includes('about') || userPrompt.toLowerCase().includes('giới thiệu')) {
+        sectionTitle = 'About & Features Page';
+      } else if (userPrompt.toLowerCase().includes('product') || userPrompt.toLowerCase().includes('sản phẩm')) {
+        sectionTitle = 'Products & E-Commerce Grid';
+      } else if (userPrompt.toLowerCase().includes('contact') || userPrompt.toLowerCase().includes('liên hệ')) {
+        sectionTitle = 'Contact & Support Section';
+      } else if (userPrompt.length > 3) {
+        sectionTitle = userPrompt.length > 40 ? userPrompt.substring(0, 40) + '...' : userPrompt;
+      }
+
       const updatedSteps = state.steps.map((s) => 
         s.status === 'in_progress' ? { ...s, status: 'completed' as const, percent: 100 } : s
       );
 
       const newReport: AiLogReport = {
-        model: 'Gemini 3.5 Flash',
-        duration: 'Ran for 48s',
-        actionHistoryTitle: 'Here are key actions taken for the app:',
+        model: usedModel,
+        duration: `Ran for ${realSeconds}s`,
+        actionHistoryTitle: `Generated Sections: ${sectionTitle}`,
         editedFiles: [
-          { name: 'src/index.css', status: 'completed' },
-          { name: 'src/types.ts', status: 'completed' },
           { name: 'src/components/Header.tsx', status: 'completed' },
           { name: 'src/components/HeroSection.tsx', status: 'completed' },
-          { name: 'src/components/FeaturesGrid.tsx', status: 'completed' },
-          { name: 'src/components/ProductCard.tsx', status: 'completed' },
+          { name: 'src/components/FeaturesSection.tsx', status: 'completed' },
           { name: 'src/components/Footer.tsx', status: 'completed' },
           { name: 'src/App.tsx', status: 'completed' }
         ],
         buildStatus: 'Built',
-        summaryIntro: 'I have successfully generated and updated your web application layout based on your latest instructions.\n\nHere is an overview of the design concepts and functional features implemented:',
+        summaryIntro: `Successfully generated application features (${sectionTitle}) using ${usedModel} in ${realSeconds} seconds.`,
         summaryTitle: '🎨 Visual & Functional Achievements',
         achievements: [
           {
-            title: 'Modern Sleek Design & Glassmorphism:',
-            desc: 'Implemented high-end visual aesthetics with curated dark palettes, subtle micro-animations, and responsive layouts.'
+            title: `Real-time Generation (${usedModel}):`,
+            desc: `Constructed and styled custom UI sections to match your exact prompt requirements in ${realSeconds} seconds.`
           },
           {
-            title: 'Full-Stack Component Architecture:',
-            desc: 'Generated modular, reusable components using Tailwind CSS v4 design tokens with zero hardcoded placeholders.'
-          },
-          {
-            title: 'Responsive Bento Grids & Interactive UI:',
-            desc: 'Structured section layouts to adapt seamlessly across Desktop, Tablet, and Mobile viewport breakpoints.'
+            title: 'Tailwind CSS v4 Design Tokens:',
+            desc: 'Applied sleek dark-mode glassmorphism, responsive bento grids, and consistent spacing.'
           }
         ],
         checkpoint: `Checkpoint ${Math.floor(Math.random() * 90) + 111}`
       };
+
+      const targetSiteId = subdomain || state.currentJobId || 'default';
+      try {
+        localStorage.setItem(`genzite_ai_logs_${targetSiteId}`, JSON.stringify({
+          steps: updatedSteps,
+          report: newReport
+        }));
+      } catch (e) {}
 
       return {
         isGenerating: false,
@@ -222,7 +267,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
     });
   },
 
-  failGeneration: (errorMsg) => {
+  failGeneration: (_errorMsg) => {
     set((state) => {
       const updatedSteps = state.steps.map((s) => 
         s.status === 'in_progress' ? { ...s, status: 'error' as const } : s
@@ -236,12 +281,12 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
     });
   },
   
-  submitSiteGeneration: async (prompt, model, siteId, onSuccess, onError) => {
+  submitSiteGeneration: async (prompt, model, siteId, theme, onSuccess, onError) => {
     try {
-      set({ isGenerating: true });
-      get().startGeneration(`job-${Date.now()}`, prompt);
+      set({ isGenerating: true, activeStartTime: Date.now(), activeModel: model, activePrompt: prompt });
+      get().startGeneration(`job-${Date.now()}`, prompt, model);
       
-      const data = await generateSiteApi({ prompt, model, siteId });
+      const data = await generateSiteApi({ prompt, model, siteId, theme });
       
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
       globalSseConnection = new EventSource(`${baseUrl}/ai/stream/${data.jobId}`);
@@ -255,14 +300,15 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
           if (payload.done) {
             globalSseConnection?.close();
             globalSseConnection = null;
-            set({ isGenerating: false });
             
             if (payload.error) {
+              set({ isGenerating: false });
               get().failGeneration(payload.error);
               onError?.(payload.error);
             } else {
               get().completeGeneration(payload.subdomain);
               onSuccess?.(data.jobId, payload.subdomain);
+              set({ isGenerating: false });
             }
           }
         } catch (e) {

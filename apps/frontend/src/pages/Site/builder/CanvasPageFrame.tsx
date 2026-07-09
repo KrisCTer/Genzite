@@ -42,6 +42,7 @@ interface CanvasPageFrameProps {
   onSelectWidget: (id: string | null) => void;
   onUpdateWidget?: (widget: CanvasWidget | null) => void;
   activeTool?: string;
+  canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
 }
 
 const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
@@ -51,7 +52,8 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   globalSelectedId,
   onSelectWidget,
   onUpdateWidget,
-  activeTool
+  activeTool,
+  canvasDevice = 'full'
 }) => {
   const queryClient = useQueryClient();
   const [widgets, setWidgets] = useState<CanvasWidget[]>([]);
@@ -243,17 +245,20 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     setHasUnsaved(true);
   };
 
-  const canvasHeight = Math.max(600, widgets.reduce((max, w) => Math.max(max, w.y + w.height), 600));
+  const computedHeight = Math.max(600, widgets.reduce((max, w) => Math.max(max, w.y + w.height), 600));
+
+  const deviceWidth = canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : canvasDevice === 'desktop' ? 1280 : 1440;
+  const deviceHeight = canvasDevice === 'mobile' ? 884 : canvasDevice === 'tablet' ? 1024 : canvasDevice === 'desktop' ? 1024 : computedHeight;
 
   return (
     <div 
-      style={{ position: 'relative', width: 1440, height: canvasHeight }}
+      style={{ position: 'relative', width: deviceWidth, height: deviceHeight, margin: '0 auto', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
       onPointerDown={(e) => {
         if (e.button === 0 && activeTool === 'select') {
           const firstWidget = widgets[0];
           if (firstWidget) {
             onSelectWidget(firstWidget._id);
-            onUpdateWidget(firstWidget);
+            onUpdateWidget?.(firstWidget);
           }
         }
       }}
@@ -271,9 +276,16 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         color: '#f8fafc', 
         fontFamily: 'Inter, sans-serif' 
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
-          <Monitor size={18} />
-          <span>{siteName ? `${siteName} - ${pageTitle}` : pageTitle}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155' }}>
+            <Monitor size={16} color="#fff" />
+          </div>
+          <span style={{ fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
+            {siteName || 'My Site'}
+          </span>
+          <span style={{ fontSize: 12, background: 'rgba(99, 102, 241, 0.2)', color: '#818CF8', padding: '4px 10px', borderRadius: 999, fontWeight: 600, border: '1px solid rgba(99, 102, 241, 0.3)', marginLeft: 8 }}>
+            {pageTitle}
+          </span>
         </div>
       </div>
 
@@ -295,7 +307,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           key={widget._id}
           className="canvas-widget-rnd"
           position={{ x: widget.x, y: widget.y }}
-          size={{ width: widget.width, height: widget.height }}
+          size={{ width: widget.type === 'GRAPESJS' ? deviceWidth : Math.min(widget.width, deviceWidth), height: widget.type === 'GRAPESJS' ? deviceHeight : Math.min(widget.height, deviceHeight) }}
           onDragStop={(_e, d) => updateWidgetGeometry(widget._id, d.x, d.y, widget.width, widget.height)}
           onResizeStop={(_e, _dir, ref, _delta, pos) => updateWidgetGeometry(widget._id, pos.x, pos.y, ref.offsetWidth, ref.offsetHeight)}
           minWidth={120} minHeight={60} bounds="parent" dragGrid={[10, 10]} resizeGrid={[10, 10]} cancel=".canvas-widget-delete"
@@ -310,7 +322,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
             className={`canvas-widget-frame ${globalSelectedId === widget._id ? 'selected' : ''}`}
             style={{ position: 'relative', width: '100%', height: '100%' }}
           >
-            <span className="canvas-widget-label">{widget.type}</span>
+
             <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
               
               {/* Interaction Overlay: Captures drags and clicks, forwards scrolls */}
@@ -320,7 +332,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
                   // Allow bubbling so DraggableBoard can drag the page
                   if (e.button === 0 && activeTool === 'select') {
                     onSelectWidget(widget._id); 
-                    onUpdateWidget(widget);
+                    onUpdateWidget?.(widget);
                   }
                 }}
                 onWheel={(e) => {
@@ -333,7 +345,26 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
               />
 
               {widget.type === 'GRAPESJS' ? (
-                <GrapesEditor htmlContent={widget.contentConfig.html} readOnly={globalSelectedId !== widget._id} />
+                <iframe
+                  title={`preview-${widget._id}`}
+                  style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
+                  srcDoc={`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style>
+      html, body { margin: 0; padding: 0; font-family: sans-serif; box-sizing: border-box; }
+      *, *::before, *::after { box-sizing: inherit; }
+      ${widget.contentConfig.css || ''}
+    </style>
+  </head>
+  <body>
+    ${widget.contentConfig.html || ''}
+  </body>
+</html>`}
+                />
               ) : (
                 <WidgetRenderer type={widget.type} config={widget.contentConfig} isActive={globalSelectedId === widget._id} />
               )}
