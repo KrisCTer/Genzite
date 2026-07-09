@@ -157,7 +157,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
           <textarea
             ref={inputRef}
             className="ai-prompt-input"
-            placeholder={compact ? 'Bạn muốn thay đổi hoặc tạo nội dung gì?' : 'What native mobile app should we design?'}
+            placeholder={compact ? 'What would you like to change or build?' : 'What native mobile app should we design?'}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             onKeyDown={handleKeyDown}

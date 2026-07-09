@@ -417,7 +417,7 @@ Components are designed for high touch-accuracy and visual clarity.
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Phông chữ</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Typography</span>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {[
                     { name: 'Noto Serif', role: 'Headline' },
@@ -449,7 +449,7 @@ Components are designed for high touch-accuracy and visual clarity.
                           <div style={{ paddingBottom: 12 }}>
                             <input 
                               type="text" 
-                              placeholder="Tìm phông chữ..." 
+                              placeholder="Search font..." 
                               value={fontSearch}
                               onChange={e => setFontSearch(e.target.value)}
                               style={{ 

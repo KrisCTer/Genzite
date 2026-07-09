@@ -20,6 +20,7 @@ import { useAuthStore } from '../../../store/auth';
 import { updateSiteApi, deleteSiteApi } from '../../../api/sites';
 import { fetchAiModelsApi } from '../../../api/ai';
 import { CanvasToolbarModals } from './modals/CanvasToolbarModals';
+import { useAiLogStore } from '../../../store/aiLogs';
 
 interface CanvasToolbarProps {
   zoom?: number;
@@ -62,6 +63,26 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+
+  const handleConfirmDeleteProject = async () => {
+    if (!siteId) return;
+    try {
+      setIsDeletingProject(true);
+      await deleteSiteApi(siteId);
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+      message.success('Project deleted successfully!');
+      setIsDeleteProjectModalOpen(false);
+      navigate('/project');
+    } catch (e) {
+      console.error(e);
+      message.error('Failed to delete project!');
+    } finally {
+      setIsDeletingProject(false);
+    }
+  };
+
   const [isChatSettingsOpen, setIsChatSettingsOpen] = useState(false);
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
   const [bugReportText, setBugReportText] = useState('');
@@ -150,7 +171,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     updateSetting('includeChatHistory', val);
   };
 
-  const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'Ứng dụng của tôi');
+  const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'My App');
   const [nameVal, setNameVal] = useState('');
   const [descVal, setDescVal] = useState('');
   const [promptVal, setPromptVal] = useState('');
@@ -204,16 +225,16 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     const realPrompt = settingsPrompt || site?.description || useAiLogStore.getState().activePrompt || savedPrompt || '';
     const realDesc = site?.description || settingsPrompt || useAiLogStore.getState().activePrompt || savedPrompt || '';
 
-    setNameVal(displayTitle || site?.name || siteTitle || 'Ứng dụng mới');
+    setNameVal(displayTitle || site?.name || siteTitle || 'New App');
     setDescVal(realDesc);
     setPromptVal(realPrompt);
     setIsRenameModalOpen(true);
   };
 
   const handleSaveRename = async () => {
-    setDisplayTitle(nameVal || site?.name || 'Ứng dụng mới');
+    setDisplayTitle(nameVal || site?.name || 'New App');
     setIsRenameModalOpen(false);
-    message.success('Đã cập nhật thông tin ứng dụng!');
+    message.success('App information updated successfully!');
 
     if (siteId) {
       try {
@@ -235,20 +256,20 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
-    message.success('Đã sao chép liên kết chia sẻ dự án!');
+    message.success('Share link copied to clipboard!');
   };
 
   const menuItems: MenuProps['items'] = [
     {
       key: 'all-projects',
       icon: <LeftOutlined />,
-      label: 'Chuyển đến tất cả dự án',
+      label: 'Go to all projects',
       onClick: () => navigate('/project'),
     },
     {
       key: 'share',
       icon: <ShareAltOutlined />,
-      label: 'Chia sẻ',
+      label: 'Share',
       onClick: () => {
         setActiveDrawerTab('share');
         setIsChatSettingsOpen(true);
@@ -257,18 +278,18 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: 'download',
       icon: <DownloadOutlined />,
-      label: 'Tải dự án xuống',
+      label: 'Download project',
       onClick: () => {
         if (onDownload) onDownload();
-        else message.success('Đang bắt đầu tải xuống dự án...');
+        else message.success('Starting project download...');
       },
     },
     {
       key: 'duplicate',
       icon: <CopyOutlined />,
-      label: 'Tạo bản sao dự án',
+      label: 'Duplicate project',
       onClick: () => {
-        message.success('Đã tạo bản sao dự án!');
+        message.success('Project duplicated successfully!');
       },
     },
     {
@@ -277,13 +298,13 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: 'feedback',
       icon: <MessageOutlined />,
-      label: 'Gửi phản hồi',
+      label: 'Send feedback',
       onClick: () => setIsBugReportOpen(true),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: 'Cài đặt',
+      label: 'Settings',
       onClick: () => {
         setActiveDrawerTab('chat');
         setIsChatSettingsOpen(true);
@@ -306,27 +327,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: 'delete',
       icon: <DeleteOutlined />,
-      label: 'Xoá dự án',
+      label: 'Delete project',
       onClick: () => {
-        Modal.confirm({
-          title: 'Xoá dự án',
-          content: 'Bạn có chắc chắn muốn xoá dự án này không? Hành động này không thể hoàn tác.',
-          okText: 'Xoá',
-          okType: 'danger',
-          cancelText: 'Hủy',
-          onOk: async () => {
-            if (siteId) {
-              try {
-                await deleteSiteApi(siteId);
-                queryClient.invalidateQueries({ queryKey: ['sites'] });
-              } catch (e) {
-                console.error(e);
-              }
-            }
-            message.success('Đã xoá dự án!');
-            navigate('/project');
-          },
-        });
+        setIsDeleteProjectModalOpen(true);
       },
     },
   ];
@@ -338,7 +341,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 260, padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Play size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Nguyên mẫu lấy liền</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Instant Prototype</span>
           </div>
           <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
         </div>
@@ -350,7 +353,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <PlusSquare size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Biến thể</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Variants</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             ⇧V
@@ -364,7 +367,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <RotateCcw size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tạo lại</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Regenerate</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             ⇧R
@@ -377,7 +380,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       label: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
           <Flame size={16} style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Bản đồ nhiệt dự đoán</span>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>Predictive Heatmap</span>
         </div>
       ),
     },
@@ -386,7 +389,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       label: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
           <Smartphone size={16} style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Phiên bản ứng dụng di động</span>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>Mobile App Version</span>
         </div>
       ),
     },
@@ -397,7 +400,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Layers size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Trạng thái bị thiếu</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Missing States</span>
           </div>
           <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
         </div>
@@ -409,7 +412,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <PlayCircle size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tạo ảnh động</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Create Animations</span>
           </div>
           <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
         </div>
@@ -475,7 +478,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 220, padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Pen size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Chỉnh sửa</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Edit</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             E
@@ -489,7 +492,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Type size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Chú thích</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Annotations</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             A
@@ -515,7 +518,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         if (siteId) {
           window.open(`/preview/${siteId}`, '_blank');
         } else {
-          message.warning('Vui lòng lưu dự án trước khi xem trước');
+          message.warning('Please save project before previewing');
         }
       },
       label: (
@@ -628,7 +631,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Code size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Xem mã</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>View Code</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             ⇧C
@@ -642,7 +645,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Upload size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Xuất</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Export</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             Ctrl⇧E
@@ -659,7 +662,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Download size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tải xuống</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Download</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             ⇧D
@@ -676,7 +679,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <RotateCw size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tải lại</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Reload</span>
           </div>
           <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
             CtrlR
@@ -694,7 +697,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Trash2 size={16} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Xoá</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Delete</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Delete size={14} style={{ opacity: 0.7 }} />
@@ -715,7 +718,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           >
             <button
               className="canvas-header-btn-icon"
-              title="Menu dự án"
+              title="Project Menu"
             >
               <MenuOutlined style={{ fontSize: 16 }} />
             </button>
@@ -743,7 +746,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               e.currentTarget.style.background = 'transparent';
               e.currentTarget.style.borderColor = 'transparent';
             }}
-            title="Nhấp để đổi tên và thiết lập ứng dụng (Rename app)"
+            title="Click to rename and configure application settings"
           >
             <span style={{ fontSize: 15, fontWeight: 600, color: '#fff', letterSpacing: '0.01em', fontFamily: 'var(--font-sans)' }}>
               {displayTitle}
@@ -849,7 +852,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div className="canvas-toolbar-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             className="canvas-header-btn-pill"
-            title="Chia sẻ dự án (Share)"
+            title="Share Project"
             onClick={() => {
               setActiveDrawerTab('share');
               setIsChatSettingsOpen(true);
@@ -860,7 +863,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
           <button
             className="canvas-header-btn-pill"
-            title="Phát hành / Xuất dự án (Publish)"
+            title="Publish / Export Project"
             onClick={() => {
               setActiveDrawerTab('publish');
               setIsChatSettingsOpen(true);
@@ -937,6 +940,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         includeChatHistory={includeChatHistory} setIncludeChatHistory={handleIncludeChatHistoryChange}
         bugReportText={bugReportText} setBugReportText={setBugReportText}
         user={user} handleShare={handleShare}
+        isDeleteProjectModalOpen={isDeleteProjectModalOpen} setIsDeleteProjectModalOpen={setIsDeleteProjectModalOpen}
+        handleConfirmDeleteProject={handleConfirmDeleteProject} isDeletingProject={isDeletingProject}
+        siteTitle={siteTitle} site={site}
       />
 
       <Modal

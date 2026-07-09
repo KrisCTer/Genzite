@@ -31,7 +31,7 @@ import {
   CopyOutlined,
   CloseOutlined
 } from '@ant-design/icons';
-import { Sparkles, X, Monitor, Palette, Plus, MoreVertical, ChevronRight } from 'lucide-react';
+import { Sparkles, X, Monitor, Palette, Plus, MoreVertical, ChevronRight, Trash2 } from 'lucide-react';
 import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
@@ -136,6 +136,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [pageToDelete, setPageToDelete] = useState<any>(null);
 
   const submitSiteGeneration = useAiLogStore(state => state.submitSiteGeneration);
   const [isApplyingTheme, setIsApplyingTheme] = useState(false);
@@ -158,7 +159,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     message.info('Applying design system to selected page...');
     
     submitSiteGeneration(
-      `[TARGET_PAGE:${selectedId}] Cập nhật lại giao diện trang hiện tại để khớp hoàn toàn với Design System và bộ màu được cung cấp.`,
+      `[TARGET_PAGE:${selectedId}] Update the current page UI to perfectly match the provided Design System and color palette.`,
       'gemini-2.5-flash',
       siteId || `gen-${Date.now()}`,
       JSON.stringify(themeOverrides),
@@ -225,11 +226,11 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadMediaFileApi(file),
     onSuccess: () => {
-      message.success('Tải ảnh lên thành công!');
+      message.success('Image uploaded successfully!');
       queryClient.invalidateQueries({ queryKey: ['site-media'] });
     },
     onError: () => {
-      message.error('Tải ảnh lên thất bại!');
+      message.error('Failed to upload image!');
     }
   });
 
@@ -252,41 +253,31 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const deletePageMutation = useMutation({
     mutationFn: (id: string) => deletePageApi(id),
     onSuccess: () => {
-      message.success('Đã xoá trang!');
+      message.success('Page deleted successfully!');
       queryClient.invalidateQueries({ queryKey: ['site-pages', siteId] });
       setSelectedId(null);
     },
     onError: () => {
-      message.error('Lỗi khi xoá trang!');
+      message.error('Failed to delete page!');
     }
   });
 
   const handleDeletePage = () => {
     const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
     if (!activePage) return;
-    
-    Modal.confirm({
-      title: 'Xoá trang',
-      content: `Bạn có chắc chắn muốn xoá trang "${activePage.title}" không?`,
-      okText: 'Xoá',
-      cancelText: 'Huỷ',
-      okButtonProps: { danger: true },
-      onOk: () => {
-        deletePageMutation.mutate(activePage.id);
-      }
-    });
+    setPageToDelete(activePage);
   };
 
   const handleReloadPage = () => {
     queryClient.invalidateQueries({ queryKey: ['site-all-widgets', siteId] });
-    message.success('Đã tải lại trang!');
+    message.success('Page reloaded successfully!');
   };
 
   const handleDownload = async () => {
     const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
     if (!activePage) return;
     
-    const hideMessage = message.loading('Đang chuẩn bị dữ liệu tải xuống...', 0);
+    const hideMessage = message.loading('Preparing download data...', 0);
     try {
       const zip = new JSZip();
       
@@ -299,11 +290,11 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       saveAs(zipBlob, `${activePage.slug || 'export'}.zip`);
       hideMessage();
-      message.success('Tải xuống thành công!');
+      message.success('Downloaded successfully!');
     } catch (err) {
       console.error(err);
       hideMessage();
-      message.error('Lỗi khi tải xuống!');
+      message.error('Failed to download!');
     }
   };
 
@@ -574,7 +565,7 @@ ${htmlContent}
         onResetZoom={resetZoom} 
         onPreview={handlePreview}
         onPublish={handlePublish}
-        siteTitle={site?.name || pages?.[0]?.title || 'Ứng dụng của tôi'}
+        siteTitle={site?.name || pages?.[0]?.title || 'My App'}
         siteId={siteId}
         site={site}
         selectedId={selectedId}
@@ -885,7 +876,7 @@ ${htmlContent}
                     {isFetchingWidgets && isSelectedPage && (
                       <div style={{ position: 'absolute', inset: -8, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', borderRadius: 12 }}>
                         <Spin size="large" />
-                        <div style={{ marginTop: 16, color: '#38bdf8', fontWeight: 600, fontSize: 16, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>Đang tải lại dữ liệu...</div>
+                        <div style={{ marginTop: 16, color: '#38bdf8', fontWeight: 600, fontSize: 16, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>Reloading data...</div>
                       </div>
                     )}
                     <CanvasPageFrame
@@ -1213,10 +1204,10 @@ ${htmlContent}
             <div style={{ color: '#ccc', fontSize: 13, fontFamily: 'var(--font-sans)', fontWeight: 500 }}>{site?.name || 'Project'} - Code View</div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button 
-                onClick={() => { navigator.clipboard.writeText(getActivePageCode()); message.success('Đã sao chép mã!'); }}
+                onClick={() => { navigator.clipboard.writeText(getActivePageCode()); message.success('Code copied to clipboard!'); }}
                 style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#ccc', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                <CopyOutlined /> Sao chép mã
+                <CopyOutlined /> Copy Code
               </button>
               <button 
                 onClick={() => setIsCodeModalOpen(false)}
@@ -1246,6 +1237,122 @@ ${htmlContent}
                 </div>
               );
             })}
+          </div>
+        </Modal>
+
+        {/* Delete Page Modal - Synchronized with aiLogs UI */}
+        <Modal
+          open={!!pageToDelete}
+          onCancel={() => setPageToDelete(null)}
+          footer={null}
+          closable={false}
+          width={440}
+          centered
+          styles={{
+            content: {
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 20,
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+            },
+            mask: {
+              backdropFilter: 'blur(6px)',
+              background: 'rgba(0, 0, 0, 0.65)',
+            }
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#EF4444',
+              flexShrink: 0
+            }}>
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Delete Page</h3>
+              <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm removing this page from the project</p>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.025)',
+            borderRadius: 12,
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            padding: '16px',
+            marginBottom: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
+                <span style={{ color: '#06B6D4' }}>✦</span>
+                <span>Page Name:</span>
+              </div>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{pageToDelete?.title || 'Current Page'}</span>
+            </div>
+
+            <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
+              Are you sure you want to delete this page? All components and content within this page will be permanently removed.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setPageToDelete(null)}
+              style={{
+                padding: '9px 18px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 8,
+                color: '#CBD5E1',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (pageToDelete) {
+                  deletePageMutation.mutate(pageToDelete.id);
+                  setPageToDelete(null);
+                }
+              }}
+              style={{
+                padding: '9px 20px',
+                background: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.8)',
+                borderRadius: 8,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Delete Page
+            </button>
           </div>
         </Modal>
       </div>
