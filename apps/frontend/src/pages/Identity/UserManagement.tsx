@@ -45,43 +45,43 @@ const UserManagement: React.FC = () => {
   const lockMutation = useMutation({
     mutationFn: lockUserApi,
     onSuccess: () => { 
-      message.success('Đã khóa tài khoản'); 
+      message.success('Account locked'); 
       setSelectedUser(prev => prev ? { ...prev, status: 'LOCKED' } : null);
       invalidate(); 
     },
-    onError: () => message.error('Thao tác thất bại'),
+    onError: () => message.error('Action failed'),
   });
   const unlockMutation = useMutation({
     mutationFn: unlockUserApi,
     onSuccess: () => { 
-      message.success('Đã mở khóa tài khoản'); 
+      message.success('Account unlocked'); 
       setSelectedUser(prev => prev ? { ...prev, status: 'ACTIVE' } : null);
       invalidate(); 
     },
-    onError: () => message.error('Thao tác thất bại'),
+    onError: () => message.error('Action failed'),
   });
   const rolesMutation = useMutation({
     mutationFn: ({ id, roles }: { id: string; roles: string[] }) => updateRolesApi(id, roles),
-    onSuccess: () => { message.success('Đã cập nhật quyền hạn'); invalidate(); },
-    onError: () => message.error('Cập nhật quyền thất bại'),
+    onSuccess: () => { message.success('Roles updated'); invalidate(); },
+    onError: () => message.error('Failed to update roles'),
   });
   const deactivateMutation = useMutation({
     mutationFn: deactivateUserApi,
     onSuccess: () => { 
-      message.success('Đã vô hiệu hóa / xóa tài khoản'); 
+      message.success('Account deactivated/deleted'); 
       setIsDrawerOpen(false);
       invalidate(); 
     },
-    onError: () => message.error('Không thể xóa tài khoản này'),
+    onError: () => message.error('Cannot delete this account'),
   });
   const creditsMutation = useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) => adjustCreditsApi(id, amount),
     onSuccess: (data) => {
-      message.success(`Thành công! Số dư mới: ${data.credits.toLocaleString()}`);
+      message.success(`Success! New balance: ${data.credits.toLocaleString()}`);
       setSelectedUser(prev => prev ? { ...prev, credits: data.credits } : null);
       invalidate();
     },
-    onError: () => message.error('Điều chỉnh tín dụng thất bại'),
+    onError: () => message.error('Failed to adjust credits'),
   });
 
   // KPI Stats
@@ -133,7 +133,7 @@ const UserManagement: React.FC = () => {
       newRoles.push(role);
     }
     setLocalRoles(newRoles);
-    if (newRoles.length === 0) { message.warning('Cần ít nhất 1 quyền hạn'); return; }
+    if (newRoles.length === 0) { message.warning('At least 1 role is required'); return; }
     rolesMutation.mutate({ id: selectedUser.id, roles: newRoles });
   };
 
@@ -154,11 +154,11 @@ const UserManagement: React.FC = () => {
   const handleDeleteUser = () => {
     if (!selectedUser) return;
     Modal.confirm({
-      title: 'Cảnh báo nguy hiểm',
-      content: `Bạn có chắc chắn muốn xóa/vô hiệu hóa tài khoản ${selectedUser.name} không? Thao tác này có thể không thể phục hồi.`,
-      okText: 'Xóa ngay',
+      title: 'Danger Warning',
+      content: `Are you sure you want to deactivate/delete account ${selectedUser.name}? This action might be irreversible.`,
+      okText: 'Delete now',
       okType: 'danger',
-      cancelText: 'Hủy',
+      cancelText: 'Cancel',
       onOk: () => deactivateMutation.mutate(selectedUser.id)
     });
   };
@@ -167,7 +167,7 @@ const UserManagement: React.FC = () => {
     return (
       <div className="hub-root flex flex-col items-center justify-center min-h-[calc(100vh-56px)]">
         <ShieldAlert size={48} className="text-rose-500 mb-4" />
-        <h2 className="text-white text-xl font-bold">Không có quyền truy cập</h2>
+        <h2 className="text-white text-xl font-bold">Access Denied</h2>
       </div>
     );
   }
@@ -178,8 +178,8 @@ const UserManagement: React.FC = () => {
         
         {/* Header */}
         <div className="hub-header">
-          <h1 className="hub-header-title">Quản lý người dùng</h1>
-          <p className="hub-header-desc">Hệ thống phân quyền, định danh và bảo mật tài khoản.</p>
+          <h1 className="hub-header-title">User Management</h1>
+          <p className="hub-header-desc">System for authorization, identity and account security.</p>
         </div>
 
         {/* KPI Stats */}
@@ -187,21 +187,21 @@ const UserManagement: React.FC = () => {
           <div className="hub-stat-card">
             <div className="hub-stat-icon cyan"><Users size={28} /></div>
             <div className="hub-stat-info">
-              <span className="hub-stat-label">Tổng tài khoản</span>
+              <span className="hub-stat-label">Total Accounts</span>
               <span className="hub-stat-value">{users.length}</span>
             </div>
           </div>
           <div className="hub-stat-card">
             <div className="hub-stat-icon green"><UserCheck size={28} /></div>
             <div className="hub-stat-info">
-              <span className="hub-stat-label">Đang hoạt động</span>
+              <span className="hub-stat-label">Active</span>
               <span className="hub-stat-value">{activeCount}</span>
             </div>
           </div>
           <div className="hub-stat-card">
             <div className="hub-stat-icon amber"><Lock size={28} /></div>
             <div className="hub-stat-info">
-              <span className="hub-stat-label">Đang bị khóa</span>
+              <span className="hub-stat-label">Locked</span>
               <span className="hub-stat-value">{lockedCount}</span>
             </div>
           </div>
@@ -213,32 +213,32 @@ const UserManagement: React.FC = () => {
           {/* Sidebar Filters */}
           <div className="hub-sidebar">
             <div className="hub-categories">
-              <div className="hub-cat-title">Tìm kiếm</div>
+              <div className="hub-cat-title">Search</div>
               <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]" size={16} />
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Email, tên..."
+                  placeholder="Email, name..."
                   style={{ paddingLeft: '40px' }}
                   className="w-full h-10 pr-4 bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.1)] text-white rounded-xl text-sm outline-none focus:border-[#00e5ff] transition-all"
                 />
               </div>
 
-              <div className="hub-cat-title">Trạng thái</div>
+              <div className="hub-cat-title">Status</div>
               <button className={`hub-cat-btn ${statusFilter === 'ALL' ? 'active' : ''}`} onClick={() => setStatusFilter('ALL')}>
-                <div className="hub-cat-left"><Users className="hub-cat-icon" /> Tất cả</div>
+                <div className="hub-cat-left"><Users className="hub-cat-icon" /> All</div>
               </button>
               <button className={`hub-cat-btn ${statusFilter === 'ACTIVE' ? 'active' : ''}`} onClick={() => setStatusFilter('ACTIVE')}>
-                <div className="hub-cat-left"><UserCheck className="hub-cat-icon text-emerald-400" /> Hoạt động</div>
+                <div className="hub-cat-left"><UserCheck className="hub-cat-icon text-emerald-400" /> Active</div>
               </button>
               <button className={`hub-cat-btn ${statusFilter === 'LOCKED' ? 'active' : ''}`} onClick={() => setStatusFilter('LOCKED')}>
-                <div className="hub-cat-left"><Lock className="hub-cat-icon text-rose-400" /> Đã khóa</div>
+                <div className="hub-cat-left"><Lock className="hub-cat-icon text-rose-400" /> Locked</div>
               </button>
 
-              <div className="hub-cat-title mt-6">Vai trò</div>
+              <div className="hub-cat-title mt-6">Roles</div>
               <button className={`hub-cat-btn ${roleFilter === 'ALL' ? 'active' : ''}`} onClick={() => setRoleFilter('ALL')}>
-                <div className="hub-cat-left"><Filter className="hub-cat-icon" /> Tất cả quyền</div>
+                <div className="hub-cat-left"><Filter className="hub-cat-icon" /> All roles</div>
               </button>
               <button className={`hub-cat-btn ${roleFilter === 'ADMIN' ? 'active' : ''}`} onClick={() => setRoleFilter('ADMIN')}>
                 <div className="hub-cat-left"><Shield className="hub-cat-icon text-amber-400" /> Admin</div>
@@ -250,8 +250,8 @@ const UserManagement: React.FC = () => {
                 <div className="hub-cat-left"><Shield className="hub-cat-icon text-slate-400" /> Viewer</div>
               </button>
 
-              <button className="hub-mark-all-btn mt-6 w-full flex justify-center" onClick={() => message.info('Tính năng đang phát triển')}>
-                <Plus size={16} /> Thêm người dùng mới
+              <button className="hub-mark-all-btn mt-6 w-full flex justify-center" onClick={() => message.info('Feature in development')}>
+                <Plus size={16} /> Add new user
               </button>
             </div>
           </div>
@@ -259,7 +259,7 @@ const UserManagement: React.FC = () => {
           {/* Grid Feed */}
           <div className="hub-feed" style={{ flex: 1 }}>
             <div className="hub-feed-header mb-4 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-white">Danh sách ({filtered.length})</h2>
+              <h2 className="text-lg font-bold text-white">List ({filtered.length})</h2>
             </div>
 
             {isLoading ? (
@@ -290,7 +290,7 @@ const UserManagement: React.FC = () => {
                             <span className="hub-tag border border-[rgba(255,255,255,0.1)]">{mainRole}</span>
                             <span className={`w-2 h-2 rounded-full ${isLocked ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                             <span className={`text-[11px] font-bold ${isLocked ? 'text-rose-500' : 'text-emerald-500'}`}>
-                              {isLocked ? 'Bị khóa' : 'Hoạt động'}
+                              {isLocked ? 'Locked' : 'Active'}
                             </span>
                           </div>
                         </div>
@@ -314,7 +314,7 @@ const UserManagement: React.FC = () => {
                     >
                       <ChevronLeft size={16} />
                     </button>
-                    <span className="text-[#94a3b8] text-sm">Trang <strong className="text-white">{currentPage}</strong> / {totalPages}</span>
+                    <span className="text-[#94a3b8] text-sm">Page <strong className="text-white">{currentPage}</strong> / {totalPages}</span>
                     <button 
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage(prev => prev + 1)}
@@ -332,7 +332,7 @@ const UserManagement: React.FC = () => {
 
       {/* Detail Drawer */}
       <Drawer
-        title={<div style={{ fontSize: '16px', fontWeight: 'bold', color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Thiết lập Tài khoản</div>}
+        title={<div style={{ fontSize: '16px', fontWeight: 'bold', color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Settings</div>}
         placement="right"
         onClose={() => setIsDrawerOpen(false)}
         open={isDrawerOpen}
@@ -357,7 +357,7 @@ const UserManagement: React.FC = () => {
               <div style={{ marginBottom: '32px' }}>
                 <div style={{ gap: '8px', marginBottom: '16px' }} className="flex items-center">
                   <Shield size={16} className="text-[#00e5ff]" />
-                  <h4 className="text-[12px] font-bold text-white uppercase tracking-widest">Vai trò hệ thống</h4>
+                  <h4 className="text-[12px] font-bold text-white uppercase tracking-widest">System Roles</h4>
                 </div>
                 <div style={{ gap: '12px' }} className="flex items-center">
                   {['ADMIN', 'EDITOR', 'VIEWER'].map(role => {
@@ -382,7 +382,7 @@ const UserManagement: React.FC = () => {
 
               <div style={{ marginBottom: '32px', paddingTop: '32px' }} className="border-t border-[rgba(255,255,255,0.05)]">
                 <div style={{ marginBottom: '16px' }} className="flex items-center justify-between">
-                  <span className="text-[12px] font-bold text-white uppercase tracking-widest">Điều chỉnh Tín dụng</span>
+                  <span className="text-[12px] font-bold text-white uppercase tracking-widest">Adjust Credits</span>
                   <div className="text-right">
                     <span className="text-[13px] font-bold text-[#00e5ff]">{selectedUser.credits?.toLocaleString() || '0'} CR</span>
                   </div>
@@ -393,7 +393,7 @@ const UserManagement: React.FC = () => {
                       type="number"
                       value={creditsAmount}
                       onChange={e => setCreditsAmount(e.target.value)}
-                      placeholder="Nhập số lượng..."
+                      placeholder="Enter amount..."
                       style={{ paddingLeft: '16px', paddingRight: '40px' }}
                       className="w-full h-full bg-[rgba(30,41,59,0.4)] border border-[rgba(255,255,255,0.1)] rounded-xl text-[14px] text-white font-bold outline-none focus:border-[#00e5ff]"
                     />
@@ -404,17 +404,17 @@ const UserManagement: React.FC = () => {
                     style={{ padding: '0 24px' }}
                     className="h-full bg-[#00e5ff] hover:bg-[#00cce6] hover:shadow-[0_0_15px_rgba(0,229,255,0.4)] cursor-pointer text-[#0f172a] rounded-xl text-[13px] font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    NẠP
+                    ADD
                   </button>
                 </div>
               </div>
 
               <div style={{ paddingTop: '32px' }} className="border-t border-[rgba(255,255,255,0.05)]">
-                <h4 style={{ marginBottom: '16px' }} className="text-[12px] font-bold text-white uppercase tracking-widest">Bảo mật</h4>
+                <h4 style={{ marginBottom: '16px' }} className="text-[12px] font-bold text-white uppercase tracking-widest">Security</h4>
                 <div style={{ padding: '0 20px', marginBottom: '12px' }} className="h-14 bg-[rgba(30,41,59,0.4)] border border-[rgba(255,255,255,0.05)] rounded-xl flex items-center justify-between">
                   <div style={{ gap: '12px' }} className="flex items-center">
                     <ShieldAlert size={18} className={selectedUser.status === 'LOCKED' ? 'text-rose-500' : 'text-emerald-500'} />
-                    <span className="text-[14px] font-semibold text-white">Khóa khẩn cấp</span>
+                    <span className="text-[14px] font-semibold text-white">Emergency Lock</span>
                   </div>
                   <button
                     onClick={handleLockToggle}
@@ -428,7 +428,7 @@ const UserManagement: React.FC = () => {
                 <div style={{ padding: '0 16px' }} className="h-14 bg-[rgba(244,63,94,0.05)] border border-[rgba(244,63,94,0.2)] rounded-xl flex items-center justify-between">
                   <div style={{ gap: '12px' }} className="flex items-center">
                     <Trash2 size={18} className="text-rose-500" />
-                    <span className="text-[14px] font-semibold text-rose-500">Xóa tài khoản</span>
+                    <span className="text-[14px] font-semibold text-rose-500">Delete Account</span>
                   </div>
                   <button
                     onClick={handleDeleteUser}
@@ -436,12 +436,12 @@ const UserManagement: React.FC = () => {
                     style={{ padding: '6px 16px' }}
                     className="bg-rose-500 hover:bg-rose-600 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] cursor-pointer text-white rounded-lg text-[12px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    XÓA
+                    DELETE
                   </button>
                 </div>
 
                 <p style={{ marginTop: '16px' }} className="text-[12px] text-[#64748b] leading-relaxed">
-                  Trạng thái khóa sẽ vô hiệu hóa truy cập. Xóa tài khoản sẽ loại bỏ hoàn toàn dữ liệu.
+                  Lock status will disable access. Deleting the account will completely remove its data.
                 </p>
               </div>
             </div>

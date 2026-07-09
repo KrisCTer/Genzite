@@ -49,6 +49,14 @@
   opacity: 1 !important;
 }
 
+.user-account-menu__dropdown .user-account-menu__info-item,
+.user-account-menu__dropdown .user-account-menu__info-item:hover {
+  cursor: auto !important;
+  background: transparent !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
 .user-account-menu__info {
   display: flex;
   flex-direction: column;

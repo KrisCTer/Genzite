@@ -49,7 +49,7 @@
 .hub-wrapper {
   position: relative;
   z-index: 10;
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -84,7 +84,7 @@
 /* ── KPI STATS ───────────────────────────────────────────────── */
 .hub-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
 }
 

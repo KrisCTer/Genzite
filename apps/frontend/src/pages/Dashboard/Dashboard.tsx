@@ -42,12 +42,12 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const formattedTime = useMemo(
-    () => new Date(timeStr).toLocaleTimeString('vi-VN', { hour12: false }),
+    () => new Date(timeStr).toLocaleTimeString('en-US', { hour12: false }),
     [timeStr],
   );
   const formattedDate = useMemo(
     () =>
-      new Date(timeStr).toLocaleDateString('vi-VN', {
+      new Date(timeStr).toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -58,9 +58,9 @@ export const Dashboard: React.FC = () => {
   
   const welcomeGreeting = useMemo(() => {
     const hour = new Date(timeStr).getHours();
-    if (hour < 12) return 'Chào buổi sáng';
-    if (hour < 18) return 'Chào buổi chiều';
-    return 'Chào buổi tối';
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
   }, [timeStr]);
 
   const dataMap: Record<string, unknown[]> = {
@@ -72,8 +72,8 @@ export const Dashboard: React.FC = () => {
   const metricCards = [
     {
       key: 'users',
-      label: 'Người dùng',
-      sub: 'tài khoản',
+      label: 'Users',
+      sub: 'accounts',
       path: '/admin/identity',
       icon: <Users size={28} />,
       colorClass: 'cyan',
@@ -82,7 +82,7 @@ export const Dashboard: React.FC = () => {
     {
       key: 'cms',
       label: 'CMS',
-      sub: 'bộ sưu tập',
+      sub: 'collections',
       path: '/admin/cms',
       icon: <Database size={28} />,
       colorClass: 'amber',
@@ -91,7 +91,7 @@ export const Dashboard: React.FC = () => {
     {
       key: 'sites',
       label: 'Site Builder',
-      sub: 'trang web',
+      sub: 'websites',
       path: '/admin/site',
       icon: <Globe size={28} />,
       colorClass: 'emerald',
@@ -100,9 +100,9 @@ export const Dashboard: React.FC = () => {
   ];
 
   const quickActions = [
-    { label: 'AI Canvas', desc: 'Thiết kế trang bằng AI', path: '/project', icon: <Sparkles size={24} />, colorClass: 'cyan' },
-    { label: 'Quản lý truy cập', desc: 'Quản trị Users & Roles', path: '/admin/identity', icon: <Shield size={24} />, colorClass: 'amber' },
-    { label: 'Hồ sơ cá nhân', desc: 'Tài khoản quản trị viên', path: '/admin/profile', icon: <UserCircle size={24} />, colorClass: 'green' },
+    { label: 'AI Canvas', desc: 'Design pages with AI', path: '/project', icon: <Sparkles size={24} />, colorClass: 'cyan' },
+    { label: 'Access Management', desc: 'Manage Users & Roles', path: '/admin/identity', icon: <Shield size={24} />, colorClass: 'amber' },
+    { label: 'Profile', desc: 'Admin account', path: '/admin/profile', icon: <UserCircle size={24} />, colorClass: 'green' },
   ];
 
   return (
@@ -110,11 +110,25 @@ export const Dashboard: React.FC = () => {
       <div className="hub-wrapper" style={{ maxWidth: '100%' }}>
         
         {/* Header */}
-        <div className="hub-header">
-          <h1 className="hub-header-title">{welcomeGreeting}{adminName ? `, ${adminName}` : ''}!</h1>
-          <p className="hub-header-desc">
-            Tổng quan hệ thống — dữ liệu đồng bộ thời gian thực.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 className="hub-header-title truncate" title={`${welcomeGreeting}${adminName ? `, ${adminName}` : ''}!`}>
+              {welcomeGreeting}{adminName ? `, ${adminName}` : ''}!
+            </h1>
+            <p className="hub-header-desc">
+              System overview — real-time synchronized data.
+            </p>
+          </div>
+          
+          {/* Date & Time Display without background/icon */}
+          <div className="text-right shrink-0 flex flex-col justify-center">
+            <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+              {formattedDate}
+            </div>
+            <div className="text-2xl font-bold text-white tabular-nums tracking-tight leading-none">
+              {formattedTime}
+            </div>
+          </div>
         </div>
 
         {/* KPI Stats */}
@@ -138,15 +152,6 @@ export const Dashboard: React.FC = () => {
               </div>
             );
           })}
-
-          {/* Clock Stat Card (4th Card) */}
-          <div className="hub-stat-card">
-            <div className="hub-stat-icon green"><Clock size={28} /></div>
-            <div className="hub-stat-info">
-              <span className="hub-stat-label capitalize">{formattedDate}</span>
-              <span className="hub-stat-value tabular-nums">{formattedTime}</span>
-            </div>
-          </div>
         </div>
 
         {/* Main Content Layout */}
@@ -154,7 +159,7 @@ export const Dashboard: React.FC = () => {
           <div className="hub-feed w-full">
             
             <div className="hub-feed-header mb-6">
-              <h2 className="text-xl font-bold text-white tracking-wide">Thao Tác Nhanh</h2>
+              <h2 className="text-xl font-bold text-white tracking-wide">Quick Actions</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

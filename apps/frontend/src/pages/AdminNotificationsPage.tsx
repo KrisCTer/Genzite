@@ -1,29 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import { 
+import { useNavigate } from 'react-router-dom';
+import {
   Bell, Inbox, TrendingUp, Eye, EyeOff, Check, CheckCheck
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  fetchNotificationsApi, 
-  markNotificationAsReadApi, 
-  markAllNotificationsAsReadApi 
+import {
+  fetchNotificationsApi,
+  markNotificationAsReadApi,
+  markAllNotificationsAsReadApi
 } from '../api/notifications';
 
 import './NotificationsStyle.css';
 
-function formatDistanceToNowVi(dateString: string) {
+function formatDistanceToNowEn(dateString: string) {
   const date = new Date(dateString);
   const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diffInSeconds < 60) return `${Math.max(1, diffInSeconds)} giây trước`;
+  if (diffInSeconds < 60) return `${Math.max(1, diffInSeconds)} seconds ago`;
   const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+  if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} giờ trước`;
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return `${diffInDays} ngày trước`;
+  if (diffInDays < 30) return `${diffInDays} days ago`;
   const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths} tháng trước`;
-  return `${Math.floor(diffInDays / 365)} năm trước`;
+  if (diffInMonths < 12) return `${diffInMonths} months ago`;
+  return `${Math.floor(diffInDays / 365)} years ago`;
 }
 
 // Helpers cho UI
@@ -38,15 +39,16 @@ const getIconForType = (type: string) => {
 
 const getBadgeForType = (type: string) => {
   switch (type) {
-    case 'EMAIL': return 'HỆ THỐNG';
-    case 'PUSH': return 'BẢO MẬT';
-    case 'IN_APP': return 'NGƯỜI DÙNG';
-    default: return 'THÔNG BÁO';
+    case 'EMAIL': return 'SYSTEM';
+    case 'PUSH': return 'SECURITY';
+    case 'IN_APP': return 'USER';
+    default: return 'NOTIFICATION';
   }
 };
 
 export const AdminNotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
 
@@ -69,7 +71,6 @@ export const AdminNotificationsPage: React.FC = () => {
   // Tính toán KPI
   const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
   const totalCount = notifications.length;
-  const readRate = totalCount === 0 ? 100 : Math.round(((totalCount - unreadCount) / totalCount) * 100);
 
   // Lọc dữ liệu
   const filteredList = useMemo(() => {
@@ -89,11 +90,11 @@ export const AdminNotificationsPage: React.FC = () => {
   return (
     <div className="hub-root">
       <div className="hub-wrapper">
-        
+
         {/* Header */}
         <div className="hub-header">
-          <h1 className="hub-header-title">Trung Tâm Thông Báo</h1>
-          <p className="hub-header-desc">Quản lý các sự kiện thời gian thực từ mạng lưới vũ trụ của bạn.</p>
+          <h1 className="hub-header-title">Notification Center</h1>
+          <p className="hub-header-desc">Manage real-time events from your network.</p>
         </div>
 
         {/* KPI Stats */}
@@ -101,59 +102,52 @@ export const AdminNotificationsPage: React.FC = () => {
           <div className="hub-stat-card">
             <div className="hub-stat-icon cyan"><Bell size={28} /></div>
             <div className="hub-stat-info">
-              <span className="hub-stat-label">Chưa đọc</span>
+              <span className="hub-stat-label">Unread</span>
               <span className="hub-stat-value">{unreadCount}</span>
             </div>
           </div>
           <div className="hub-stat-card">
             <div className="hub-stat-icon slate"><Inbox size={28} /></div>
             <div className="hub-stat-info">
-              <span className="hub-stat-label">Tổng cộng</span>
+              <span className="hub-stat-label">Total</span>
               <span className="hub-stat-value">{totalCount}</span>
-            </div>
-          </div>
-          <div className="hub-stat-card">
-            <div className="hub-stat-icon green"><TrendingUp size={28} /></div>
-            <div className="hub-stat-info">
-              <span className="hub-stat-label">Tỉ lệ đọc</span>
-              <span className="hub-stat-value">{readRate}%</span>
             </div>
           </div>
         </div>
 
         {/* Main Content Layout */}
         <div className="hub-main">
-          
+
           {/* Sidebar */}
           <div className="hub-sidebar">
             <div className="hub-categories">
-              <div className="hub-cat-title">Phân loại</div>
-              
-              <button 
+              <div className="hub-cat-title">Categories</div>
+
+              <button
                 className={`hub-cat-btn ${filter === 'all' ? 'active' : ''}`}
                 onClick={() => setFilter('all')}
               >
                 <div className="hub-cat-left">
-                  <Inbox className="hub-cat-icon" /> Hộp thư
+                  <Inbox className="hub-cat-icon" /> Inbox
                 </div>
                 {unreadCount > 0 && <div className="hub-cat-badge">{unreadCount}</div>}
               </button>
 
-              <button 
+              <button
                 className={`hub-cat-btn ${filter === 'read' ? 'active' : ''}`}
                 onClick={() => setFilter('read')}
               >
                 <div className="hub-cat-left">
-                  <Eye className="hub-cat-icon" /> Đã đọc
+                  <Eye className="hub-cat-icon" /> Read
                 </div>
               </button>
 
-              <button 
+              <button
                 className={`hub-cat-btn ${filter === 'unread' ? 'active' : ''}`}
                 onClick={() => setFilter('unread')}
               >
                 <div className="hub-cat-left">
-                  <EyeOff className="hub-cat-icon" /> Chưa đọc
+                  <EyeOff className="hub-cat-icon" /> Unread
                 </div>
               </button>
             </div>
@@ -163,51 +157,62 @@ export const AdminNotificationsPage: React.FC = () => {
           <div className="hub-feed">
             <div className="hub-feed-header">
               <div className="hub-tabs">
-                <button 
+                <button
                   className={`hub-tab-btn ${sort === 'newest' ? 'active' : ''}`}
                   onClick={() => setSort('newest')}
                 >
-                  Mới nhất
+                  Newest
                 </button>
-                <button 
+                <button
                   className={`hub-tab-btn ${sort === 'oldest' ? 'active' : ''}`}
                   onClick={() => setSort('oldest')}
                 >
-                  Cũ nhất
+                  Oldest
                 </button>
               </div>
-              <button 
+              <button
                 className="hub-mark-all-btn"
                 onClick={() => markAllReadMutation.mutate()}
                 disabled={unreadCount === 0 || markAllReadMutation.isPending}
               >
-                <CheckCheck size={16} /> Đánh dấu tất cả là đã đọc
+                <CheckCheck size={16} /> Mark all as read
               </button>
             </div>
 
             {isLoading && (
               <div className="hub-loading">
                 <div className="hub-spinner"></div>
-                <span className="hub-empty-title">Đang tải dữ liệu...</span>
+                <span className="hub-empty-title">Loading data...</span>
               </div>
             )}
 
             {!isLoading && filteredList.length === 0 && (
               <div className="hub-empty">
                 <Inbox size={48} className="hub-empty-icon" />
-                <span className="hub-empty-title">Hộp Thư Trống</span>
-                <span className="hub-empty-desc">Không có thông báo nào trong danh mục này.</span>
+                <span className="hub-empty-title">Empty Inbox</span>
+                <span className="hub-empty-desc">No notifications in this category.</span>
               </div>
             )}
 
             {filteredList.map((notif) => (
-              <div key={notif.id} className={`hub-card ${!notif.isRead ? 'unread' : ''}`}>
+              <div
+                key={notif.id}
+                className={`hub-card ${!notif.isRead ? 'unread' : ''} cursor-pointer`}
+                onClick={(e) => {
+                  // Prevent navigation if clicking on action buttons (if any)
+                  if ((e.target as HTMLElement).closest('.hub-card-action-btn, .hub-card-mark-btn')) return;
+                  if (!notif.isRead) markReadMutation.mutate(notif.id);
+                  if (notif.metadata?.siteId) {
+                    navigate(`/project/${notif.metadata.siteId}`);
+                  }
+                }}
+              >
                 {getIconForType(notif.type)}
-                
+
                 <div className="hub-card-content">
                   <h3 className="hub-card-title">{notif.title}</h3>
                   <p className="hub-card-desc">{notif.body}</p>
-                  
+
                   <div className="hub-card-meta">
                     <div className="hub-card-tags">
                       <span className="hub-tag">{getBadgeForType(notif.type)}</span>
@@ -220,21 +225,13 @@ export const AdminNotificationsPage: React.FC = () => {
 
                 <div className="hub-card-right">
                   <span className="hub-card-time">
-                    {formatDistanceToNowVi(notif.createdAt)}
+                    {formatDistanceToNowEn(notif.createdAt)}
                   </span>
-                  
-                  {!notif.isRead ? (
-                    <button 
-                      className="hub-card-action-btn"
-                      onClick={() => markReadMutation.mutate(notif.id)}
-                      disabled={markReadMutation.isPending}
-                    >
-                      Xác nhận
-                    </button>
-                  ) : (
-                    <button className="hub-card-mark-btn" title="Đã đọc">
+
+                  {notif.isRead && (
+                    <div className="hub-card-mark-btn" title="Read">
                       <Check size={16} />
-                    </button>
+                    </div>
                   )}
                 </div>
               </div>

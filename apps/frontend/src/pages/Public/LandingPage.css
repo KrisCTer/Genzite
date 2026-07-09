@@ -239,6 +239,9 @@
   background: rgba(4, 6, 15, 0.58);
   backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: 76px;
+  padding: 0;
+  line-height: normal;
 }
 
 .LandingPageHeaderInner {

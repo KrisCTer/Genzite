@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Dropdown, Badge, List, Popover, Button, Spin } from 'antd';
+import { Layout, Menu, Typography, Dropdown, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
 import {
   UserOutlined,
   DatabaseOutlined,
   BellOutlined,
   SettingOutlined,
   LogoutOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import UserAvatar from '../components/UserAvatar';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -15,6 +16,7 @@ import { useAuthStore } from '../store/auth';
 import { logoutApi } from '../api/auth';
 import { hasMemberAccess, getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
 import { resolveUserRoles } from '../utils/jwt';
+import UserAccountMenu from '../components/UserAccountMenu';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
 import { Shield, Sparkles, Info, DollarSign } from 'lucide-react';
 
@@ -66,22 +68,11 @@ const AdminLayout: React.FC = () => {
   const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
   const notificationsPath = getNotificationsPath(effectiveRoles);
   const profilePath = getProfilePath(effectiveRoles);
-  
-  const isFullWidthPage = location.pathname.includes('/notifications') || 
-                          location.pathname.includes('/identity') || 
-                          location.pathname.includes('/profile') || 
-                          location.pathname === WORKSPACE_BASE || 
-                          location.pathname === ADMIN_BASE;
 
-  const handleLogout = async () => {
-    try {
-      await logoutApi();
-    } catch {
-      // Clear local session even if server logout fails
-    }
-    logout();
-    navigate('/login');
-  };
+  const isFullWidthPage = location.pathname.includes('/notifications') ||
+    location.pathname.includes('/identity') ||
+    location.pathname.includes('/profile') ||
+    location.pathname === ADMIN_BASE;
 
   const queryClient = useQueryClient();
   const { data: notifications, isLoading: notifLoading } = useQuery({
@@ -108,7 +99,7 @@ const AdminLayout: React.FC = () => {
     <div style={{ width: 340, padding: '4px' }} className="gz-notif-popover">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--gz-border, rgba(255,255,255,0.08))' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <strong style={{ color: '#fff', fontSize: '15px' }}>Thông báo</strong>
+          <strong style={{ color: '#fff', fontSize: '15px' }}>Notifications</strong>
           {unreadCount > 0 && (
             <Badge count={unreadCount} style={{ backgroundColor: 'var(--color-accent, #3b82f6)' }} />
           )}
@@ -121,7 +112,7 @@ const AdminLayout: React.FC = () => {
               onClick={() => markAllReadMutation.mutate()}
               style={{ fontSize: '11px', color: 'var(--gz-text-secondary, #a1a1aa)', padding: '0 4px' }}
             >
-              Đọc tất cả
+              Mark all as read
             </Button>
           )}
           <Button
@@ -130,7 +121,7 @@ const AdminLayout: React.FC = () => {
             onClick={() => { setNotifOpen(false); navigate(notificationsPath); }}
             style={{ fontSize: '11px', padding: 0 }}
           >
-            Xem tất cả
+            View all
           </Button>
         </div>
       </div>
@@ -139,7 +130,7 @@ const AdminLayout: React.FC = () => {
       ) : !displayNotifications || displayNotifications.length === 0 ? (
         <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--gz-text-muted, #71717a)' }}>
           <BellOutlined style={{ fontSize: '24px', marginBottom: '8px', opacity: 0.5 }} />
-          <div>Không có thông báo mới</div>
+          <div>No new notifications</div>
         </div>
       ) : (
         <div style={{ maxHeight: '320px', overflowY: 'auto' }} className="gz-scrollbar">
@@ -189,34 +180,6 @@ const AdminLayout: React.FC = () => {
     </div>
   );
 
-  const userMenu: MenuProps['items'] = [
-    ...(hasMemberAccess(effectiveRoles)
-      ? [
-          {
-            key: 'profile',
-            icon: <UserOutlined />,
-            label: 'Profile',
-            onClick: () => navigate(profilePath),
-          },
-        ]
-      : []),
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Logout',
-      danger: true,
-      onClick: handleLogout,
-    },
-  ];
-
   return (
     <Layout style={{ minHeight: '100vh', background: 'var(--color-bg-app)' }} hasSider>
       <Sider
@@ -256,9 +219,14 @@ const AdminLayout: React.FC = () => {
               fontSize: collapsed ? '16px' : '18px',
               fontWeight: 700,
               letterSpacing: '-0.02em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
             }}
           >
-            {collapsed ? 'GZ' : '✦ Genzite'}
+            <RocketOutlined style={{ color: '#60A5FA', fontSize: '20px' }} />
+            {!collapsed && 'Genzite'}
           </button>
         </div>
         <Menu
@@ -288,9 +256,9 @@ const AdminLayout: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-             <Title level={5} style={{ margin: 0, color: 'var(--color-text-primary)', fontWeight: 600 }}>
-               {isAdminArea ? 'Admin Console' : 'Không gian của tôi'}
-             </Title>
+            <Title level={5} style={{ margin: 0, color: 'var(--color-text-primary)', fontWeight: 600 }}>
+              {isAdminArea ? 'Admin Console' : 'My workspace'}
+            </Title>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Popover placement="bottomRight" content={notificationContent} trigger="click" open={notifOpen} onOpenChange={setNotifOpen}>
@@ -303,14 +271,10 @@ const AdminLayout: React.FC = () => {
                 />
               </Badge>
             </Popover>
-            <Dropdown menu={{ items: userMenu }} placement="bottomRight" trigger={['click']}>
-              <span style={{ display: 'inline-flex', cursor: 'pointer' }}>
-                <UserAvatar size={34} />
-              </span>
-            </Dropdown>
+            <UserAccountMenu avatarSize={34} />
           </div>
         </Header>
-        <Content style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto' }}>
+        <Content id="admin-content-scroll" style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto' }}>
           <div
             style={{
               padding: 0,
@@ -326,6 +290,7 @@ const AdminLayout: React.FC = () => {
           </div>
         </Content>
       </Layout>
+      <FloatButton.BackTop style={{ right: 24, bottom: 24 }} />
     </Layout>
   );
 };
