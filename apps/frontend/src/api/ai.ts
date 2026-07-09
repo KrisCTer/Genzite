@@ -6,6 +6,11 @@ export const generateSiteApi = async (data: { prompt: string; model?: string; si
   return response.data;
 };
 
+export const improvePromptApi = async (data: { prompt: string }) => {
+  const response = await apiClient.post<{ improved: string }>('/ai/improve-prompt', data);
+  return response.data;
+};
+
 export const fetchAiModelsApi = async () => {
   const response = await apiClient.get<{key: string, label: string}[]>('/ai/models');
   return response.data;

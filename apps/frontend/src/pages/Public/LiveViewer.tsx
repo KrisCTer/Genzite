@@ -38,14 +38,17 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
 
   const [searchParams] = useSearchParams();
   const { pageId: paramPageId } = useParams<{ pageId: string }>();
-  const siteId = propSiteId || searchParams.get('siteId') || (paramPageId && (paramPageId.length > 20 || paramPageId.startsWith('gen-') || paramPageId.startsWith('gen_')) ? paramPageId : undefined); // check for UUID or gen- prefix
-
-  const isParamActuallySiteId = paramPageId === siteId || paramPageId === 'preview' || paramPageId === '_';
+  
+  // A param is a siteId if it's NOT a UUID (page ids are UUIDs) and not a special keyword
+  const isUUID = paramPageId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paramPageId);
+  const isParamActuallySiteId = paramPageId && !isUUID && paramPageId !== 'preview' && paramPageId !== '_';
+  
+  const siteId = propSiteId || searchParams.get('siteId') || (isParamActuallySiteId ? paramPageId : undefined);
   
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [resolvedPageId, setResolvedPageId] = useState<string | null>(isParamActuallySiteId ? null : (paramPageId || null));
+  const [resolvedPageId, setResolvedPageId] = useState<string | null>(searchParams.get('pageId') || (isParamActuallySiteId ? null : (paramPageId || null)));
 
   useEffect(() => {
     // Dynamically inject Tailwind CDN so that AI-generated classes work at runtime in Live View
@@ -119,7 +122,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0F19' }}>
         <Result
-          status="500"
+          status="404"
           title={<span style={{ color: '#fff' }}>Page Not Found</span>}
           subTitle={<span style={{ color: '#94A3B8' }}>Sorry, something went wrong or the page does not exist.</span>}
           extra={<Link to="/admin"><Button type="primary">Back Home</Button></Link>}

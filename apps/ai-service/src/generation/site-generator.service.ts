@@ -1,11 +1,11 @@
 import { Injectable, Logger, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { AiClient } from '../gemini/ai.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { 
-  SECTION_PLANNER_SYSTEM, 
-  SECTION_PLANNER_PROMPT, 
-  WIDGET_GENERATOR_SYSTEM, 
-  WIDGET_GENERATOR_PROMPT 
+import {
+  SECTION_PLANNER_SYSTEM,
+  SECTION_PLANNER_PROMPT,
+  WIDGET_GENERATOR_SYSTEM,
+  WIDGET_GENERATOR_PROMPT
 } from '../gemini/prompts/templates.js';
 import { RagService } from './rag.service.js';
 import { GuardrailService } from './guardrail.service.js';
@@ -137,15 +137,24 @@ export class SiteGeneratorService {
       // PARSE TARGET PAGE
       let pageTitle = "Home";
       let pageSlug = "home";
-      
+
       let targetPageId: string | undefined;
       const targetPageMatch = prompt.match(/\[TARGET_PAGE:([a-zA-Z0-9-]+)\]/);
       if (targetPageMatch) {
         targetPageId = targetPageMatch[1];
         prompt = prompt.replace(/\[TARGET_PAGE:[a-zA-Z0-9-]+\]\s*/, '').trim();
-      } else {
-        const createMatch = prompt.match(/(?:Create|Tạo trang)\s+([a-zA-Z0-9 ]+?)(?:\s+Page)?$/i) 
-                         || prompt.match(/(?:Create|Tạo)\s+([a-zA-Z0-9 ]+?)(?:\s+Page)?$/i);
+      }
+
+      let platform = 'WEB';
+      const platformMatch = prompt.match(/\[PLATFORM:(APP|WEB)\]/i);
+      if (platformMatch) {
+        platform = platformMatch[1].toUpperCase();
+        prompt = prompt.replace(/\[PLATFORM:(APP|WEB)\]\s*/i, '').trim();
+      }
+
+      if (targetPageMatch) {
+        const createMatch = prompt.match(/(?:Create|Tạo trang)\s+([a-zA-Z0-9 ]+?)(?:\s+Page)?$/i)
+          || prompt.match(/(?:Create|Tạo)\s+([a-zA-Z0-9 ]+?)(?:\s+Page)?$/i);
         if (createMatch && createMatch[1] && createMatch[1].trim().length > 0) {
           pageTitle = createMatch[1].trim();
           pageSlug = pageTitle.toLowerCase().replace(/\s+/g, '-');
@@ -165,7 +174,7 @@ export class SiteGeneratorService {
       this.logger.log(`Current GENERATION_MODE from config: ${this.config.get<string>('GENERATION_MODE')} -> Parsed: ${genMode}`);
 
       if (genMode === 'hybrid') {
-        return await this.generateHybrid(prompt, taskLog, pageTitle, pageSlug, targetPageId, siteId, theme, onProgress);
+        return await this.generateHybrid(prompt, taskLog, pageTitle, pageSlug, targetPageId, siteId, theme, platform, onProgress);
       }
 
       // --- STITCH MODE (LEGACY) ---
@@ -173,10 +182,15 @@ export class SiteGeneratorService {
 
       // STEP 2: PM (Gemini) writes refined prompt
       onProgress?.('Product Manager is drafting design spec...', 30);
-      
+
+      let finalPmSystem = PM_SYSTEM_INSTRUCTION;
+      if (platform === 'APP') {
+        finalPmSystem += `\nCRITICAL PLATFORM ENFORCEMENT: The user has requested a Mobile App. You MUST design it for a mobile screen (e.g., Bottom Tab Bar, App Header, App layout) rather than a desktop website.`;
+      }
+
       const refinedPrompt = await this.ai.generateContent(pmPrompt, {
         model: model as any,
-        systemInstruction: PM_SYSTEM_INSTRUCTION,
+        systemInstruction: finalPmSystem,
         temperature: 0.7,
         tools: this.toolRegistry.getDeclarations(), // Allow Gemini to use MCP tools if it needs to check codebase
       });
@@ -260,15 +274,15 @@ export class SiteGeneratorService {
       // STEP 6: Bypass Widget Extraction for GrapesJS
       onProgress?.('Preparing visual editor...', 90);
       this.logger.log(`Skipping JSON extraction, saving raw HTML for GrapesJS...`);
-      
+
       const extractionResult = {
         site: { name: "Generated Site", subdomain: siteId || `gen-${Date.now()}` },
         pages: [{
           ...(targetPageId ? { id: targetPageId } : {}),
           title: pageTitle,
           slug: pageSlug,
-          widgets: [{ 
-            type: "GRAPESJS", 
+          widgets: [{
+            type: "GRAPESJS",
             contentConfig: { html: htmlContent },
             sortOrder: 1
           }]
@@ -321,6 +335,7 @@ export class SiteGeneratorService {
     targetPageId?: string,
     siteId?: string,
     theme?: string,
+    platform: string = 'WEB',
     onProgress?: (step: string, percent: number) => void
   ): Promise<GeneratedSite> {
     try {
@@ -328,10 +343,14 @@ export class SiteGeneratorService {
       onProgress?.('Planner is analyzing sections...', 20);
 
       // STEP 1: Plan Sections
+      let plannerSystem = SECTION_PLANNER_SYSTEM;
+      if (platform === 'APP') {
+        plannerSystem += `\nCRITICAL PLATFORM ENFORCEMENT: The user wants a Mobile App. You MUST plan sections suitable for mobile (e.g. BOTTOM_NAV, APP_HEADER, MOBILE_HERO, FEED, SETTINGS) instead of standard desktop web sections. Do not use generic desktop HEADER.`;
+      }
       const planPrompt = SECTION_PLANNER_PROMPT.replace('{{PROMPT}}', prompt);
       const planResult = await this.ai.generateJson<{ siteName?: string; sections: any[] }>(planPrompt, {
         model: 'gemini-2.0-flash',
-        systemInstruction: SECTION_PLANNER_SYSTEM,
+        systemInstruction: plannerSystem,
       });
 
       const sections = planResult.sections || [];
@@ -341,7 +360,7 @@ export class SiteGeneratorService {
       const stitchSections = sections.filter(sec => sec.assignTo === 'stitch' || sec.type === 'HEADER' || sec.type === 'HERO');
       const llmSections = sections.filter(sec => !(sec.assignTo === 'stitch' || sec.type === 'HEADER' || sec.type === 'HERO'));
 
-      onProgress?.('Generating primary design (Stitch)...', 30);
+      onProgress?.('Generating primary design...', 30);
 
       // STAGE 1: Execute Stitch Workers (with try-catch so auth errors fall back gracefully)
       const stitchPromises = stitchSections.map(async (sec) => {
@@ -352,7 +371,7 @@ export class SiteGeneratorService {
           const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
           const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
           const htmlUrl = await screen.getHtml();
-          
+
           let htmlContent = '';
           try {
             const res = await fetch(htmlUrl);
@@ -360,12 +379,12 @@ export class SiteGeneratorService {
           } catch (e) {
             htmlContent = '<!-- Failed to fetch -->';
           }
-          
+
           const extractionResult = await this.ai.generateJson<any>(
-            `Convert this HTML to JSON widget format:\n${htmlContent.substring(0, 10000)}`, 
+            `Convert this HTML to JSON widget format:\n${htmlContent.substring(0, 10000)}`,
             { model: 'meta/llama-3.3-70b-instruct', systemInstruction: WIDGET_EXTRACTOR_INSTRUCTION }
           );
-          
+
           return {
             type: sec.type,
             sortOrder: sec.sortOrder,
@@ -386,13 +405,13 @@ export class SiteGeneratorService {
       // Extract colors from Stitch to build Dynamic Design Tokens
       let extractedBg = "var(--gz-dark-1)";
       let extractedText = "var(--color-text-primary)";
-      
+
       const heroWidget = stitchWidgets.find(w => w.type === 'HERO') || stitchWidgets[0];
       if (heroWidget?.contentConfig?.bgColor) {
-         extractedBg = heroWidget.contentConfig.bgColor;
+        extractedBg = heroWidget.contentConfig.bgColor;
       }
       if (heroWidget?.contentConfig?.textColor) {
-         extractedText = heroWidget.contentConfig.textColor;
+        extractedText = heroWidget.contentConfig.textColor;
       }
 
       let DESIGN_TOKENS = `
@@ -406,7 +425,12 @@ export class SiteGeneratorService {
       `;
 
       if (theme) {
-         DESIGN_TOKENS += `\n\nCRITICAL: The user has selected the "${theme}" design system theme. Make sure you adjust background colors, accent colors, gradients, UI elements, and typography appropriately to reflect this specific theme's visual aesthetic.`;
+        DESIGN_TOKENS += `\n\nCRITICAL: The user has selected the "${theme}" design system theme. Make sure you adjust background colors, accent colors, gradients, UI elements, and typography appropriately to reflect this specific theme's visual aesthetic.`;
+      }
+
+      let generatorSystem = WIDGET_GENERATOR_SYSTEM;
+      if (platform === 'APP') {
+        generatorSystem += `\nCRITICAL PLATFORM ENFORCEMENT: Design this widget for a MOBILE APP. Ensure mobile-friendly dimensions, touch targets (min 44px), and mobile-specific components. DO NOT output a desktop layout.`;
       }
 
       onProgress?.('Workers are building sections to match theme...', 60);
@@ -416,16 +440,16 @@ export class SiteGeneratorService {
           .replace('{{SECTION_TYPE}}', sec.type)
           .replace('{{BRIEFING}}', sec.briefing)
           .replace('{{DESIGN_TOKENS}}', DESIGN_TOKENS);
-          
-        let modelName = 'deepseek-chat';
+
+        let modelName = 'deepseek-v4-flash';
         if (sec.assignTo === 'nvidia') modelName = 'meta/llama-3.3-70b-instruct';
         if (sec.assignTo === 'groq') modelName = 'llama-3.3-70b-versatile';
-        if (sec.assignTo === 'deepseek') modelName = 'deepseek-ai/deepseek-v4-flash';
-        
+        if (sec.assignTo === 'deepseek') modelName = 'deepseek-v4-flash';
+
         try {
           const widgetResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
             model: modelName as any,
-            systemInstruction: WIDGET_GENERATOR_SYSTEM,
+            systemInstruction: generatorSystem,
             temperature: 0.7
           });
           return {
@@ -439,7 +463,7 @@ export class SiteGeneratorService {
           try {
             const fallbackResult = await this.ai.generateJson<{ html: string, css?: string }>(workerPrompt, {
               model: 'meta/llama-3.3-70b-instruct',
-              systemInstruction: WIDGET_GENERATOR_SYSTEM,
+              systemInstruction: generatorSystem,
             });
             return {
               type: sec.type,
@@ -470,27 +494,27 @@ export class SiteGeneratorService {
             const project = await stitch.createProject(`Genzite_Part_${Date.now()}`);
             const screen = await project.generate(`Design a ${sec.type} section. ${sec.briefing}`);
             const htmlUrl = await screen.getHtml();
-            
+
             if (!htmlUrl) throw new Error("Stitch returned empty HTML URL");
             const res = await fetch(htmlUrl);
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            
+
             let rawHtml = await res.text();
             let parsedHtml = '';
-            
+
             const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
             let match;
             while ((match = styleRegex.exec(rawHtml)) !== null) {
               parsedHtml += `<style>${match[1]}</style>\n`;
             }
-            
+
             const bodyMatch = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
             if (bodyMatch && bodyMatch[1]) {
               parsedHtml += bodyMatch[1];
             } else {
               parsedHtml += rawHtml;
             }
-            
+
             return {
               type: sec.type,
               sortOrder: sec.sortOrder,
@@ -507,10 +531,10 @@ export class SiteGeneratorService {
       });
 
       const generatedWidgets = await Promise.all(widgetPromises);
-      
+
       // Sort widgets
       generatedWidgets.sort((a, b) => a.sortOrder - b.sortOrder);
-      
+
       const fullHtml = generatedWidgets.map(w => w.htmlContent).join('\n\n');
       const fullCss = generatedWidgets.map(w => w.cssContent).filter(css => !!css).join('\n\n');
 
@@ -554,6 +578,32 @@ export class SiteGeneratorService {
           endedAt: new Date(),
         },
       });
+      throw error;
+    }
+  }
+
+  async improvePrompt(prompt: string): Promise<string> {
+    const systemInstruction = `You are an expert UI/UX Prompt Engineer.
+The user will provide a short, simple prompt for building a website or app.
+Your job is to expand it into a highly detailed, professional prompt suitable for an AI Website Generator.
+Include specific details about:
+1. Overall aesthetic (colors, vibe, typography)
+2. Layout structure (Header, Hero section, Features, Footer)
+3. Interactive elements (hover effects, animations)
+4. Target audience and tone
+
+Output ONLY the improved prompt in English, without any conversational filler or introductory text. Do not wrap in markdown quotes if it's just plain text. Format clearly.`;
+
+    try {
+      const improved = await this.ai.generateContent(prompt, {
+        model: 'deepseek-v4-flash',
+        systemInstruction,
+        temperature: 0.7,
+        maxOutputTokens: 500,
+      });
+      return improved.trim();
+    } catch (error) {
+      this.logger.error(`Failed to improve prompt: ${error}`);
       throw error;
     }
   }

@@ -270,7 +270,30 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
 
   const handleReloadPage = () => {
     queryClient.invalidateQueries({ queryKey: ['site-all-widgets', siteId] });
-    message.success('Page reloaded successfully!');
+    
+    // Create a visual feedback effect on the active page
+    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    if (activePage) {
+      const pageEl = document.getElementById(`page-card-${activePage.id}`);
+      if (pageEl) {
+        pageEl.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        pageEl.style.transform = 'scale(0.98)';
+        pageEl.style.opacity = '0.7';
+        pageEl.style.filter = 'brightness(1.1)';
+        
+        setTimeout(() => {
+          pageEl.style.transform = 'scale(1)';
+          pageEl.style.opacity = '1';
+          pageEl.style.filter = 'brightness(1)';
+          
+          setTimeout(() => {
+            pageEl.style.transition = '';
+            pageEl.style.transform = '';
+            pageEl.style.filter = '';
+          }, 300);
+        }, 200);
+      }
+    }
   };
 
   const handleDownload = async () => {
@@ -533,15 +556,17 @@ ${htmlContent}
   }, []);
 
   const handlePreview = () => {
-    const homePage = pages?.find((p: any) => p.slug === 'home' || p.slug === '/') || pages?.[0];
-    if (homePage) {
-      window.open(`/live/${homePage.id}`, '_blank');
+    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    if (activePage) {
+      window.open(`/live/${activePage.id}`, '_blank');
     }
   };
 
   const handlePublish = () => {
     window.open(`https://${siteId}.genzite.com`, '_blank');
   };
+
+  const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
 
   return (
     <div 
@@ -569,6 +594,7 @@ ${htmlContent}
         siteId={siteId}
         site={site}
         selectedId={selectedId}
+        activePageId={activePage?.id}
         canvasDevice={canvasDevice}
         onDeviceChange={setCanvasDevice}
         onViewDetails={onViewDetails || (() => { setIsDetailsOpen(true); setIsStylesOpen(false); })}
@@ -872,7 +898,7 @@ ${htmlContent}
                   activeTool={activeTool}
                   requestTopZ={requestTopZ}
                 >
-                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <div id={`page-card-${page.id}`} style={{ position: 'relative', width: '100%', height: '100%' }}>
                     {isFetchingWidgets && isSelectedPage && (
                       <div style={{ position: 'absolute', inset: -8, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', borderRadius: 12 }}>
                         <Spin size="large" />

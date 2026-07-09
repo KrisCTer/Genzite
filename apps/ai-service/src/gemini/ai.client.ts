@@ -98,7 +98,7 @@ export class AiClient {
         this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
         return this.deepseek.generateContent(prompt, {
           ...options,
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-flash',
         });
       }
     }
@@ -115,7 +115,12 @@ export class AiClient {
         return await this.nvidia.generateJson<T>(prompt, { ...options, model: options.model as NvidiaModelName });
       } catch (error) {
         this.logger.warn(`NVIDIA API failed, falling back to Groq... (${error})`);
-        return this.groq.generateJson<T>(prompt, { ...options, model: 'llama-3.3-70b-versatile' });
+        try {
+          return await this.groq.generateJson<T>(prompt, { ...options, model: 'llama-3.3-70b-versatile' });
+        } catch (groqError) {
+          this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
+          return this.deepseek.generateJson<T>(prompt, { ...options, model: 'deepseek-v4-flash' });
+        }
       }
     }
     if (provider === 'deepseek') {
@@ -125,8 +130,8 @@ export class AiClient {
       try {
         return await this.groq.generateJson<T>(prompt, { ...options, model: options.model as GroqModelName });
       } catch (error) {
-        this.logger.warn(`Groq API failed, falling back to NVIDIA... (${error})`);
-        return this.nvidia.generateJson<T>(prompt, { ...options, model: 'meta/llama-3.3-70b-instruct' });
+        this.logger.warn(`Groq API failed, falling back to DeepSeek... (${error})`);
+        return this.deepseek.generateJson<T>(prompt, { ...options, model: 'deepseek-v4-flash' });
       }
     }
 
@@ -146,7 +151,7 @@ export class AiClient {
         this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
         return this.deepseek.generateJson<T>(prompt, {
           ...options,
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-flash',
         });
       }
     }
@@ -165,7 +170,12 @@ export class AiClient {
         return await this.nvidia.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as NvidiaModelName });
       } catch (error) {
         this.logger.warn(`NVIDIA API failed, falling back to Groq... (${error})`);
-        return this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: 'llama-3.3-70b-versatile' });
+        try {
+          return await this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: 'llama-3.3-70b-versatile' });
+        } catch (groqError) {
+          this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
+          return this.deepseek.chatJson<T>(systemInstruction, history, message, { ...options, model: 'deepseek-v4-flash' });
+        }
       }
     }
     if (provider === 'deepseek') {
@@ -175,8 +185,8 @@ export class AiClient {
       try {
         return await this.groq.chatJson<T>(systemInstruction, history, message, { ...options, model: options.model as GroqModelName });
       } catch (error) {
-        this.logger.warn(`Groq API failed, falling back to NVIDIA... (${error})`);
-        return this.nvidia.chatJson<T>(systemInstruction, history, message, { ...options, model: 'meta/llama-3.3-70b-instruct' });
+        this.logger.warn(`Groq API failed, falling back to DeepSeek... (${error})`);
+        return this.deepseek.chatJson<T>(systemInstruction, history, message, { ...options, model: 'deepseek-v4-flash' });
       }
     }
 
@@ -196,7 +206,7 @@ export class AiClient {
         this.logger.warn(`Groq API failed, falling back to DeepSeek... (${groqError})`);
         return this.deepseek.chatJson<T>(systemInstruction, history, message, {
           ...options,
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-flash',
         });
       }
     }

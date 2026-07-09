@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Smartphone, Tablet, Monitor, Share2, RotateCw, ExternalLink, QrCode, Info, X } from 'lucide-react';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../../store/auth';
@@ -8,6 +8,8 @@ import './CanvasBuilder.css';
 
 const PreviewViewer: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
+  const [searchParams] = useSearchParams();
+  const pageId = searchParams.get('pageId');
   const [device, setDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -80,6 +82,33 @@ const PreviewViewer: React.FC = () => {
     return () => window.removeEventListener('resize', updateScale);
   }, [device]);
 
+  const handleReload = () => {
+    const iframe = document.querySelector('iframe[title="Preview"]') as HTMLIFrameElement;
+    if (iframe) {
+      iframe.src = iframe.src;
+    }
+    
+    const el = document.getElementById('preview-viewer-canvas-wrapper');
+    if (el) {
+      el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      el.style.transform = `scale(${scale * 0.98})`;
+      el.style.opacity = '0.7';
+      el.style.filter = 'brightness(1.1)';
+      
+      setTimeout(() => {
+        el.style.transform = `scale(${scale})`;
+        el.style.opacity = '1';
+        el.style.filter = 'brightness(1)';
+        
+        setTimeout(() => {
+          el.style.transition = 'width 0.3s ease, transform 0.3s ease';
+          el.style.transform = `scale(${scale})`;
+          el.style.filter = '';
+        }, 300);
+      }, 200);
+    }
+  };
+
   const getWidth = () => {
     switch (device) {
       case 'mobile': return 390;
@@ -101,7 +130,7 @@ const PreviewViewer: React.FC = () => {
       overflow: 'hidden'
     }}>
       {/* Top Bar */}
-      <div className="canvas-toolbar" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="canvas-toolbar" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
@@ -120,7 +149,7 @@ const PreviewViewer: React.FC = () => {
           <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button className="canvas-header-btn-icon" onClick={() => window.open(`/live/${siteId}`, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
-            <button className="canvas-header-btn-icon" onClick={() => window.location.reload()} title="Reload Preview"><RotateCw size={16} /></button>
+            <button className="canvas-header-btn-icon" onClick={handleReload} title="Reload Preview"><RotateCw size={16} /></button>
             <button className="canvas-header-btn-icon" onClick={() => setIsQrModalOpen(true)} title="QR Code"><QrCode size={16} /></button>
           </div>
         </div>
@@ -185,6 +214,7 @@ const PreviewViewer: React.FC = () => {
       >
         <div 
           ref={iframeWrapperRef}
+          id="preview-viewer-canvas-wrapper"
           style={{
           width: getWidth(),
           height: '100%',
@@ -231,7 +261,7 @@ const PreviewViewer: React.FC = () => {
             </div>
           )}
           <iframe 
-            src={`/live/${siteId}`} 
+            src={`/live/${siteId}${pageId ? `?pageId=${pageId}` : ''}`} 
             style={{ width: '100%', flex: 1, border: 'none' }} 
             title="Preview"
           />

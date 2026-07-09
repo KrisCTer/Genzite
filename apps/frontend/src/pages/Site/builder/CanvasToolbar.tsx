@@ -33,6 +33,7 @@ interface CanvasToolbarProps {
   siteId?: string;
   site?: any;
   selectedId?: string | null;
+  activePageId?: string | null;
   canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
   onDeviceChange?: (device: 'mobile' | 'tablet' | 'desktop' | 'full') => void;
   onViewDetails?: () => void;
@@ -48,6 +49,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   siteId,
   site,
   selectedId,
+  activePageId,
   canvasDevice,
   onDeviceChange,
   onViewDetails,
@@ -472,7 +474,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: '1',
       onClick: () => {
-        if (siteId) navigate(`/edit/${siteId}`);
+        if (siteId) navigate(`/edit/${siteId}${activePageId ? `?pageId=${activePageId}` : ''}`);
       },
       label: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 220, padding: '6px 4px', color: '#fff' }}>
@@ -516,7 +518,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       key: '1',
       onClick: () => {
         if (siteId) {
-          window.open(`/preview/${siteId}`, '_blank');
+          window.open(`/preview/${siteId}${activePageId ? `?pageId=${activePageId}` : ''}`, '_blank');
         } else {
           message.warning('Please save project before previewing');
         }
@@ -768,7 +770,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               color: '#F8FAFC',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
             }}>
-              <Dropdown 
+              {/* <Dropdown 
                 menu={{ 
                   items: generateMenuItems,
                   style: {
@@ -786,7 +788,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 500, fontSize: 13, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={e => e.currentTarget.style.color = '#F8FAFC'}>
                   <Sparkles size={16} /> Generate <ChevronDown size={14} style={{ opacity: 0.5, marginTop: 2 }} />
                 </div>
-              </Dropdown>
+              </Dropdown> */}
               <Dropdown 
                 menu={{ 
                   items: modifyMenuItems,

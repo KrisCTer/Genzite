@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent, Get, NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Sse, Param, OnModuleInit, OnModuleDestroy, MessageEvent, Get, NotFoundException, Logger, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { AI_QUEUES } from '../workers/queue.constants.js';
 import { GenerateSiteDto } from './dto/generate-site.dto.js';
 import { GenerateCmsDto } from './dto/generate-cms.dto.js';
+import { SiteGeneratorService } from './site-generator.service.js';
 
 @Controller('ai')
 export class GenerationController implements OnModuleInit, OnModuleDestroy {
@@ -16,6 +17,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
     private readonly siteQueue: Queue,
     @InjectQueue(AI_QUEUES.CMS_GENERATION)
     private readonly cmsQueue: Queue,
+    private readonly siteGenerator: SiteGeneratorService,
   ) {}
 
   async onModuleInit() {
@@ -70,6 +72,15 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
       message: 'CMS generation job accepted',
       jobId: job.id,
     };
+  }
+
+  @Post('improve-prompt')
+  async improvePrompt(@Body('prompt') prompt: string) {
+    if (!prompt) {
+      throw new BadRequestException('Prompt is required');
+    }
+    const improved = await this.siteGenerator.improvePrompt(prompt);
+    return { improved };
   }
 
   @Get('models')

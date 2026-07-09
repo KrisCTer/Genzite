@@ -3,9 +3,10 @@ import { FileImage, Globe, Sparkles } from 'lucide-react';
 
 interface AddMenuProps {
   onClose: () => void;
+  onImprove?: () => void;
 }
 
-const AddMenu = forwardRef<HTMLDivElement, AddMenuProps>(({ onClose }, ref) => {
+const AddMenu = forwardRef<HTMLDivElement, AddMenuProps>(({ onClose, onImprove }, ref) => {
   return (
     <div className="ai-add-menu" ref={ref}>
       <button className="ai-add-item" type="button" onClick={onClose}>
@@ -16,7 +17,10 @@ const AddMenu = forwardRef<HTMLDivElement, AddMenuProps>(({ onClose }, ref) => {
         <Globe size={16} />
         <span>Website URL</span>
       </button>
-      <button className="ai-add-item" type="button" onClick={onClose}>
+      <button className="ai-add-item" type="button" onClick={() => {
+        if (onImprove) onImprove();
+        onClose();
+      }}>
         <Sparkles size={16} />
         <span>Improve prompt</span>
       </button>

@@ -7,7 +7,10 @@ const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
 export type DeepSeekModelName =
   | 'deepseek-chat'
-  | 'deepseek-reasoner';
+  | 'deepseek-reasoner'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
+  | string;
 
 interface GenerateOptions {
   model?: DeepSeekModelName;

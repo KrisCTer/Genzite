@@ -8,6 +8,7 @@ import ThemeMenu from './prompt-bar/ThemeMenu';
 import ModelMenu from './prompt-bar/ModelMenu';
 import AddMenu from './prompt-bar/AddMenu';
 import { useAiLogStore } from '../../../store/aiLogs';
+import { improvePromptApi } from '../../../api/ai';
 
 interface AIPromptBarProps {
   onGenerated?: (jobId: string, subdomain?: string) => void;
@@ -24,6 +25,7 @@ interface AIPromptBarProps {
 const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compact = false, siteId, selectedPage, onClearSelection, themeOverrides, onCreateNewTheme, onSelectTheme }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [prompt, setPrompt] = useState('');
+  const [isImproving, setIsImproving] = useState(false);
   const [model, setModel] = useState<string | undefined>(undefined);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
@@ -59,6 +61,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
     if (selectedPage) {
       finalPrompt = `[TARGET_PAGE:${selectedPage.id}] ${finalPrompt}`;
     }
+    finalPrompt = `[PLATFORM:${platform.toUpperCase()}] ${finalPrompt}`;
     
     submitSiteGeneration(
       finalPrompt,
@@ -76,6 +79,29 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
         messageApi.error(error || 'Failed to start generation');
       }
     );
+  };
+
+  const handleImprovePrompt = async () => {
+    if (!prompt.trim()) {
+      messageApi.warning('Please enter a prompt to improve');
+      return;
+    }
+    setIsImproving(true);
+    // Remove the messageApi.loading toast as we use the glowing border now
+    try {
+      const data = await improvePromptApi({ prompt });
+      if (data.improved) {
+        setPrompt(data.improved);
+        messageApi.success('Prompt improved!');
+      } else {
+        throw new Error('No improved prompt returned');
+      }
+    } catch (error) {
+      console.error('Improve prompt error:', error);
+      messageApi.error('Failed to improve prompt');
+    } finally {
+      setIsImproving(false);
+    }
   };
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
@@ -153,15 +179,15 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
           </div>
         )}
 
-        <div className="ai-prompt-bar-inner">
+        <div className={`ai-prompt-bar-inner ${isImproving ? 'is-improving' : ''}`}>
           <textarea
             ref={inputRef}
             className="ai-prompt-input"
-            placeholder={compact ? 'What would you like to change or build?' : 'What native mobile app should we design?'}
+            placeholder={compact ? 'What would you like to change or build?' : (platform === 'app' ? 'What native mobile app should we design?' : 'What stunning website should we design?')}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isGenerating}
+            disabled={isGenerating || isImproving}
             rows={compact ? 1 : 4}
           />
 
@@ -177,7 +203,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, compa
                 >
                   <Plus size={16} strokeWidth={2} className="ai-add-btn-icon" />
                 </button>
-                {showAddMenu && <AddMenu ref={addMenuRef} onClose={() => setShowAddMenu(false)} />}
+                {showAddMenu && <AddMenu ref={addMenuRef} onClose={() => setShowAddMenu(false)} onImprove={handleImprovePrompt} />}
               </div>
 
               {compact && (

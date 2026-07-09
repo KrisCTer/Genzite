@@ -18,7 +18,7 @@ export interface GrapesEditorRef {
 
 import { CUSTOM_SECTORS } from './GrapesSectors';
 import { registerGenziteBlocks } from './GrapesBlocks';
-import { triggerCanvasFeedback, handleGrapesAction } from './GrapesActions';
+import { handleGrapesAction } from './GrapesActions';
 
 interface GrapesEditorProps {
   htmlContent: string;
@@ -26,15 +26,27 @@ interface GrapesEditorProps {
   readOnly?: boolean;
   onSave?: (html: string, css: string) => void;
   initialDragMode?: 'absolute' | '';
+  canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
 }
 
-const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htmlContent, cssContent = '', readOnly = false, onSave, initialDragMode = 'absolute' }, ref) => {
+const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htmlContent, cssContent = '', readOnly = false, onSave, initialDragMode = 'absolute', canvasDevice }, ref) => {
   const editorRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
   const onSaveRef = useRef(onSave);
+  
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
+
+  useEffect(() => {
+    if (editorRef.current && canvasDevice) {
+      const editor = editorRef.current;
+      if (canvasDevice === 'mobile') editor.setDevice('Mobile');
+      else if (canvasDevice === 'tablet') editor.setDevice('Tablet');
+      else editor.setDevice('Desktop');
+    }
+  }, [canvasDevice]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [contextMenuState, setContextMenuState] = React.useState<{
@@ -135,7 +147,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         devices: [
           { name: 'Desktop', width: '1440px' },
           { name: 'Tablet', width: '768px', widthMedia: '992px' },
-          { name: 'Mobile portrait', width: '320px', widthMedia: '480px' },
+          { name: 'Mobile', width: '390px', widthMedia: '480px' },
         ]
       },
       rte: {
@@ -201,35 +213,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     };
     window.addEventListener('genzite:grapes:redo', redoHandler);
 
-    const updateZoomState = () => {
-      const zoom = editor.Canvas.getZoom();
-      window.dispatchEvent(new CustomEvent('genzite:grapes:zoom:update', { detail: { zoom } }));
-    };
 
-    const zoomInHandler = () => {
-      const current = editor.Canvas.getZoom();
-      editor.Canvas.setZoom(current + 10);
-      updateZoomState();
-    };
-    window.addEventListener('genzite:grapes:zoom-in', zoomInHandler);
-
-    const zoomOutHandler = () => {
-      const current = editor.Canvas.getZoom();
-      editor.Canvas.setZoom(Math.max(10, current - 10));
-      updateZoomState();
-    };
-    window.addEventListener('genzite:grapes:zoom-out', zoomOutHandler);
-
-    const zoomFitHandler = () => {
-      editor.Canvas.setZoom(100);
-      // Center the canvas
-      const wrapper = (editor.Canvas as any).getWrapperEl();
-      if (wrapper) {
-        wrapper.style.transform = 'translate(0, 0)';
-      }
-      updateZoomState();
-    };
-    window.addEventListener('genzite:grapes:zoom-fit', zoomFitHandler);
 
     let isPanActive = false;
     const panToggleHandler = () => {
@@ -267,11 +251,22 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         frameWrapper.style.borderRadius = '16px';
         frameWrapper.style.overflow = 'hidden';
         frameWrapper.style.backgroundColor = 'transparent';
+        
+        // Force width to 100% so it fits our custom EditViewer container sizes
+        frameWrapper.style.setProperty('width', '100%', 'important');
+        frame.style.setProperty('width', '100%', 'important');
 
-        // Auto-expand the iframe height to fit content, so there's NO internal scrollbar
+        // We will manage height and overflow dynamically based on canvasDevice prop
         const updateHeight = () => {
+          if (!editor.Canvas) return;
+          const frame = editor.Canvas.getFrameEl();
+          const frameWrapper = (editor.Canvas as any).getWrapperEl();
           const body = editor.Canvas.getBody();
-          if (body) {
+          if (!body || !frame || !frameWrapper) return;
+
+          const isFullHeight = (window as any).__currentCanvasDevice === 'full';
+
+          if (isFullHeight) {
             // Find the maximum bottom coordinate of all direct children
             let maxBottom = window.innerHeight - 80; // Minimum height
             Array.from(body.children).forEach((child: any) => {
@@ -280,23 +275,41 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
                 if (bottom > maxBottom) maxBottom = bottom;
               }
             });
-            // Also consider scrollHeight
             const height = Math.max(maxBottom, body.scrollHeight, window.innerHeight - 80);
             frame.style.height = `${height}px`;
             frameWrapper.style.height = `${height}px`;
+            if (containerRef.current) {
+              containerRef.current.style.height = `${height}px`;
+            }
+            
+            const doc = editor.Canvas.getDocument();
+            if (doc?.documentElement) doc.documentElement.style.overflow = 'hidden';
+            if (doc?.body) doc.body.style.overflow = 'hidden';
+          } else {
+            // Revert to 100% height and allow internal scrolling
+            frame.style.height = '100%';
+            frameWrapper.style.height = '100%';
+            if (containerRef.current) {
+              containerRef.current.style.height = '100%';
+            }
+            
+            const doc = editor.Canvas.getDocument();
+            if (doc?.documentElement) doc.documentElement.style.overflow = 'auto';
+            if (doc?.body) doc.body.style.overflow = 'auto';
           }
         };
+
+        // Attach updateHeight to window so it can be called when canvasDevice changes
+        (window as any).__updateGrapesIframeHeight = updateHeight;
 
         // Hide the native scrollbars inside the iframe AND force dark background
         try {
           const doc = editor.Canvas.getDocument();
           if (doc) {
             if (doc.documentElement) {
-              doc.documentElement.style.overflow = 'hidden';
               doc.documentElement.style.backgroundColor = '#0B0F19';
             }
             if (doc.body) {
-              doc.body.style.overflow = 'hidden';
               doc.body.style.minHeight = '100%';
               doc.body.style.backgroundColor = '#0B0F19';
               doc.body.style.color = '#ffffff';
@@ -304,7 +317,6 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
               doc.body.style.padding = '0';
             }
             if (doc.head) {
-              // Inject a high-priority style to always win over GrapesJS defaults
               const forceDarkStyle = doc.createElement('style');
               forceDarkStyle.id = 'gz-force-dark';
               forceDarkStyle.innerHTML = 'html,body{background-color:#0B0F19!important;color:#fff!important;margin:0!important;padding:0!important;}';
@@ -316,7 +328,11 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         }
 
         // Setup observer to keep height in sync
-        const observer = new MutationObserver(updateHeight);
+        const observer = new MutationObserver(() => {
+          if ((window as any).__currentCanvasDevice === 'full') {
+            updateHeight();
+          }
+        });
         const body = editor.Canvas.getBody();
         if (body) {
           observer.observe(body, { childList: true, subtree: true, attributes: true });
@@ -325,11 +341,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         // Initial height sync
         setTimeout(updateHeight, 100);
 
-        // Listen to canvas zoom and update EditTopBar state
-        editor.on('canvas:zoom', () => {
-          const zoom = editor.Canvas.getZoom();
-          window.dispatchEvent(new CustomEvent('genzite:grapes:zoom:update', { detail: { zoom } }));
-        });
+
       }
 
       try {
@@ -398,6 +410,15 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       if (cssContent) {
         editor.setStyle(cssContent);
       }
+
+      // Clear undo history so the user can't undo past the initial state
+      setTimeout(() => {
+        try {
+          editor.UndoManager.clear();
+        } catch (e) {
+          console.error('Error clearing UndoManager:', e);
+        }
+      }, 100);
 
       if (readOnly) {
         // Disable selection and editing
@@ -655,7 +676,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       }
     };
 
-    let layerObserver: MutationObserver | undefined;
+
 
     const enableFreeResizing = (model: any) => {
       if (!model) return;
@@ -935,9 +956,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       window.removeEventListener('genzite:grapes:setcontent', contentHandler);
       window.removeEventListener('genzite:grapes:undo', undoHandler);
       window.removeEventListener('genzite:grapes:redo', redoHandler);
-      window.removeEventListener('genzite:grapes:zoom-in', zoomInHandler);
-      window.removeEventListener('genzite:grapes:zoom-out', zoomOutHandler);
-      window.removeEventListener('genzite:grapes:zoom-fit', zoomFitHandler);
+
       window.removeEventListener('genzite:grapes:pan:toggle', panToggleHandler);
       window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointerup', handlePointerUp);

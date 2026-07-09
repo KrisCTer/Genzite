@@ -1,4 +1,4 @@
-import { Controller, All, Req, Res, Next } from '@nestjs/common';
+import { Controller, All, Req, Res, Next, Logger } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware, RequestHandler, fixRequestBody } from 'http-proxy-middleware';
 
@@ -13,12 +13,15 @@ import { createProxyMiddleware, RequestHandler, fixRequestBody } from 'http-prox
  *   /api/v1/users/*         → Identity Service (port 3001)
  *   /api/v1/sites/*         → Site Service     (port 3002)
  *   /api/v1/cms/*           → Data Service     (port 3003)
+ *   /api/v1/commerce/*      → Commerce Service (port 3007)
  *   /api/v1/media/*         → Media Service    (port 3004)
  *   /api/v1/notifications/* → Notification Svc (port 3005)
  *   /api/v1/ai/*            → AI Service       (port 3006)
  */
 @Controller()
 export class ProxyController {
+  private readonly logger = new Logger(ProxyController.name);
+
   private readonly serviceMap: Record<string, string> = {
     auth: process.env.IDENTITY_SERVICE_URL ?? 'http://localhost:3001',
     users: process.env.IDENTITY_SERVICE_URL ?? 'http://localhost:3001',
@@ -61,6 +64,12 @@ export class ProxyController {
     
     const proxyHandler = this.proxies[serviceKey];
     
+    // Log incoming request and target service
+    const user = (req as any).user;
+    const userId = user?.id ? `User[${user.id}]` : 'Guest';
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown IP';
+    this.logger.log(`[${req.method}] ${req.url} | Caller: ${userId} (${clientIp}) ➜ Routing to Service: [${serviceKey || 'Unknown'}]`);
+
     if (!proxyHandler) {
       return res.status(404).json({ error: 'Service not found', path: req.url });
     }

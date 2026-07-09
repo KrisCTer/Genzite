@@ -1,10 +1,10 @@
 import React from 'react';
-import { Smartphone, Tablet, Monitor, Save, Undo2, Redo2, RotateCcw, ArrowLeft, Move, LayoutGrid, Check, Hand, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { Button, Tooltip, Space } from 'antd';
+import { Smartphone, Tablet, Monitor, Save, Undo2, Redo2, ArrowLeft, Move, LayoutGrid, Check, Hand, ZoomIn, ZoomOut, Maximize, MoveVertical, RefreshCcw } from 'lucide-react';
+import { Button, Tooltip, Space, Dropdown } from 'antd';
 
 interface EditTopBarProps {
-  device: 'mobile' | 'tablet' | 'desktop';
-  setDevice: (device: 'mobile' | 'tablet' | 'desktop') => void;
+  device: 'mobile' | 'tablet' | 'desktop' | 'full';
+  setDevice: (device: 'mobile' | 'tablet' | 'desktop' | 'full') => void;
   siteName?: string;
   leftPanelOpen?: boolean;
   setLeftPanelOpen?: (open: boolean) => void;
@@ -58,6 +58,21 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
     };
   }, []);
 
+  const zoomItems = [
+    { key: '25', label: '25%' },
+    { key: '50', label: '50%' },
+    { key: '75', label: '75%' },
+    { key: '100', label: '100%' },
+    { key: '125', label: '125%' },
+    { key: '150', label: '150%' },
+    { key: '200', label: '200%' },
+  ];
+
+  const handleZoomMenuClick = (e: any) => {
+    const newZoom = parseInt(e.key, 10);
+    window.dispatchEvent(new CustomEvent('genzite:grapes:zoom-set', { detail: { zoom: newZoom } }));
+  };
+
   return (
     <div style={{ 
       height: 60, 
@@ -98,9 +113,14 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
               <Tablet size={16} />
             </div>
           </Tooltip>
-          <Tooltip title="Mobile View (320px)">
+          <Tooltip title="Mobile View (390px)">
             <div onClick={() => setDevice('mobile')} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: 6, background: device === 'mobile' ? 'rgba(255,255,255,0.15)' : 'transparent', color: device === 'mobile' ? '#fff' : '#64748b', display: 'flex', alignItems: 'center' }}>
               <Smartphone size={16} />
+            </div>
+          </Tooltip>
+          <Tooltip title="Full Height View (100%)">
+            <div onClick={() => setDevice('full')} style={{ cursor: 'pointer', padding: '6px 10px', borderRadius: 6, background: device === 'full' ? 'rgba(255,255,255,0.15)' : 'transparent', color: device === 'full' ? '#fff' : '#64748b', display: 'flex', alignItems: 'center' }}>
+              <MoveVertical size={16} />
             </div>
           </Tooltip>
         </div>
@@ -128,6 +148,17 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
               <Redo2 size={16} />
             </div>
           </Tooltip>
+          <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+          <Tooltip title="Reload Page (If stuck)">
+            <div 
+              onClick={() => window.dispatchEvent(new CustomEvent('genzite:grapes:reload'))} 
+              style={{ cursor: 'pointer', padding: '6px 8px', borderRadius: 6, color: '#cbd5e1', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <RefreshCcw size={16} />
+            </div>
+          </Tooltip>
         </div>
 
         {/* Zoom & Pan controls */}
@@ -153,9 +184,18 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
               <ZoomOut size={16} />
             </div>
           </Tooltip>
-          <div style={{ color: '#fff', fontSize: 13, minWidth: 40, textAlign: 'center', fontWeight: 600 }}>
-            {zoom}%
-          </div>
+          <Dropdown 
+            menu={{ items: zoomItems, onClick: handleZoomMenuClick }} 
+            trigger={['click']}
+            placement="bottom"
+          >
+            <div style={{ color: '#fff', fontSize: 13, minWidth: 40, textAlign: 'center', fontWeight: 600, cursor: 'pointer', padding: '4px 8px', borderRadius: 6, transition: 'background 0.2s' }}
+                 onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
+                 onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              {zoom}%
+            </div>
+          </Dropdown>
           <Tooltip title="Zoom In">
             <div 
               onClick={() => window.dispatchEvent(new CustomEvent('genzite:grapes:zoom-in'))} 
