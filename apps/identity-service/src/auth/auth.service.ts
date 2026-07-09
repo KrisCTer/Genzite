@@ -127,7 +127,12 @@ export class AuthService implements OnModuleInit {
       });
     }
 
-    if (user.status === 'LOCKED' || (user.lockedUntil && user.lockedUntil > new Date())) {
+    const isLockExpired = user.status === 'LOCKED' && user.lockedUntil && user.lockedUntil <= new Date();
+
+    if (
+      (user.status === 'LOCKED' && !user.lockedUntil) || 
+      (user.lockedUntil && user.lockedUntil > new Date())
+    ) {
       throw new UnauthorizedException({
         errorCode: 'AUTH_ACCOUNT_LOCKED',
         message: 'Tài khoản đã bị khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.',
@@ -143,7 +148,7 @@ export class AuthService implements OnModuleInit {
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
-      const attempts = user.failedLoginAttempts + 1;
+      const attempts = isLockExpired ? 1 : user.failedLoginAttempts + 1;
       const isLocked = attempts >= 5;
 
       await this.prisma.$transaction([
@@ -151,7 +156,7 @@ export class AuthService implements OnModuleInit {
           where: { id: user.id },
           data: {
             failedLoginAttempts: attempts,
-            status: isLocked ? 'LOCKED' : user.status,
+            status: isLocked ? 'LOCKED' : (isLockExpired ? 'ACTIVE' : user.status),
             lockedUntil: isLocked ? new Date(Date.now() + 15 * 60 * 1000) : null,
           },
         }),
@@ -189,6 +194,9 @@ export class AuthService implements OnModuleInit {
     ]);
 
     const roleNames = user.roles.map((ur) => ur.role.name.toUpperCase());
+    
+
+
     const tokens = await this.issueTokenPair({ id: user.id, email: user.email, roles: roleNames });
 
     return {

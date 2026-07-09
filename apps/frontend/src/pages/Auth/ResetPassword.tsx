@@ -58,7 +58,7 @@ const ResetPassword: React.FC = () => {
     'bg-[#0f1422] border-0 hover:border-0 focus:border-0 text-white text-sm rounded-lg h-11 px-4 placeholder-slate-500 transition-colors w-full text-left';
 
   const ctaBtnCls =
-    'h-11 w-full max-w-[200px] mx-auto font-bold text-[#090d16] bg-gradient-to-r from-[#06b6d4] to-[#10b981] hover:brightness-110 active:scale-95 border-0 transition-all rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)] cursor-pointer mt-6';
+    'h-11 w-full font-bold text-[#090d16] bg-gradient-to-r from-[#06b6d4] to-[#10b981] hover:brightness-110 active:scale-95 border-0 transition-all rounded-lg text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)] cursor-pointer';
 
   return (
     <div
@@ -113,7 +113,7 @@ const ResetPassword: React.FC = () => {
             <Input.Password placeholder="Confirm Password" className={inputCls} />
           </Form.Item>
 
-          <Form.Item>
+          <div className="mt-2">
             <Button
               type="primary"
               htmlType="submit"
@@ -123,7 +123,7 @@ const ResetPassword: React.FC = () => {
             >
               Reset Password
             </Button>
-          </Form.Item>
+          </div>
         </Form>
         <div className="mt-6 text-sm text-slate-500">
           <Link to="/login" className="text-[#06b6d4] hover:text-[#10b981] font-semibold transition-colors">

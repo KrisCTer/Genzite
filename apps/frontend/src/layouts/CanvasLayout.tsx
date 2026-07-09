@@ -56,7 +56,7 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
       {!isProjectWorkspace && (
         <div className="canvas-topbar">
           <div className="canvas-topbar-left">
-            <div className="canvas-brand" onClick={() => navigate('/home')} title="Back to workspace">
+            <div className="canvas-brand" onClick={() => navigate('/')} title="Back to workspace">
               <span className="canvas-brand-name">Genzite</span>
               <span className="canvas-brand-beta">BETA</span>
             </div>

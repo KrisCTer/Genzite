@@ -66,7 +66,7 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       key: 'user-info',
       label: (
         <div className="user-account-menu__info">
-          <span className="user-account-menu__name">{user?.name || 'User'}</span>
+          <span className="user-account-menu__name">{(user?.metadata as any)?.displayName || user?.name || 'User'}</span>
           <span className="user-account-menu__email">{user?.email}</span>
           {user?.roles?.length ? (
             <span className="user-account-menu__roles">{user.roles.join(' · ')}</span>

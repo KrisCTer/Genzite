@@ -104,7 +104,7 @@ const PreviewViewer: React.FC = () => {
       <div className="canvas-toolbar" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => window.location.href = '/home'}>
+          <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
             <span style={{ color: '#fff' }}>Genzite</span>
             <span style={{ fontSize: 10, padding: '2px 6px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, verticalAlign: 'middle', fontWeight: 600, color: '#a1a1aa' }}>BETA</span>
           </div>

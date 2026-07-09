@@ -14,7 +14,11 @@ export class IdentityProducer {
     await this.kafka.emit(KAFKA_TOPICS.USER_UPDATED, payload);
   }
 
-  async emitRoleAssigned(payload: { userId: string; roleName: string }) {
+  async emitRoleAssigned(payload: { userId: string; roleName: string; adminId?: string }) {
     await this.kafka.emit(KAFKA_TOPICS.ROLE_ASSIGNED, payload);
+  }
+
+  async emitCreditsAdjusted(payload: { userId: string; adminId: string; amount: number; newBalance: number }) {
+    await this.kafka.emit(KAFKA_TOPICS.CREDITS_ADJUSTED, payload);
   }
 }
