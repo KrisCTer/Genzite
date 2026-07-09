@@ -111,7 +111,7 @@ const UserManagement: React.FC = () => {
 
   const updateRolesMutation = useMutation({
     mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       message.success('Cập nhật quyền thành công.');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },

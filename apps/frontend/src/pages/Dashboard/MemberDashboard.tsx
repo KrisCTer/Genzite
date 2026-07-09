@@ -13,7 +13,7 @@ const MemberDashboard: React.FC = () => {
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
-    queryFn: fetchNotificationsApi,
+    queryFn: () => fetchNotificationsApi(),
     retry: 1,
   });
 

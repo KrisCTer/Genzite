@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { Sparkles, Wand2, Brain, Check } from 'lucide-react';
 
 interface ModelMenuProps {

@@ -39,12 +39,22 @@ export class AiConsumer implements OnModuleInit {
         try {
           site = await this.sitesService.findById(siteData.site.id, ownerId);
           this.logger.log(`Using existing Site ID: ${site.id} for subdomain ${site.subdomain}`);
+          try {
+            await this.sitesService.update(site.id, {
+              description: payload.prompt || site.description,
+              settings: { ...(typeof site.settings === 'object' && site.settings ? site.settings : {}), prompt: payload.prompt }
+            }, ownerId);
+          } catch (updateErr) {
+            this.logger.warn(`Could not update site description/prompt: ${updateErr}`);
+          }
         } catch (e) {
           this.logger.log(`Site ID ${siteData.site.id} not found, creating it as new site...`);
           site = await this.sitesService.create({
             id: siteData.site.id,
             name: siteData.site.name,
             subdomain: siteData.site.subdomain,
+            description: payload.prompt,
+            settings: { prompt: payload.prompt }
           }, ownerId);
           this.logger.log(`Created Site ID: ${site.id} for subdomain ${site.subdomain}`);
         }
@@ -52,13 +62,27 @@ export class AiConsumer implements OnModuleInit {
         site = await this.sitesService.create({
           name: siteData.site.name,
           subdomain: siteData.site.subdomain,
+          description: payload.prompt,
+          settings: { prompt: payload.prompt }
         }, ownerId);
         this.logger.log(`Created Site ID: ${site.id} for subdomain ${site.subdomain}`);
       }
 
       // 2. Iterate pages and create or update them
       for (const pageDef of siteData.pages) {
-        let page = await this.pagesService.findBySlug(site.id, pageDef.slug, ownerId);
+        let page: any = null;
+        if (pageDef.id) {
+          try {
+            page = await this.pagesService.findById(pageDef.id, site.id, ownerId);
+            this.logger.log(`Found target page by ID: ${page.id}`);
+          } catch (e) {
+            this.logger.log(`Page ID ${pageDef.id} not found, falling back to slug lookup...`);
+          }
+        }
+        
+        if (!page) {
+          page = await this.pagesService.findBySlug(site.id, pageDef.slug, ownerId);
+        }
         if (!page) {
           page = await this.pagesService.create(site.id, {
             title: pageDef.title,

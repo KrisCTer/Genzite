@@ -44,6 +44,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
       ownerId: userId ?? 'anonymous',
       model: dto.model,
       siteId: dto.siteId,
+      theme: dto.theme,
     });
 
     return {
@@ -170,6 +171,11 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
         }
       };
 
+      // 4. Keep-alive ping to prevent connection timeout
+      const pingInterval = setInterval(() => {
+        subscriber.next({ data: JSON.stringify({ ping: true }) } as any);
+      }, 15000);
+
       // Register events
       this.queueEvents.on('progress', onProgress);
       this.queueEvents.on('completed', onCompleted);
@@ -177,6 +183,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
 
       // Cleanup when Client closes connection or Observable completes
       return () => {
+        clearInterval(pingInterval);
         this.queueEvents.off('progress', onProgress);
         this.queueEvents.off('completed', onCompleted);
         this.queueEvents.off('failed', onFailed);

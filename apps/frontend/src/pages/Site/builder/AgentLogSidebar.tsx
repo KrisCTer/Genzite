@@ -1,33 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { 
   CheckCircleFilled, 
   SyncOutlined, 
   CloseCircleFilled, 
   ClockCircleOutlined, 
   RightOutlined,
-  DownOutlined,
-  EditOutlined,
-  BuildOutlined,
-  PlusOutlined,
-  CodeOutlined
+  DownOutlined
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import { useAiLogStore, type AiLogStep } from '../../../store/aiLogs';
-import { fetchMcpLogsApi } from '../../../api/ai';
 
 const AgentLogSidebar: React.FC = () => {
+  const { siteId } = useParams<{ siteId: string }>();
   const { steps, report, isGenerating, initDefaultLogs } = useAiLogStore();
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
 
-  const { data: mcpLogs } = useQuery({
-    queryKey: ['mcp-logs'],
-    queryFn: fetchMcpLogsApi,
-    refetchInterval: 5000,
-  });
 
   useEffect(() => {
-    initDefaultLogs();
-  }, [initDefaultLogs]);
+    initDefaultLogs(siteId);
+  }, [initDefaultLogs, siteId]);
 
 
   const renderStatusIcon = (status: AiLogStep['status']) => {
@@ -104,8 +95,8 @@ const AgentLogSidebar: React.FC = () => {
                 {report ? report.actionHistoryTitle : 'Here are key actions taken for the app:'}
               </div>
 
-              {/* If Generating: Show Live Streaming Steps */}
-              {isGenerating ? (
+              {/* Always Show Live Streaming Steps */}
+              {steps && steps.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 6 }}>
                   {steps.map((item, idx) => (
                     <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5 }}>
@@ -118,75 +109,15 @@ const AgentLogSidebar: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                /* When Done/Default: Show Gemini Edited Files & Build Status */
-                report && (
-                  <>
-                    {/* Real MCP Logs Section */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: '#E2E8F0' }}>
-                        <CodeOutlined style={{ color: '#3B82F6' }} />
-                        <span>Executed {mcpLogs ? mcpLogs.length : 0} Actions</span>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingLeft: 18, marginTop: 2, maxHeight: 300, overflowY: 'auto' }} className="gz-scrollbar">
-                        {(!mcpLogs || mcpLogs.length === 0) && (
-                          <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>
-                            Waiting for agent actions...
-                          </div>
-                        )}
-                        {(mcpLogs || []).map((log: any, i: number) => (
-                          <div key={log.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, fontFamily: 'monospace', color: '#CBD5E1' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }} title={log.toolName}>
-                              {log.toolName} <span style={{ color: '#64748B' }}>({log.action})</span>
-                            </span>
-                            {log.status === 'SUCCESS' ? <CheckCircleFilled style={{ color: '#10B981', fontSize: 13, flexShrink: 0 }} /> : <CloseCircleFilled style={{ color: '#EF4444', fontSize: 13, flexShrink: 0 }} title={log.status} />}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Build Status Section */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, paddingTop: 8, borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: '#E2E8F0' }}>
-                        <BuildOutlined style={{ color: '#10B981' }} />
-                        <span>build</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#10B981' }}>
-                        <span>{report.buildStatus}</span>
-                        <CheckCircleFilled style={{ fontSize: 13 }} />
-                      </div>
-                    </div>
-                  </>
-                )
+                <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>
+                  Waiting for agent actions...
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Summary Prose & Achievements */}
-        {!isGenerating && report && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 13, lineHeight: 1.6, color: '#E2E8F0', marginTop: 2 }}>
-            <div style={{ whiteSpace: 'pre-line' }}>
-              {report.summaryIntro}
-            </div>
 
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginTop: 4 }}>
-              {report.summaryTitle}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 4 }}>
-              {report.achievements.map((ach, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span style={{ color: '#3B82F6', fontWeight: 'bold' }}>•</span>
-                  <div>
-                    <strong style={{ color: '#fff', fontWeight: 600 }}>{ach.title} </strong>
-                    <span style={{ color: '#CBD5E1' }}>{ach.desc}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
 

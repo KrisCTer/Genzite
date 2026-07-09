@@ -5,7 +5,6 @@ import {
   GlobalOutlined, LockOutlined, LinkOutlined, SearchOutlined, ClockCircleOutlined, FlagOutlined,
   GithubOutlined, CloudUploadOutlined, DatabaseOutlined, CreditCardOutlined, MailOutlined,
   ApiOutlined, BarChartOutlined, SafetyCertificateOutlined, DownOutlined, CloseOutlined,
-  PlayCircleOutlined, InfoCircleOutlined, CheckCircleOutlined, CopyOutlined, ShareAltOutlined,
   RightOutlined, SettingOutlined, QuestionCircleOutlined
 } from '@ant-design/icons';
 
@@ -163,7 +162,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             lineHeight: 1.6,
             fontFamily: 'var(--font-sans)',
           }}>
-            {promptVal || 'Create an app that takes a product image and visualizes it in various marketing mediums like coffee mugs, billboards, and t-shirts using generative AI. Ensure product consistency between each frame using nano banana'}
+            {promptVal || 'Chưa có thông tin prompt cho ứng dụng này.'}
           </div>
         </div>
 
@@ -467,7 +466,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
                   </div>
                 </div>
                 <div
-                  onClick={() => message.info('Mở trang quản lý gói cước & hạn mức AI')}
+                  onClick={() => message.info('Opening plan & AI quota management page...')}
                   style={{ color: '#94A3B8', fontSize: 18, cursor: 'pointer', padding: 4 }}
                   title="Usage settings"
                 >
@@ -607,7 +606,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ color: '#94A3B8', fontSize: 13 }}>Owner</span>
-                  <CloseOutlined style={{ color: '#64748B', fontSize: 12, cursor: 'pointer' }} onClick={() => message.info('Không thể xóa chủ sở hữu (Owner)')} />
+                  <CloseOutlined style={{ color: '#64748B', fontSize: 12, cursor: 'pointer' }} onClick={() => message.info('Cannot remove workspace Owner')} />
                 </div>
               </div>
             </div>
@@ -736,7 +735,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
               <button
                 onClick={() => {
                   if (onPublish) onPublish();
-                  else message.success('Đang khởi tạo liên kết công khai cho ứng dụng (Publishing)...');
+                  else message.success('Generating public URL for project...');
                   setIsChatSettingsOpen(false);
                 }}
                 style={{
@@ -834,7 +833,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             <div style={{ marginTop: 'auto', paddingTop: 24 }}>
               <button
                 disabled
-                onClick={() => message.info('Đây đang là phiên bản hiện tại (Current version)')}
+                onClick={() => message.info('This is currently the active version')}
                 style={{
                   background: '#18181B',
                   border: '1px solid #27272A',
@@ -896,7 +895,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  onClick={() => message.info(`Đang kết nối tích hợp: ${item.name}`)}
+                  onClick={() => message.info(`Connecting integration: ${item.name}`)}
                   style={{
                     background: 'rgba(255, 255, 255, 0.03)',
                     border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -950,7 +949,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             key="save"
             onClick={() => {
               setIsCustomInstOpen(false);
-              message.success('Đã lưu chỉ dẫn tùy chỉnh cho AI (Custom Instructions saved)!');
+              message.success('Custom AI instructions saved!');
             }}
             style={{ background: '#06B6D4', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
           >
@@ -996,14 +995,14 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
       <Modal
         open={isBugReportOpen}
         onCancel={() => setIsBugReportOpen(false)}
-        title={<span style={{ color: '#fff', fontSize: 18, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Gửi lỗi</span>}
+        title={<span style={{ color: '#fff', fontSize: 18, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Submit Feedback</span>}
         footer={[
           <button
             key="submit"
             onClick={() => {
               setIsBugReportOpen(false);
               setBugReportText('');
-              message.success('Cảm ơn bạn! Báo cáo lỗi đã được gửi đến nhóm phát triển Genzite.');
+              message.success('Thank you! Your feedback has been sent to the Genzite development team.');
             }}
             style={{
               background: '#27272A',
@@ -1020,7 +1019,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             onMouseEnter={(e) => { e.currentTarget.style.background = '#3F3F46'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = '#27272A'; }}
           >
-            Gửi
+            Submit
           </button>
         ]}
         width={520}
@@ -1041,15 +1040,15 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
         }}
       >
         <div style={{ color: '#94A3B8', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
-          Việc gửi báo cáo phản hồi này sẽ gửi các thông tin sau cho Genzite:
+          Submitting this report will send the following diagnostic details to Genzite:
           <ul style={{ margin: '8px 0 0 20px', padding: 0, listStyleType: 'disc', color: '#94A3B8' }}>
-            <li style={{ marginBottom: 4 }}>Mã nhận dạng của ứng dụng</li>
-            <li>ID của các tác vụ bạn đã thực hiện trong phiên này</li>
+            <li style={{ marginBottom: 4 }}>Application unique identifier</li>
+            <li>Actions & task IDs executed during this session</li>
           </ul>
         </div>
 
         <div style={{ color: '#94A3B8', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
-          Phản hồi của bạn là Phản hồi theo <span style={{ color: '#60A5FA', cursor: 'pointer', fontWeight: 500 }} onClick={() => message.info('Điều khoản dịch vụ Genzite')}>Điều khoản</span> và có thể được sử dụng để cải thiện dịch vụ của chúng tôi theo <span style={{ color: '#60A5FA', cursor: 'pointer', fontWeight: 500 }} onClick={() => message.info('Chính sách quyền riêng tư Genzite')}>Chính sách quyền riêng tư</span> của chúng tôi. Không gửi thông tin cá nhân, nhạy cảm hoặc bí mật.
+          Your feedback is governed by Genzite <span style={{ color: '#60A5FA', cursor: 'pointer', fontWeight: 500 }} onClick={() => message.info('Genzite Terms of Service')}>Terms of Service</span> and may be used to improve our services according to our <span style={{ color: '#60A5FA', cursor: 'pointer', fontWeight: 500 }} onClick={() => message.info('Genzite Privacy Policy')}>Privacy Policy</span>. Do not include personal, sensitive, or confidential information.
         </div>
 
         <textarea
@@ -1069,7 +1068,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             resize: 'vertical',
             transition: 'border-color 0.2s',
           }}
-          placeholder="Hãy cho chúng tôi biết điều gì đã xảy ra"
+          placeholder="Tell us what happened or describe any issues you encountered"
           onFocus={(e) => { e.target.style.borderColor = '#52525B'; }}
           onBlur={(e) => { e.target.style.borderColor = '#27272A'; }}
         />

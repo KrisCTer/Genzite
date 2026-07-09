@@ -56,11 +56,35 @@ const PreviewViewer: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  const [scale, setScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const availableWidth = rect.width - 64; // 32px padding on each side
+      
+      let targetWidth = 1440;
+      if (device === 'mobile') targetWidth = 390;
+      else if (device === 'tablet') targetWidth = 768;
+
+      if (availableWidth < targetWidth) {
+        setScale(availableWidth / targetWidth);
+      } else {
+        setScale(1);
+      }
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [device]);
+
   const getWidth = () => {
     switch (device) {
       case 'mobile': return 390;
       case 'tablet': return 768;
-      case 'desktop': return '100%';
+      case 'desktop': return 1440;
     }
   };
 
@@ -139,7 +163,10 @@ const PreviewViewer: React.FC = () => {
 
       {/* Main Preview Area */}
       <div 
-        ref={canvasCenterRef}
+        ref={(el) => {
+          containerRef.current = el;
+          canvasCenterRef.current = el;
+        }}
         className="canvas-center"
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
@@ -151,8 +178,8 @@ const PreviewViewer: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'auto',
-          padding: '100px 18vw 48px 18vw',
+          overflow: 'hidden',
+          padding: '32px',
           position: 'relative'
         }}
       >
@@ -161,13 +188,15 @@ const PreviewViewer: React.FC = () => {
           style={{
           width: getWidth(),
           height: '100%',
-          maxWidth: '1440px',
+          maxHeight: '800px',
           background: '#fff',
           borderRadius: 24,
           border: '6px solid rgba(148, 163, 184, 0.4)',
           overflow: 'hidden',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          transition: 'width 0.3s ease',
+          transition: 'width 0.3s ease, transform 0.3s ease',
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
