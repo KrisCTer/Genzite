@@ -17,7 +17,34 @@ export class UploadService {
   private readonly s3 = new S3Client({
     // AWS region used to access S3.
     region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
+
+  async getPresignedUrl(fileName: string, fileType: string) {
+    const fileKey = `uploads/test_${Date.now()}_${fileName}`;
+    const BUCKET_NAME = process.env.AWS_S3_BUCKET || '';
+    const REGION = process.env.AWS_REGION || 'us-east-1';
+
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: fileKey,
+      ContentType: fileType,
+    });
+
+    const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: 300 });
+    const viewUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${fileKey}`;
+
+    return {
+      uploadUrl,
+      viewUrl,
+    };
+  }
+
   async generatePresignedUrl(
     ownerId: string,
     filename: string,

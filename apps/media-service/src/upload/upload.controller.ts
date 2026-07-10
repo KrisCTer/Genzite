@@ -1,6 +1,8 @@
 import {
   Controller,
   Post,
+  Get,
+  Query,
   Body,
   Headers,
   BadRequestException,
@@ -10,6 +12,17 @@ import { UploadService } from "./upload.service.js";
 @Controller("media")
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
+
+  @Get("upload/presigned-url")
+  async getPresignedUrlGet(
+    @Query("fileName") fileName: string,
+    @Query("fileType") fileType: string,
+  ) {
+    if (!fileName || !fileType) {
+      throw new BadRequestException("fileName and fileType query parameters are required");
+    }
+    return this.uploadService.getPresignedUrl(fileName, fileType);
+  }
 
   @Post("presigned-url")
   async getPresignedUrl(

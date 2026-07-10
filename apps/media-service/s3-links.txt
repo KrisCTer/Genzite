@@ -1,0 +1,9 @@
+=== BUCKET INFO ===
+Bucket: genzite-media-dev-khoa-811046140260-us-east-1-an
+Region: us-east-1
+
+=== LINK UPLOAD TẠM THỜI (PRESIGNED URL) ===
+https://genzite-media-dev-khoa-811046140260-us-east-1-an.s3.us-east-1.amazonaws.com/uploads/test_1783672323770_test-avatar.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA3ZVQ57FSJUC2M4HW%2F20260710%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260710T083203Z&X-Amz-Expires=300&X-Amz-Signature=ec50e5ed5a486db84fa19d9ecfbc7e2bb023836e6429af5bc3e7f14afcf91e5c&X-Amz-SignedHeaders=host&x-id=PutObject
+
+=== LINK XEM ẢNH THẬT ===
+https://genzite-media-dev-khoa-811046140260-us-east-1-an.s3.us-east-1.amazonaws.com/uploads/test_1783672323770_test-avatar.png

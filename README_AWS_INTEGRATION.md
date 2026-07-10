@@ -36,9 +36,22 @@ sequenceDiagram
     BE-->>FE: Trả về bản ghi database hoàn chỉnh (MediaFile)
 ```
 
-Yêu cầu User B hoàn thiện đúng 2 endpoint sau trong gói `apps/media-service` (đã khớp sẵn với hàm gọi API `uploadMediaFileApi` tại [media.ts](file:///d:/duanthuctap/Genzite/apps/frontend/src/api/media.ts) của Frontend):
+Yêu cầu User B hoàn thiện các endpoint sau trong gói `apps/media-service`:
 
-### a) Endpoint 1: Lấy liên kết tải lên ký trước (Presigned URL)
+### a) Endpoint 1: Lấy liên kết tải lên ký trước (Presigned URL - Phương thức GET)
+*   **Path:** `GET /api/v1/media/upload/presigned-url`
+*   **Query Parameters:**
+    *   `fileName`: Tên tệp tin (ví dụ: `avatar.png`)
+    *   `fileType`: Loại mime-type (ví dụ: `image/png`)
+*   **Response Body Mẫu (HTTP 200 OK):**
+    ```json
+    {
+      "uploadUrl": "https://genzite-media-dev-khoa-811046140260-us-east-1-an.s3.amazonaws.com/uploads/test_1783668255819_test-avatar.png?AWSAccessKeyId=...&Expires=...",
+      "viewUrl": "https://genzite-media-dev-khoa-811046140260-us-east-1-an.s3.us-east-1.amazonaws.com/uploads/test_1783668255819_test-avatar.png"
+    }
+    ```
+
+### b) Endpoint 2: Lấy liên kết tải lên ký trước (Presigned URL - Phương thức POST dùng cho luồng Frontend)
 *   **Path:** `POST /api/v1/media/presigned-url`
 *   **Headers:**
     ```http
