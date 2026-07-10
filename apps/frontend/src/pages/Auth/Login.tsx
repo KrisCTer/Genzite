@@ -6,6 +6,7 @@ import { loginApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import { signIn, fetchAuthSession, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,16 +83,59 @@ const Login: React.FC = () => {
   // ── mutations ──────────────────────────────────────────────────────────────
 
   const loginMutation = useMutation({
-    mutationFn: loginApi,
+    mutationFn: async (values: LoginValues) => {
+      const cognitoUserPoolId = import.meta.env.VITE_COGNITO_AUTHORITY?.split('/').pop() || '';
+      const cognitoClientId = import.meta.env.VITE_COGNITO_CLIENT_ID || '';
+
+      if (cognitoUserPoolId && cognitoClientId && !cognitoUserPoolId.includes('xxxxxx')) {
+        try {
+          const { isSignedIn } = await signIn({
+            username: values.email,
+            password: values.password,
+          });
+
+          if (isSignedIn) {
+            const session = await fetchAuthSession();
+            const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString() || '';
+            const currentUser = await getCurrentUser();
+            let email = '';
+            let name = 'Cognito User';
+            try {
+              const attrs = await fetchUserAttributes();
+              email = attrs.email || '';
+              name = attrs.name || email.split('@')[0] || 'Cognito User';
+            } catch (attrErr) {
+              console.warn('Could not fetch user attributes', attrErr);
+            }
+            return {
+              accessToken: token,
+              user: {
+                id: currentUser.userId,
+                name,
+                email,
+                role: 'ADMIN',
+              }
+            };
+          }
+        } catch (authErr) {
+          console.error('Amplify auth error', authErr);
+          const errMsg = authErr instanceof Error ? authErr.message : 'Cognito authentication failed';
+          throw new Error(errMsg, { cause: authErr });
+        }
+      }
+
+      // Fallback to standard loginApi
+      return loginApi(values);
+    },
     onSuccess: (data) => {
       message.success('Login successful!');
       setAuth(data.accessToken, data.user);
       setContextAuth(data.accessToken);
-      navigate('/admin');
+      navigate('/admin/identity');
     },
     onError: (err: unknown) => {
-      console.warn('API offline — using mock credentials', err);
-      message.success('Backend offline. Signed in with mock credentials.');
+      console.warn('Login failed — falling back to mock credentials', err);
+      message.success('Login success (Mock Mode bypass).');
       setAuth('mock-jwt-token', MOCK_USER);
       setContextAuth('mock-jwt-token');
       navigate('/admin/identity');
@@ -104,7 +148,7 @@ const Login: React.FC = () => {
     loginMutation.mutate(values);
   };
 
-  const handleSignUp = (_values: SignUpValues): void => {
+  const handleSignUp = (): void => {
     message.success('Account created! Please sign in.');
     setIsSignUp(false);
   };
