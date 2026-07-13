@@ -15,7 +15,7 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
       } else {
         addEl(sel);
       }
-      els.forEach(el => {
+      els.forEach((el: any) => {
         const origTransition = el.style.transition;
         const origBoxShadow = el.style.boxShadow;
         const origOutline = el.style.outline;
@@ -83,16 +83,16 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
           const parent = firstModel.parent();
           if (parent) {
             // Check if absolute positioning is prevalent
-            const isAbsolute = selectedAll.some(c => c.getStyle().position === 'absolute' || (c.getEl() && window.getComputedStyle(c.getEl()).position === 'absolute'));
+            const isAbsolute = selectedAll.some((c: any) => c.getStyle().position === 'absolute' || (c.getEl() && window.getComputedStyle(c.getEl()).position === 'absolute'));
 
             const insertAt = firstModel.index();
             const group = parent.append(`<div class="__gz-group" data-gz-group="true"></div>`, { at: insertAt })[0];
 
             if (isAbsolute) {
               let minTop = Infinity, minLeft = Infinity, maxBottom = -Infinity, maxRight = -Infinity;
-              const els = selectedAll.map(c => c.getEl());
+              const els = selectedAll.map((c: any) => c.getEl());
 
-              els.forEach(el => {
+              els.forEach((el: any) => {
                 if (el) {
                   const rect = el.getBoundingClientRect();
                   const parentRect = el.parentElement ? el.parentElement.getBoundingClientRect() : { top: 0, left: 0 };
@@ -114,7 +114,7 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
                 outline: '1px dashed #06B6D4'
               });
 
-              selectedAll.forEach((c, i) => {
+              selectedAll.forEach((c: any, i: number) => {
                 const el = els[i];
                 if (el) {
                   const rect = el.getBoundingClientRect();
@@ -139,7 +139,7 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
                 outline: '1px dashed #06B6D4',
                 padding: '10px'
               });
-              selectedAll.forEach(c => {
+              selectedAll.forEach((c: any) => {
                 c.set({ selectable: false, hoverable: false, draggable: false });
                 group.append(c);
               });
@@ -162,7 +162,7 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
             const groupLeft = parseFloat(selected.getStyle().left) || 0;
 
             const childrenArr = [...children];
-            childrenArr.forEach(c => {
+            childrenArr.forEach((c: any) => {
               c.set({ selectable: true, hoverable: true, draggable: true });
               if (isAbsolute) {
                 const childTop = parseFloat(c.getStyle().top) || 0;
@@ -190,7 +190,7 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
             const isAbsolute = style.position === 'absolute' || style.position === 'relative';
             if (isAbsolute) {
               let maxZ = 0;
-              parent.components().forEach(c => {
+              parent.components().forEach((c: any) => {
                 if (c !== selected) {
                   const z = parseInt(c.getStyle()['z-index'] || '0', 10);
                   if (!isNaN(z) && z > maxZ) maxZ = z;
@@ -214,7 +214,7 @@ export const triggerCanvasFeedback = (editor: any, sel?: any, color = '#38BDF8')
             const isAbsolute = style.position === 'absolute' || style.position === 'relative';
             if (isAbsolute) {
               selected.addStyle({ 'z-index': '0' });
-              parent.components().forEach((c, idx) => {
+              parent.components().forEach((c: any, idx: number) => {
                 if (c !== selected) {
                   const z = parseInt(c.getStyle()['z-index'] || '0', 10);
                   if (isNaN(z) || z <= 0) c.addStyle({ 'z-index': `${idx + 1}` });

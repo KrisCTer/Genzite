@@ -88,6 +88,7 @@ const UserManagement: React.FC = () => {
   const activeCount = useMemo(() => users.filter(u => u.status === 'ACTIVE').length, [users]);
   const lockedCount = useMemo(() => users.filter(u => u.status === 'LOCKED').length, [users]);
 
+  // @ts-ignore
   const updateRolesMutation = useMutation({
     mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
     onSuccess: () => {

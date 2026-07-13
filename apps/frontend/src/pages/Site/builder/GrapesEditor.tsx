@@ -18,7 +18,7 @@ export interface GrapesEditorRef {
 
 import { CUSTOM_SECTORS } from './GrapesSectors';
 import { registerGenziteBlocks } from './GrapesBlocks';
-import { triggerCanvasFeedback, handleGrapesAction } from './GrapesActions';
+import { handleGrapesAction } from './GrapesActions';
 
 interface GrapesEditorProps {
   htmlContent: string;
@@ -399,7 +399,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         editor.setStyle(cssContent);
       }
 
-      if (readOnly) {
+      if (readOnly && iframeDoc) {
         // Disable selection and editing
         editor.Commands.stop('select-comp');
         const lockStyle = iframeDoc.createElement('style');
@@ -435,7 +435,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
           }
           const blocksEl = document.getElementById('gjs-blocks');
           if (blocksEl && editor.BlockManager && blocksEl.children.length === 0) {
-            blocksEl.appendChild(editor.BlockManager.render());
+            blocksEl.appendChild(editor.BlockManager.render() as Node);
           }
         } catch (e) {
           console.error('GrapesEditor: Panel mount error:', e);
@@ -655,7 +655,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       }
     };
 
-    let layerObserver: MutationObserver | undefined;
+
 
     const enableFreeResizing = (model: any) => {
       if (!model) return;

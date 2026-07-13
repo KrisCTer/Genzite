@@ -1,20 +1,15 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Dropdown, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
+import { Layout, Menu, Typography, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
 import {
-  UserOutlined,
   DatabaseOutlined,
   BellOutlined,
-  SettingOutlined,
-  LogoutOutlined,
   RocketOutlined,
 } from '@ant-design/icons';
-import UserAvatar from '../components/UserAvatar';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi, type AppNotification } from '../api/notifications';
+import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
-import { logoutApi } from '../api/auth';
-import { hasMemberAccess, getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
+import { getNotificationsPath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
 import { resolveUserRoles } from '../utils/jwt';
 import UserAccountMenu from '../components/UserAccountMenu';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
@@ -61,13 +56,13 @@ const AdminLayout: React.FC = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const isAdminArea = location.pathname.startsWith(ADMIN_BASE);
   const effectiveRoles = resolveUserRoles(user?.roles, token);
   const menuConfig = isAdminArea ? ADMIN_MENU : WORKSPACE_MENU;
   const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
   const notificationsPath = getNotificationsPath(effectiveRoles);
-  const profilePath = getProfilePath(effectiveRoles);
+
 
   const isFullWidthPage = location.pathname.includes('/notifications') ||
     location.pathname.includes('/identity') ||

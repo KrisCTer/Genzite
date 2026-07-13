@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import './CanvasLayout.css';
 
-import { FileText, Gamepad2, PenTool, Gift, MoreVertical, X, Settings } from 'lucide-react';
+import { FileText, Gamepad2, PenTool, Gift, MoreVertical } from 'lucide-react';
 import { RocketOutlined } from '@ant-design/icons';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../store/auth';
@@ -101,8 +101,8 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
                   isOpen={isUserMenuOpen}
                   onClose={() => setIsUserMenuOpen(false)}
                   onLogout={handleLogout}
-                  user={user}
-                  menuRef={menuRef}
+                  user={user as any}
+                  menuRef={menuRef as any}
                 />
               )}
             </div>

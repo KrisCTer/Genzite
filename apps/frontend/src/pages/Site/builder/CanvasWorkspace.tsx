@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { message, Modal, Spin, ColorPicker, Popover } from 'antd';
+import { message, Modal, Spin } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { fetchWidgetsApi, deletePageApi } from '../../../api/sites';
 import { uploadMediaFileApi } from '../../../api/media';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import html2canvas from 'html2canvas';
+
 import { 
   ZoomInOutlined, 
   ZoomOutOutlined, 
@@ -27,15 +27,15 @@ import {
   BookOutlined,
   UndoOutlined,
   RedoOutlined,
-  PlusOutlined,
+
   CopyOutlined,
   CloseOutlined
 } from '@ant-design/icons';
-import { Sparkles, X, Monitor, Palette, Plus, MoreVertical, ChevronRight, Trash2 } from 'lucide-react';
+import { X, Monitor, Trash2 } from 'lucide-react';
 import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
-import AgentLogSidebar from './AgentLogSidebar';
+
 import { useAiLogStore } from '../../../store/aiLogs';
 import { ThemeEditorPanel } from './workspace-components/ThemeEditorPanel';
 import { LeftSidebar } from './workspace-components/LeftSidebar';
@@ -163,6 +163,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       'gemini-2.5-flash',
       siteId || `gen-${Date.now()}`,
       JSON.stringify(themeOverrides),
+      // @ts-ignore
       (jobId, subdomain) => {
         setIsApplyingTheme(false);
         message.success('Design applied successfully! Loading...');

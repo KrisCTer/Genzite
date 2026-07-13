@@ -125,7 +125,7 @@ const Login: React.FC = () => {
     mutationFn: registerApi,
     onSuccess: (data) => {
       setRegisterError(null);
-      message.success(data.message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
+      message.success((data as any).message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
       setIsSignUp(false);
     },
     onError: (err: any) => {

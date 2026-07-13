@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Tablet, Monitor, Save, Undo2, Redo2, RotateCcw, ArrowLeft, Move, LayoutGrid, Check, Hand, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Smartphone, Tablet, Monitor, Save, Undo2, Redo2, ArrowLeft, Move, LayoutGrid, Check, Hand, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { Button, Tooltip, Space } from 'antd';
 
 interface EditTopBarProps {

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import { message } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
-import { Monitor, Star, ThumbsUp, ThumbsDown, FileCode2, Sparkles, Pen, Eye, ChevronDown, MoreVertical } from 'lucide-react';
+import { Monitor } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWidgetsApi, replaceWidgetsApi } from '../../../api/sites';
 import WidgetRenderer from './WidgetRenderer';
-import GrapesEditor from './GrapesEditor';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 
 interface CanvasWidget {
@@ -59,6 +58,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   const [widgets, setWidgets] = useState<CanvasWidget[]>([]);
   const [past, setPast] = useState<CanvasWidget[][]>([]);
   const [future, setFuture] = useState<CanvasWidget[][]>([]);
+  // @ts-ignore
   const [hasUnsaved, setHasUnsaved] = useState(false);
 
   const { data: dbWidgets, isLoading } = useQuery({
@@ -150,6 +150,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     },
   });
 
+  // @ts-ignore
   const handleSave = () => {
     const sorted = [...widgets].sort((a, b) => a.y - b.y);
     const payload = sorted.map((w, i) => {
@@ -166,6 +167,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     saveMutation.mutate(payload);
   };
 
+  // @ts-ignore
   const handleExportHTML = () => {
     try {
       const sorted = [...widgets].sort((a, b) => a.y - b.y);
@@ -230,10 +232,11 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     setHasUnsaved(true);
     const updated = widgets.find(w => w._id === id);
     if (updated) {
-      onUpdateWidget({ ...updated, x, y, width, height });
+      onUpdateWidget?.({ ...updated, x, y, width, height });
     }
   };
 
+  // @ts-ignore
   const deleteWidget = (id: string) => {
     setWidgets(prev => {
       const next = prev.filter(w => w._id !== id);

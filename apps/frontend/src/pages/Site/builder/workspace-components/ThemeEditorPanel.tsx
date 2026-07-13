@@ -1,7 +1,7 @@
 import React from 'react';
 import { ColorPicker, Popover, Spin } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import { ChevronRight, Sparkles, Palette, X, Plus, MoreVertical } from 'lucide-react';
+import { ChevronRight, Palette, X, Plus, MoreVertical } from 'lucide-react';
 
 export interface ThemeEditorPanelProps {
   detailThemeId: string | null;

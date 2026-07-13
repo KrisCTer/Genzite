@@ -3,7 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Spin, Result, Button } from 'antd';
 import { fetchWidgetsPublicApi, fetchPagesApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
-import GrapesEditor from '../Site/builder/GrapesEditor';
+
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import CartDrawer from '../../components/CartDrawer';
 

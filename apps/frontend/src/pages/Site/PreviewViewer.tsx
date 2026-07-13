@@ -152,8 +152,8 @@ const PreviewViewer: React.FC = () => {
                 isOpen={isUserMenuOpen}
                 onClose={() => setIsUserMenuOpen(false)}
                 onLogout={logout}
-                user={user}
-                menuRef={menuRef}
+                user={user as any}
+                menuRef={menuRef as any}
                 style={{ top: 40, right: 0 }}
               />
             )}

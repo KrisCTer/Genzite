@@ -643,7 +643,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             <div style={{ marginTop: 'auto', paddingTop: 20 }}>
               <button
                 onClick={() => {
-                  handleShare();
+                  handleShare?.();
                   setIsChatSettingsOpen(false);
                 }}
                 style={{

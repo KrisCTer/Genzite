@@ -7,7 +7,7 @@ import { fetchNotificationsApi } from '../../api/notifications';
 import {
   User as UserIcon,
   Bell,
-  Clock,
+
   Layout,
   ChevronRight
 } from 'lucide-react';
