@@ -4,6 +4,7 @@ import {
   Body,
   Headers,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { UploadService } from "./upload.service.js";
 
@@ -50,5 +51,16 @@ export class UploadController {
     }
 
     return this.uploadService.confirmUpload(ownerId, body);
+  }
+
+  @Post("internal/delete-by-key")
+  async deleteByKey(
+    @Headers("x-internal-token") internalToken: string,
+    @Body("s3Key") s3Key: string,
+  ) {
+    if (internalToken !== process.env.INTERNAL_SERVICE_TOKEN) {
+      throw new ForbiddenException("Invalid internal service token");
+    }
+    return this.uploadService.deleteByS3Key(s3Key);
   }
 }

@@ -9,6 +9,76 @@ export class UsersService {
     private readonly identityProducer: IdentityProducer
   ) {}
 
+  async findOrCreateUser(id: string, email: string, name: string) {
+    let user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      // Provision default role
+      const adminRole = await this.prisma.role.findFirst({
+        where: { name: 'ADMIN' },
+      });
+      const userRole = await this.prisma.role.findFirst({
+        where: { name: 'USER' },
+      });
+      const roleToAssign = adminRole || userRole;
+
+      user = await this.prisma.user.create({
+        data: {
+          id,
+          email,
+          name,
+          passwordHash: '', // Cognito user - no local password
+          roles: roleToAssign
+            ? {
+                create: {
+                  roleId: roleToAssign.id,
+                },
+              }
+            : undefined,
+        },
+        include: {
+          roles: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      });
+
+      try {
+        await this.identityProducer.emitUserRegistered({
+          userId: user.id,
+          email: user.email,
+          name: user.name ?? '',
+        });
+      } catch (eventErr) {
+        console.warn('Could not emit user registered event', eventErr);
+      }
+    }
+
+    const roleNames = user.roles.map((ur) => ur.role.name.toUpperCase());
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      credits: user.credits,
+      roles: roleNames,
+      avatarUrl: user.avatarUrl,
+      metadata: user.metadata,
+      status: user.status,
+    };
+  }
+
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -43,6 +113,27 @@ export class UsersService {
   async updateProfile(id: string, dto: { name?: string; avatarUrl?: string; metadata?: any }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
+
+    if (dto.avatarUrl !== undefined && user.avatarUrl && dto.avatarUrl !== user.avatarUrl) {
+      // Extract S3 Key from absolute URL to identify the file in S3
+      const match = user.avatarUrl.match(/amazonaws\.com\/(uploads\/.*)/);
+      if (match && match[1]) {
+        const oldS3Key = match[1];
+        const mediaServiceUrl = process.env.MEDIA_SERVICE_URL || 'http://localhost:3004';
+        
+        // Native Node.js fetch call (non-blocking)
+        fetch(`${mediaServiceUrl}/api/v1/media/internal/delete-by-key`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-token': process.env.INTERNAL_SERVICE_TOKEN || '',
+          },
+          body: JSON.stringify({ s3Key: oldS3Key }),
+        }).catch((err) => {
+          console.warn('Failed to request old avatar S3 deletion', err);
+        });
+      }
+    }
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
