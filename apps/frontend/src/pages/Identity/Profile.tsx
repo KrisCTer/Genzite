@@ -8,8 +8,7 @@ import {
   CalendarDays,
   Lock,
   ShieldCheck,
-  Camera,
-  Link
+  Camera
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

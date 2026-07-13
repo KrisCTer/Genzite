@@ -144,7 +144,7 @@ const Login: React.FC = () => {
         roles,
         createdAt: data.user.createdAt ?? new Date().toISOString(),
       };
-      setAuth(data.accessToken, normalizedUser, data.refreshToken);
+      setAuth(data.accessToken, normalizedUser, (data as any).refreshToken);
       navigate(getPostLoginPath(roles), { replace: true });
     },
     onError: (err: any) => {

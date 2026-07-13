@@ -17,7 +17,7 @@ export const fetchMediaFilesApi = async () => {
   const response = await apiClient.get<MediaFile[]>('/media');
   return response.data.map((file) => ({
     ...file,
-    url: file.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${file.s3Key}`,
+    url: file.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${(file as any).s3Key}`,
   }));
 };
 
@@ -92,6 +92,6 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
   const confirmed = confirmRes.data;
   return {
     ...confirmed,
-    url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${confirmed.s3Key}`,
+    url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${(confirmed as any).s3Key}`,
   };
 };
