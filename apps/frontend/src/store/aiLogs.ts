@@ -45,7 +45,7 @@ interface AiLogState {
   failGeneration: (errorMsg: string) => void;
   initDefaultLogs: (siteId?: string) => void;
   submitSiteGeneration: (
-    prompt: string, 
+    prompt: string,
     model: string,
     siteId?: string,
     theme?: string,
@@ -92,7 +92,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
             return;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (get().report !== null && get().steps.length > 0) return;
@@ -170,7 +170,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       const elapsed = state.activeStartTime ? Math.round((Date.now() - state.activeStartTime) / 1000) : 12;
       const updatedReport = state.report ? { ...state.report, duration: `Running (${elapsed}s)...` } : null;
 
-      const updatedSteps = state.steps.map((s) => 
+      const updatedSteps = state.steps.map((s) =>
         s.status === 'in_progress' ? { ...s, status: 'completed' as const, percent: Math.max(s.percent, percent - 10) } : s
       );
 
@@ -205,7 +205,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       const realSeconds = Math.max(3, Math.round((Date.now() - startTime) / 1000));
       const usedModel = formatModelName(state.activeModel || 'gemini-2.5-flash');
       const userPrompt = state.activePrompt || '';
-      
+
       let sectionTitle = 'Home, About, Projects, Contact';
       if (userPrompt.toLowerCase().includes('home') || userPrompt.toLowerCase().includes('trang chủ')) {
         sectionTitle = 'Home Page & Components';
@@ -219,7 +219,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
         sectionTitle = userPrompt.length > 40 ? userPrompt.substring(0, 40) + '...' : userPrompt;
       }
 
-      const updatedSteps = state.steps.map((s) => 
+      const updatedSteps = state.steps.map((s) =>
         s.status === 'in_progress' ? { ...s, status: 'completed' as const, percent: 100 } : s
       );
 
@@ -256,7 +256,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
           steps: updatedSteps,
           report: newReport
         }));
-      } catch (e) {}
+      } catch (e) { }
 
       return {
         isGenerating: false,
@@ -269,7 +269,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
 
   failGeneration: (_errorMsg) => {
     set((state) => {
-      const updatedSteps = state.steps.map((s) => 
+      const updatedSteps = state.steps.map((s) =>
         s.status === 'in_progress' ? { ...s, status: 'error' as const } : s
       );
 
@@ -280,17 +280,17 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       };
     });
   },
-  
+
   submitSiteGeneration: async (prompt, model, siteId, theme, onSuccess, onError) => {
     try {
       set({ isGenerating: true, activeStartTime: Date.now(), activeModel: model, activePrompt: prompt });
       get().startGeneration(`job-${Date.now()}`, prompt, model);
-      
+
       const data = await generateSiteApi({ prompt, model, siteId, theme });
-      
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
+      const baseUrl = import.meta.env.VITE_API_URL || '/api/v1';
       globalSseConnection = new EventSource(`${baseUrl}/ai/stream/${data.jobId}`);
-      
+
       globalSseConnection.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
@@ -300,7 +300,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
           if (payload.done) {
             globalSseConnection?.close();
             globalSseConnection = null;
-            
+
             if (payload.error) {
               set({ isGenerating: false });
               get().failGeneration(payload.error);
@@ -315,7 +315,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
           console.error("SSE parse error", e);
         }
       };
-      
+
       globalSseConnection.onerror = () => {
         globalSseConnection?.close();
         globalSseConnection = null;
@@ -339,3 +339,4 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
     set({ isGenerating: false });
   }
 }));
+
