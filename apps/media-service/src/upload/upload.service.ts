@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 import { MediaProducer } from "../events/media.producer.js";
@@ -86,5 +86,35 @@ export class UploadService {
       ownerId: media.ownerId,
     });
     return media;
+  }
+
+  async deleteByS3Key(s3Key: string) {
+    // 1. Delete from S3
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: s3Key,
+      }),
+    );
+
+    // 2. Delete from Postgres if exists
+    const existing = await this.prisma.mediaFile.findUnique({
+      where: { s3Key },
+    });
+    
+    if (existing) {
+      await this.prisma.mediaFile.delete({
+        where: { id: existing.id },
+      });
+
+      // Notify other services
+      await this.mediaProducer.emitMediaDeleted({
+        mediaId: existing.id,
+        s3Key: existing.s3Key,
+        ownerId: existing.ownerId,
+      });
+    }
+
+    return { success: true, s3Key };
   }
 }

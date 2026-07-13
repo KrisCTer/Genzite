@@ -6,6 +6,7 @@ import { loginApi, registerApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import { getPostLoginPath, normalizeRoles } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
+import { signIn, fetchAuthSession, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 
 import { motion } from 'framer-motion';
 
@@ -91,7 +92,49 @@ const Login: React.FC = () => {
   // ── mutations ──────────────────────────────────────────────────────────────
 
   const loginMutation = useMutation({
-    mutationFn: loginApi,
+    mutationFn: async (values: LoginValues) => {
+      const cognitoUserPoolId = import.meta.env.VITE_COGNITO_AUTHORITY?.split('/').pop() || '';
+      const cognitoClientId = import.meta.env.VITE_COGNITO_CLIENT_ID || '';
+
+      if (cognitoUserPoolId && cognitoClientId && !cognitoUserPoolId.includes('xxxxxx')) {
+        try {
+          const { isSignedIn } = await signIn({
+            username: values.email,
+            password: values.password,
+          });
+
+          if (isSignedIn) {
+            const session = await fetchAuthSession();
+            const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString() || '';
+            const currentUser = await getCurrentUser();
+            let email = '';
+            let name = 'Cognito User';
+            try {
+              const attrs = await fetchUserAttributes();
+              email = attrs.email || '';
+              name = attrs.name || email.split('@')[0] || 'Cognito User';
+            } catch (attrErr) {
+              console.warn('Could not fetch user attributes', attrErr);
+            }
+            return {
+              accessToken: token,
+              user: {
+                id: currentUser.userId,
+                name,
+                email,
+                roles: ['ADMIN'],
+                status: 'ACTIVE' as const,
+                createdAt: new Date().toISOString(),
+              }
+            };
+          }
+        } catch (authErr) {
+          console.warn('Cognito auth failed, falling back to local database authentication', authErr);
+        }
+      }
+
+      return loginApi(values);
+    },
     onSuccess: (data) => {
       setLoginError(null);
       message.success('Login Success!');
