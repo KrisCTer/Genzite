@@ -22,6 +22,34 @@ export class UsersService {
     });
 
     if (!user) {
+      // Check if user already exists by email (e.g. created locally before Cognito)
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser) {
+        // Update user ID to match Cognito sub via raw SQL (triggers ON UPDATE CASCADE for relations)
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE "identity"."users" SET "id" = $1 WHERE "id" = $2`,
+          id,
+          existingUser.id,
+        );
+
+        // Re-fetch the user record with the new ID
+        user = await this.prisma.user.findUnique({
+          where: { id },
+          include: {
+            roles: {
+              include: {
+                role: true,
+              },
+            },
+          },
+        });
+      }
+    }
+
+    if (!user) {
       // Provision default role
       const adminRole = await this.prisma.role.findFirst({
         where: { name: 'ADMIN' },

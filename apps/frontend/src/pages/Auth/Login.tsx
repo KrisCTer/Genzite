@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, App } from 'antd';
+import { Form, Input, Button, App, Modal } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginApi, registerApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import { getPostLoginPath, normalizeRoles } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
-import { signIn, fetchAuthSession, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, signOut, fetchAuthSession, getCurrentUser, fetchUserAttributes, signUp, confirmSignUp } from 'aws-amplify/auth';
 
 import { motion } from 'framer-motion';
 
@@ -62,6 +62,11 @@ const Login: React.FC = () => {
   const [registerError, setRegisterError] = useState<string | null>(null);
   const { message } = App.useApp();
   const token = useAuthStore((state) => state.token);
+
+  // Cognito verification modal states
+  const [verificationCode, setVerificationCode] = useState<string>('');
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string>('');
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -98,6 +103,13 @@ const Login: React.FC = () => {
 
       if (cognitoUserPoolId && cognitoClientId && !cognitoUserPoolId.includes('xxxxxx')) {
         try {
+          // Clear any active Amplify session to prevent UserAlreadyAuthenticatedException
+          try {
+            await signOut();
+          } catch (soErr) {
+            // Ignore error if no active session existed
+          }
+
           const { isSignedIn } = await signIn({
             username: values.email,
             password: values.password,
@@ -106,30 +118,22 @@ const Login: React.FC = () => {
           if (isSignedIn) {
             const session = await fetchAuthSession();
             const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString() || '';
-            const currentUser = await getCurrentUser();
-            let email = '';
-            let name = 'Cognito User';
-            try {
-              const attrs = await fetchUserAttributes();
-              email = attrs.email || '';
-              name = attrs.name || email.split('@')[0] || 'Cognito User';
-            } catch (attrErr) {
-              console.warn('Could not fetch user attributes', attrErr);
-            }
+
+            // Set token temporarily so the API client is authenticated for getMeApi
+            localStorage.setItem('gz_token', token);
+
+            // Fetch the profile to trigger findOrCreateUser in the backend and get synced user data!
+            const { getMeApi } = await import('../../api/users');
+            const me = await getMeApi();
+
             return {
               accessToken: token,
-              user: {
-                id: currentUser.userId,
-                name,
-                email,
-                roles: ['ADMIN'],
-                status: 'ACTIVE' as const,
-                createdAt: new Date().toISOString(),
-              }
+              user: me,
             };
           }
         } catch (authErr) {
           console.warn('Cognito auth failed, falling back to local database authentication', authErr);
+          localStorage.removeItem('gz_token');
         }
       }
 
@@ -158,6 +162,8 @@ const Login: React.FC = () => {
         errMsg = 'Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.';
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message;
+      } else if (err.message) {
+        errMsg = err.message;
       }
 
       setLoginError(errMsg);
@@ -165,15 +171,75 @@ const Login: React.FC = () => {
   });
 
   const registerMutation = useMutation({
-    mutationFn: registerApi,
+    mutationFn: async (values: SignUpValues) => {
+      const cognitoUserPoolId = import.meta.env.VITE_COGNITO_AUTHORITY?.split('/').pop() || '';
+      const cognitoClientId = import.meta.env.VITE_COGNITO_CLIENT_ID || '';
+
+      if (cognitoUserPoolId && cognitoClientId && !cognitoUserPoolId.includes('xxxxxx')) {
+        const name = `${values.firstName} ${values.lastName}`.trim();
+        const { isSignUpComplete, nextStep } = await signUp({
+          username: values.email,
+          password: values.password,
+          options: {
+            userAttributes: {
+              email: values.email,
+              name,
+            },
+          },
+        });
+        return {
+          isCognito: true,
+          isSignUpComplete,
+          nextStep,
+          email: values.email,
+        };
+      }
+
+      const res = await registerApi({
+        email: values.email,
+        password: values.password,
+        name: `${values.firstName} ${values.lastName}`.trim(),
+      });
+      return { isCognito: false, ...res };
+    },
     onSuccess: (data) => {
       setRegisterError(null);
-      message.success(data.message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
-      setIsSignUp(false);
+      if (data.isCognito) {
+        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
+          setPendingVerificationEmail(data.email);
+          setIsVerificationModalOpen(true);
+          message.info('Mã xác thực đã được gửi đến email của bạn.');
+        } else {
+          message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+          setIsSignUp(false);
+        }
+      } else {
+        message.success((data as any).message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
+        setIsSignUp(false);
+      }
     },
     onError: (err: any) => {
       console.error('Registration error', err);
-      setRegisterError(err.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
+      setRegisterError(err.message || err.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
+    },
+  });
+
+  const confirmSignUpMutation = useMutation({
+    mutationFn: async (code: string) => {
+      await confirmSignUp({
+        username: pendingVerificationEmail,
+        confirmationCode: code,
+      });
+    },
+    onSuccess: () => {
+      setIsVerificationModalOpen(false);
+      setVerificationCode('');
+      message.success('Xác thực tài khoản thành công! Vui lòng đăng nhập.');
+      setIsSignUp(false);
+    },
+    onError: (err: any) => {
+      console.error('Verification error', err);
+      message.error(err.message || 'Mã xác thực không chính xác.');
     },
   });
 
@@ -669,6 +735,41 @@ const Login: React.FC = () => {
           </filter>
         </defs>
       </svg>
+
+      {/* Cognito verification modal */}
+      <Modal
+        title={<span className="text-white text-lg font-bold">Xác thực tài khoản Cognito</span>}
+        open={isVerificationModalOpen}
+        onCancel={() => setIsVerificationModalOpen(false)}
+        footer={null}
+        className="gz-verification-modal"
+        styles={{
+          body: { backgroundColor: '#090d16', padding: '24px 0 12px 0' },
+          content: { backgroundColor: '#090d16', border: '1px solid rgba(255,255,255,0.05)' },
+          header: { backgroundColor: '#090d16', borderBottom: 'none' },
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-slate-400 text-sm">
+            Vui lòng nhập mã xác thực gồm 6 chữ số đã được gửi tới email <strong className="text-white">{pendingVerificationEmail}</strong>.
+          </p>
+          <Input
+            placeholder="Mã xác thực (e.g. 123456)"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            className={`${inputCls} text-center text-lg tracking-widest`}
+            maxLength={6}
+          />
+          <Button
+            type="primary"
+            onClick={() => confirmSignUpMutation.mutate(verificationCode)}
+            loading={confirmSignUpMutation.isPending}
+            className={`${ctaBtnCls} w-full max-w-full`}
+          >
+            Xác thực
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };
