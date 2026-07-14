@@ -40,7 +40,24 @@ const isAuthEndpoint = (url?: string) =>
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config as typeof error.config & { _retry?: boolean };
+    const originalRequest = error.config as typeof error.config & { _retry?: boolean; _retryCount?: number };
+
+    // Auto-retry for 504 Gateway Timeout or Network Error (server booting up)
+    const isNetworkOrTimeout =
+      !error.response ||
+      error.response.status === 504 ||
+      error.code === 'ECONNREFUSED' ||
+      error.message === 'Network Error';
+
+    if (isNetworkOrTimeout && originalRequest) {
+      originalRequest._retryCount = originalRequest._retryCount || 0;
+      if (originalRequest._retryCount < 3) {
+        originalRequest._retryCount += 1;
+        console.warn(`[Auto-Retry] Backend might be booting up. Retrying ${originalRequest._retryCount}/3 in 3s...`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        return apiClient(originalRequest);
+      }
+    }
 
     if (
       error.response?.status === 401 &&

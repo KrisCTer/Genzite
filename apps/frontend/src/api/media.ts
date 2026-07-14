@@ -17,7 +17,7 @@ export const fetchMediaFilesApi = async () => {
   const response = await apiClient.get<MediaFile[]>('/media');
   return response.data.map((file) => ({
     ...file,
-    url: file.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${(file as any).s3Key}`,
+    url: file.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${file.s3Key}`,
   }));
 };
 
@@ -30,7 +30,7 @@ const convertToWebP = (file: File): Promise<File> => {
 
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-    
+
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement('canvas');
@@ -38,26 +38,26 @@ const convertToWebP = (file: File): Promise<File> => {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       if (!ctx) return resolve(file);
-      
+
       ctx.drawImage(img, 0, 0);
       canvas.toBlob((blob) => {
         if (!blob) return resolve(file);
-        
+
         const newFilename = file.name.replace(/\.[^/.]+$/, "") + '.webp';
         const webpFile = new File([blob], newFilename, {
           type: 'image/webp',
           lastModified: Date.now(),
         });
-        
+
         resolve(webpFile);
       }, 'image/webp', 0.85);
     };
-    
+
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
       resolve(file); // Fallback to original if decoding fails
     };
-    
+
     img.src = objectUrl;
   });
 };
@@ -70,7 +70,7 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
     filename: file.name,
     mimeType: file.type,
   });
-  
+
   const { uploadUrl, s3Key } = presignedRes.data;
 
   // 2. Upload file directly to S3/MinIO using the presigned URL
@@ -92,6 +92,6 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
   const confirmed = confirmRes.data;
   return {
     ...confirmed,
-    url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${(confirmed as any).s3Key}`,
+    url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${confirmed.s3Key}`,
   };
 };
