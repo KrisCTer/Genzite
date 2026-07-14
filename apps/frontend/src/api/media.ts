@@ -1,6 +1,9 @@
 import axios from 'axios';
 import apiClient from './client';
 
+const BUCKET_NAME = 'genzite-media-dev-khoa-811046140260-us-east-1-an';
+const REGION = 'us-east-1';
+
 export interface MediaFile {
   id: string;
   filename: string;
@@ -12,7 +15,10 @@ export interface MediaFile {
 
 export const fetchMediaFilesApi = async () => {
   const response = await apiClient.get<MediaFile[]>('/media');
-  return response.data;
+  return response.data.map((file) => ({
+    ...file,
+    url: file.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${file.s3Key}`,
+  }));
 };
 
 const convertToWebP = (file: File): Promise<File> => {
@@ -83,5 +89,9 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
     sizeBytes: file.size,
   });
 
-  return confirmRes.data;
+  const confirmed = confirmRes.data;
+  return {
+    ...confirmed,
+    url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${confirmed.s3Key}`,
+  };
 };
