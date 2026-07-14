@@ -11,6 +11,7 @@ export interface MediaFile {
   mimeType: string;
   size: number;
   uploadedAt: string;
+  s3Key: string;
 }
 
 export const fetchMediaFilesApi = async () => {
