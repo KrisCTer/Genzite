@@ -110,7 +110,7 @@ const Login: React.FC = () => {
             // Ignore error if no active session existed
           }
 
-          const { isSignedIn } = await signIn({
+          const { isSignedIn, nextStep } = await signIn({
             username: values.email,
             password: values.password,
           });
@@ -131,6 +131,12 @@ const Login: React.FC = () => {
               user: me,
               refreshToken: undefined,
             };
+          } else if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
+            return {
+              isCognito: true,
+              needsConfirmation: true,
+              email: values.email,
+            };
           }
         } catch (authErr) {
           console.warn('Cognito auth failed, falling back to local database authentication', authErr);
@@ -141,6 +147,15 @@ const Login: React.FC = () => {
       return loginApi(values);
     },
     onSuccess: (data) => {
+      if ('needsConfirmation' in data && data.needsConfirmation) {
+        setPendingVerificationEmail(data.email as string);
+        setIsVerificationModalOpen(true);
+        message.info('Tài khoản chưa được xác thực. Vui lòng kiểm tra email và nhập mã xác nhận.');
+        return;
+      }
+      
+      if (!('user' in data) || !data.user || !('accessToken' in data) || !data.accessToken) return;
+
       setLoginError(null);
       message.success('Login Success!');
       const roles = normalizeRoles(resolveUserRoles(data.user.roles, data.accessToken));
