@@ -6,7 +6,7 @@ import { loginApi, registerApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import { getPostLoginPath, normalizeRoles } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
-import { signIn, signOut, fetchAuthSession, getCurrentUser, fetchUserAttributes, signUp, confirmSignUp } from 'aws-amplify/auth';
+import { signIn, signOut, fetchAuthSession, signUp, confirmSignUp } from 'aws-amplify/auth';
 
 import { motion } from 'framer-motion';
 
@@ -106,7 +106,7 @@ const Login: React.FC = () => {
           // Clear any active Amplify session to prevent UserAlreadyAuthenticatedException
           try {
             await signOut();
-          } catch (soErr) {
+          } catch {
             // Ignore error if no active session existed
           }
 
@@ -129,6 +129,7 @@ const Login: React.FC = () => {
             return {
               accessToken: token,
               user: me,
+              refreshToken: undefined,
             };
           }
         } catch (authErr) {
@@ -250,11 +251,7 @@ const Login: React.FC = () => {
   };
 
   const handleSignUp = (values: SignUpValues): void => {
-    registerMutation.mutate({
-      email: values.email,
-      password: values.password,
-      name: `${values.firstName} ${values.lastName}`.trim(),
-    });
+    registerMutation.mutate(values);
   };
 
   const handleSocialLogin = (platform: 'Google' | 'GitHub'): void => {
