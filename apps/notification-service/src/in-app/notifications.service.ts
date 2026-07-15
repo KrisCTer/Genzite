@@ -25,8 +25,8 @@ export class NotificationsService {
       data: {
         userId,
         type: NotificationType.IN_APP,
-        title: "Quyền hạn thay đổi",
-        body: `Quản trị viên đã cập nhật phân quyền của bạn. Hiện tại bạn đang giữ vai trò: ${roleName}.`,
+        title: "Role Updated",
+        body: `An administrator has updated your permissions. You are currently assigned the role: ${roleName}.`,
         metadata: {
           event: "role.assigned",
           roleName,
@@ -39,8 +39,8 @@ export class NotificationsService {
         data: {
           userId: adminId,
           type: NotificationType.IN_APP,
-          title: "Cập nhật quyền thành công",
-          body: `Bạn đã cập nhật quyền hạn cho người dùng ${userId} thành vai trò: ${roleName}.`,
+          title: "Role Update Successful",
+          body: `You have successfully updated the permissions for user ${userId} to the role: ${roleName}.`,
           metadata: {
             event: "role.assigned.admin",
             targetUserId: userId,
@@ -59,8 +59,8 @@ export class NotificationsService {
       data: {
         userId,
         type: NotificationType.IN_APP,
-        title: "Tài khoản được cộng tiền",
-        body: `Admin đã nạp ${amount} GZ vào tài khoản của bạn. Số dư hiện tại: ${newBalance} GZ.`,
+        title: "Account Credited",
+        body: `An admin has credited ${amount} GZ to your account. Your new balance is: ${newBalance} GZ.`,
         metadata: {
           event: "credits.adjusted",
           adminId,
@@ -73,8 +73,8 @@ export class NotificationsService {
       data: {
         userId: adminId,
         type: NotificationType.IN_APP,
-        title: "Giao dịch thành công",
-        body: `Bạn đã nạp thành công ${amount} GZ cho user ${userId}.`,
+        title: "Transaction Successful",
+        body: `You have successfully credited ${amount} GZ to user ${userId}.`,
         metadata: {
           event: "credits.adjusted",
           targetUserId: userId,

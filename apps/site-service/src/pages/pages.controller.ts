@@ -18,8 +18,9 @@ export class PagesController {
   async findAll(
     @Param("siteId") siteId: string,
     @Headers("x-user-id") userId: string,
+    @Headers("x-user-email") userEmail: string,
   ) {
-    return this.pagesService.findBySiteId(siteId, userId);
+    return this.pagesService.findBySiteId(siteId, userId, userEmail);
   }
 
   @Post()

@@ -18,29 +18,85 @@ interface GenerateOptions {
   tools?: any[];
 }
 
+interface ApiKey {
+  key: string;
+  client: OpenAI;
+  isDead: boolean;
+  deadUntil: number;
+}
+
 @Injectable()
 export class GroqClient {
   private readonly logger = new Logger(GroqClient.name);
-  private readonly client: OpenAI;
+  private apiKeys: ApiKey[] = [];
   private readonly defaultModel: GroqModelName;
 
   constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.get<string>('GROQ_API_KEY') || 'dummy-key-to-prevent-crash';
-    this.client = new OpenAI({
-      baseURL: GROQ_BASE_URL,
-      apiKey,
-    });
+    const keyString = this.config.get<string>('GROQ_API_KEY') || 'dummy-key-to-prevent-crash';
+    const keys = keyString.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    
+    this.apiKeys = keys.map(key => ({
+      key,
+      client: new OpenAI({
+        baseURL: GROQ_BASE_URL,
+        apiKey: key,
+      }),
+      isDead: false,
+      deadUntil: 0,
+    }));
+
     this.defaultModel = (this.config.get<string>('GROQ_MODEL') ?? 'llama-3.3-70b-versatile') as GroqModelName;
     
-    if (apiKey === 'dummy-key-to-prevent-crash') {
+    if (keyString === 'dummy-key-to-prevent-crash') {
       this.logger.warn('GROQ_API_KEY is missing. Groq provider will not be available.');
     } else {
-      this.logger.log(`Groq client initialized (default model: ${this.defaultModel})`);
+      this.logger.log(`Groq client initialized with ${this.apiKeys.length} keys (default model: ${this.defaultModel})`);
     }
   }
 
   get isConfigured(): boolean {
     return !!this.config.get<string>('GROQ_API_KEY');
+  }
+
+  private async executeWithRetry<T>(operation: (client: OpenAI) => Promise<T>): Promise<T> {
+    if (this.apiKeys.length === 0) {
+      throw new Error("No GROQ_API_KEY configured.");
+    }
+
+    const now = Date.now();
+    for (const k of this.apiKeys) {
+      if (k.isDead && now > k.deadUntil) {
+        k.isDead = false;
+        this.logger.log(`Groq Key [${k.key.substring(0, 4)}...] has recovered from rate limit.`);
+      }
+    }
+
+    let lastError: any = null;
+
+    for (let i = 0; i < this.apiKeys.length; i++) {
+      const currentKey = this.apiKeys[i];
+      if (currentKey.isDead) continue;
+
+      try {
+        return await operation(currentKey.client);
+      } catch (error: any) {
+        const errorMsg = error?.message || String(error);
+        if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('rate limit') || errorMsg.toLowerCase().includes('quota')) {
+          this.logger.warn(`Groq Key [${currentKey.key.substring(0, 4)}...] exhausted quota. Circuit breaking for 24 hours.`);
+          currentKey.isDead = true;
+          currentKey.deadUntil = now + 24 * 60 * 60 * 1000;
+          lastError = error;
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    if (lastError) {
+      throw new Error(`All available Groq keys are exhausted or dead. Last error: ${lastError.message}`);
+    }
+    
+    throw new Error("All Groq keys are currently dead (Circuit Breaker active).");
   }
 
   async generateContent(prompt: string, options: GenerateOptions = {}): Promise<string> {
@@ -53,12 +109,12 @@ export class GroqClient {
     messages.push({ role: 'user', content: prompt });
 
     try {
-      const completion = await this.client.chat.completions.create({
+      const completion = await this.executeWithRetry(client => client.chat.completions.create({
         model: model ?? this.defaultModel,
         messages,
         ...(temperature !== undefined ? { temperature } : {}),
         ...(maxOutputTokens !== undefined ? { max_tokens: maxOutputTokens } : {}),
-      });
+      }));
 
       const text = completion.choices[0]?.message?.content ?? '';
       this.logger.debug(`Generated ${text.length} chars (model: ${model ?? this.defaultModel})`);
@@ -85,13 +141,13 @@ export class GroqClient {
     messages.push({ role: 'user', content: prompt });
 
     try {
-      const completion = await this.client.chat.completions.create({
+      const completion = await this.executeWithRetry(client => client.chat.completions.create({
         model: model ?? this.defaultModel,
         messages,
         response_format: { type: 'json_object' },
         ...(temperature !== undefined ? { temperature } : {}),
         ...(maxOutputTokens !== undefined ? { max_tokens: maxOutputTokens } : {}),
-      });
+      }));
 
       let text = completion.choices[0]?.message?.content ?? '{}';
       
@@ -142,13 +198,13 @@ export class GroqClient {
     messages.push({ role: 'user', content: message });
 
     try {
-      const completion = await this.client.chat.completions.create({
+      const completion = await this.executeWithRetry(client => client.chat.completions.create({
         model: model ?? this.defaultModel,
         messages,
         response_format: { type: 'json_object' },
         ...(temperature !== undefined ? { temperature } : {}),
         ...(maxOutputTokens !== undefined ? { max_tokens: maxOutputTokens } : {}),
-      });
+      }));
 
       let text = completion.choices[0]?.message?.content ?? '{}';
       

@@ -7,17 +7,16 @@ import {
   DownloadOutlined,
   CopyOutlined,
   SettingOutlined,
-  DeleteOutlined,
   MessageOutlined,
   BugOutlined,
 } from '@ant-design/icons';
 import { Dropdown, Modal, message, type MenuProps } from 'antd';
-import { Sparkles, Pen, Eye, ChevronDown, MoreVertical, Play, PlusSquare, RotateCcw, Flame, Smartphone, Layers, PlayCircle, Store, Globe, Megaphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
+import { Pen, Eye, ChevronDown, MoreVertical, Smartphone, Type, Palette, ExternalLink, QrCode, Tablet, Monitor, ArrowUpDown, Info, Code, Upload, Download, RotateCw, Trash2, Delete } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../../../store/auth';
-import { updateSiteApi, deleteSiteApi } from '../../../api/sites';
+import { updateSiteApi, deleteSiteApi, duplicateSiteApi } from '../../../api/sites';
 import { fetchAiModelsApi } from '../../../api/ai';
 import { CanvasToolbarModals } from './modals/CanvasToolbarModals';
 import { useAiLogStore } from '../../../store/aiLogs';
@@ -33,13 +32,18 @@ interface CanvasToolbarProps {
   siteId?: string;
   site?: any;
   selectedId?: string | null;
+  activePageId?: string | null;
   canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
   onDeviceChange?: (device: 'mobile' | 'tablet' | 'desktop' | 'full') => void;
   onViewDetails?: () => void;
+  onViewStyles?: (tab?: 'Theme' | 'DESIGN.md') => void;
   onViewCode?: () => void;
+  onExport?: () => void;
   onDownload?: () => void;
   onReloadPage?: () => void;
   onDeletePage?: () => void;
+  onDuplicateProject?: () => void;
+  onSelectTool?: (toolId: string) => void;
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -48,18 +52,25 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   siteId,
   site,
   selectedId,
+  activePageId,
   canvasDevice,
   onDeviceChange,
   onViewDetails,
+  onViewStyles,
   onViewCode,
+  onExport,
   onDownload,
   onReloadPage,
   onDeletePage,
+  onDuplicateProject,
+  onSelectTool,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+
+  const isOwner = !!(user?.id && site?.ownerId && site.ownerId === user.id);
 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -80,6 +91,36 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       message.error('Failed to delete project!');
     } finally {
       setIsDeletingProject(false);
+    }
+  };
+
+  const [isDuplicatingProject, setIsDuplicatingProject] = useState(false);
+
+  const handleDuplicateProject = async () => {
+    if (onDuplicateProject) {
+      onDuplicateProject();
+      return;
+    }
+    if (!siteId) {
+      message.error('Project not saved yet');
+      return;
+    }
+    const hideLoading = message.loading({ content: 'Duplicating project...', key: 'duplicate-project', duration: 0 });
+    try {
+      setIsDuplicatingProject(true);
+      await duplicateSiteApi(siteId);
+      hideLoading();
+      setIsDuplicatingProject(false);
+      message.success({ content: 'Project duplicated successfully!', key: 'duplicate-project' });
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+      navigate('/project');
+    } catch (e: any) {
+      hideLoading();
+      setIsDuplicatingProject(false);
+      message.error({ 
+        content: e?.response?.data?.message || 'Failed to duplicate project!', 
+        key: 'duplicate-project' 
+      });
     }
   };
 
@@ -125,7 +166,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     }
   };
 
-  const [micSource, setMicSource] = useState('Default');
   const [isCustomInstOpen, setIsCustomInstOpen] = useState(false);
   
   const [shareAccess, setShareAccess] = useState(site?.settings?.shareAccess || 'Restricted: Only people you specify can access');
@@ -161,6 +201,10 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     updateSetting('shareAccess', val);
   };
 
+  const handleUpdateSharedEmails = (emails: string[]) => {
+    updateSetting('sharedEmails', emails);
+  };
+
   const handleDefaultFullscreenChange = (val: boolean) => {
     setDefaultFullscreen(val);
     updateSetting('defaultFullscreen', val);
@@ -173,7 +217,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
   const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'My App');
   const [nameVal, setNameVal] = useState('');
-  const [descVal, setDescVal] = useState('');
   const [promptVal, setPromptVal] = useState('');
 
   useEffect(() => {
@@ -223,10 +266,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     }
 
     const realPrompt = settingsPrompt || site?.description || useAiLogStore.getState().activePrompt || savedPrompt || '';
-    const realDesc = site?.description || settingsPrompt || useAiLogStore.getState().activePrompt || savedPrompt || '';
 
     setNameVal(displayTitle || site?.name || siteTitle || 'New App');
-    setDescVal(realDesc);
     setPromptVal(realPrompt);
     setIsRenameModalOpen(true);
   };
@@ -240,7 +281,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       try {
         await updateSiteApi(siteId, {
           name: nameVal,
-          description: descVal,
           settings: {
             ...(typeof site?.settings === 'object' && site?.settings ? site.settings : {}),
             prompt: promptVal,
@@ -288,9 +328,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       key: 'duplicate',
       icon: <CopyOutlined />,
       label: 'Duplicate project',
-      onClick: () => {
-        message.success('Project duplicated successfully!');
-      },
+      disabled: isDuplicatingProject,
+      onClick: handleDuplicateProject,
     },
     {
       type: 'divider',
@@ -326,7 +365,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: 'delete',
-      icon: <DeleteOutlined />,
+      icon: <Delete size={16} />,
       label: 'Delete project',
       onClick: () => {
         setIsDeleteProjectModalOpen(true);
@@ -334,145 +373,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
   ];
 
-  const generateMenuItems: MenuProps['items'] = [
-    {
-      key: '1',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 260, padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Play size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Instant Prototype</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    },
-    {
-      key: '2',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <PlusSquare size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Variants</span>
-          </div>
-          <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
-            ⇧V
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: '3',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <RotateCcw size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Regenerate</span>
-          </div>
-          <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, letterSpacing: '0.05em' }}>
-            ⇧R
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: '4',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
-          <Flame size={16} style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Predictive Heatmap</span>
-        </div>
-      ),
-    },
-    {
-      key: '5',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
-          <Smartphone size={16} style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Mobile App Version</span>
-        </div>
-      ),
-    },
-    { type: 'divider', style: { borderColor: 'rgba(255,255,255,0.06)', margin: '8px 0' } },
-    {
-      key: '6',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Layers size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Missing States</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    },
-    {
-      key: '7',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <PlayCircle size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Create Animations</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    },
-    {
-      key: '8',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Store size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>App Store Assets</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    },
-    {
-      key: '9',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Globe size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Web Assets</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    },
-    {
-      key: '10',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Megaphone size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Marketing Kit</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    },
-    {
-      key: '11',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Eye size={16} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Accessibility Audit</span>
-          </div>
-          <div style={{ fontSize: 10, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', color: '#818CF8', padding: '2px 6px', borderRadius: 6, fontWeight: 600 }}>NEW</div>
-        </div>
-      ),
-    }
-  ];
 
   const modifyMenuItems: MenuProps['items'] = [
     {
       key: '1',
       onClick: () => {
-        if (siteId) navigate(`/edit/${siteId}`);
+        if (siteId) navigate(`/edit/${siteId}${activePageId ? `?pageId=${activePageId}` : ''}`);
       },
       label: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: 220, padding: '6px 4px', color: '#fff' }}>
@@ -488,6 +394,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: '2',
+      onClick: () => {
+        if (onSelectTool) onSelectTool('draw');
+      },
       label: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -502,6 +411,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     {
       key: '3',
+      onClick: () => {
+        if (onViewStyles) onViewStyles('DESIGN.md');
+      },
       label: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
           <Palette size={16} style={{ opacity: 0.7 }} />
@@ -516,7 +428,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       key: '1',
       onClick: () => {
         if (siteId) {
-          window.open(`/preview/${siteId}`, '_blank');
+          window.open(`/preview/${siteId}${activePageId ? `?pageId=${activePageId}` : ''}`, '_blank');
         } else {
           message.warning('Please save project before previewing');
         }
@@ -553,7 +465,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             <span style={{ fontSize: 14, fontWeight: 500 }}>Mobile</span>
           </div>
           <div style={{ fontSize: 12, color: canvasDevice === 'mobile' ? '#38bdf8' : '#94A3B8', fontWeight: 500 }}>
-            390×884
+            390×844
           </div>
         </div>
       ),
@@ -583,7 +495,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             <span style={{ fontSize: 14, fontWeight: 500 }}>Desktop</span>
           </div>
           <div style={{ fontSize: 12, color: canvasDevice === 'desktop' ? '#38bdf8' : '#94A3B8', fontWeight: 500 }}>
-            1280×1024
+            1440×900
           </div>
         </div>
       ),
@@ -642,7 +554,10 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     {
       key: '3',
       label: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', color: '#fff' }}
+          onClick={() => { if (onExport) onExport(); }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Upload size={16} style={{ opacity: 0.7 }} />
             <span style={{ fontSize: 14, fontWeight: 500 }}>Export</span>
@@ -726,12 +641,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
           <div
             className="canvas-project-title-wrapper"
-            onClick={handleOpenRename}
+            onClick={isOwner ? handleOpenRename : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              cursor: 'pointer',
+              cursor: isOwner ? 'pointer' : 'default',
               padding: '4px 10px',
               borderRadius: 8,
               transition: 'all 0.2s ease',
@@ -751,7 +666,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             <span style={{ fontSize: 15, fontWeight: 600, color: '#fff', letterSpacing: '0.01em', fontFamily: 'var(--font-sans)' }}>
               {displayTitle}
             </span>
-            <EditOutlined style={{ fontSize: 13, color: '#94A3B8', opacity: 0.8 }} />
+            {isOwner && <EditOutlined style={{ fontSize: 13, color: '#94A3B8', opacity: 0.8 }} />}
           </div>
         </div>
 
@@ -770,36 +685,18 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             }}>
               <Dropdown 
                 menu={{ 
-                  items: generateMenuItems,
-                  style: {
-                    background: 'rgba(23, 23, 23, 0.85)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: 16,
-                    padding: '8px',
-                    backdropFilter: 'blur(24px) saturate(150%)',
-                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)'
-                  }
-                }} 
-                trigger={['click']}
-                placement="bottomLeft"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 500, fontSize: 13, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={e => e.currentTarget.style.color = '#F8FAFC'}>
-                  <Sparkles size={16} /> Generate <ChevronDown size={14} style={{ opacity: 0.5, marginTop: 2 }} />
-                </div>
-              </Dropdown>
-              <Dropdown 
-                menu={{ 
                   items: modifyMenuItems,
                   style: {
-                    background: 'rgba(23, 23, 23, 0.85)',
+                    background: 'rgba(17, 24, 39, 0.85)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: 16,
                     padding: '8px',
-                    backdropFilter: 'blur(24px) saturate(150%)',
-                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)'
+                    backdropFilter: 'blur(24px)',
+                    WebkitBackdropFilter: 'blur(24px)',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
                   }
                 }} 
-                trigger={['click']}
+                trigger={['hover']}
                 placement="bottomLeft"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 500, fontSize: 13, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={e => e.currentTarget.style.color = '#F8FAFC'}>
@@ -810,15 +707,16 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 menu={{ 
                   items: previewMenuItems,
                   style: {
-                    background: 'rgba(23, 23, 23, 0.85)',
+                    background: 'rgba(17, 24, 39, 0.85)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: 16,
                     padding: '8px',
-                    backdropFilter: 'blur(24px) saturate(150%)',
-                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)'
+                    backdropFilter: 'blur(24px)',
+                    WebkitBackdropFilter: 'blur(24px)',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
                   }
                 }} 
-                trigger={['click']}
+                trigger={['hover']}
                 placement="bottomLeft"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 500, fontSize: 13, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={e => e.currentTarget.style.color = '#F8FAFC'}>
@@ -830,15 +728,16 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 menu={{ 
                   items: moreMenuItems,
                   style: {
-                    background: 'rgba(23, 23, 23, 0.85)',
+                    background: 'rgba(17, 24, 39, 0.85)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: 16,
                     padding: '8px',
-                    backdropFilter: 'blur(24px) saturate(150%)',
-                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)'
+                    backdropFilter: 'blur(24px)',
+                    WebkitBackdropFilter: 'blur(24px)',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
                   }
                 }} 
-                trigger={['click']}
+                trigger={['hover']}
                 placement="bottomLeft"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 500, fontSize: 13, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={e => e.currentTarget.style.color = '#F8FAFC'}>
@@ -850,31 +749,34 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         </div>
 
         <div className="canvas-toolbar-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            className="canvas-header-btn-pill"
-            title="Share Project"
-            onClick={() => {
-              setActiveDrawerTab('share');
-              setIsChatSettingsOpen(true);
-            }}
-          >
-            <span>Share</span>
-          </button>
+          {isOwner && (
+            <button
+              className="canvas-header-btn-pill"
+              title="Share Project"
+              onClick={() => {
+                setActiveDrawerTab('share');
+                setIsChatSettingsOpen(true);
+              }}
+            >
+              <span>Share</span>
+            </button>
+          )}
 
-          <button
-            className="canvas-header-btn-pill"
-            title="Publish / Export Project"
-            onClick={() => {
-              setActiveDrawerTab('publish');
-              setIsChatSettingsOpen(true);
-            }}
-          >
-            <span>Publish</span>
-          </button>
-
+          {isOwner && (
+            <button
+              className="canvas-header-btn-pill"
+              title="Publish / Export Project"
+              onClick={() => {
+                setActiveDrawerTab('publish');
+                setIsChatSettingsOpen(true);
+              }}
+            >
+              <span>Publish</span>
+            </button>
+          )}
           <button
             className="canvas-header-btn-icon"
-            title="Gửi lỗi / Báo cáo sự cố (Bug Report)"
+            title="Send bug report"
             onClick={() => setIsBugReportOpen(true)}
           >
             <BugOutlined style={{ fontSize: 16 }} />
@@ -931,15 +833,11 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         isCustomInstOpen={isCustomInstOpen} setIsCustomInstOpen={setIsCustomInstOpen}
         activeDrawerTab={activeDrawerTab} setActiveDrawerTab={setActiveDrawerTab}
         nameVal={nameVal} setNameVal={setNameVal}
-        descVal={descVal} setDescVal={setDescVal}
         promptVal={promptVal} setPromptVal={setPromptVal}
         handleSaveRename={handleSaveRename} onPublish={onPublish}
-        selectedModel={selectedModel} setSelectedModel={handleModelChange}
-        models={models}
-        micSource={micSource} setMicSource={setMicSource}
+        selectedModel={selectedModel} setSelectedModel={handleModelChange} models={models}
         shareAccess={shareAccess} setShareAccess={handleShareAccessChange}
-        defaultFullscreen={defaultFullscreen} setDefaultFullscreen={handleDefaultFullscreenChange}
-        includeChatHistory={includeChatHistory} setIncludeChatHistory={handleIncludeChatHistoryChange}
+        sharedEmails={site?.settings?.sharedEmails || []} onUpdateSharedEmails={handleUpdateSharedEmails}
         bugReportText={bugReportText} setBugReportText={setBugReportText}
         user={user} handleShare={handleShare}
         isDeleteProjectModalOpen={isDeleteProjectModalOpen} setIsDeleteProjectModalOpen={setIsDeleteProjectModalOpen}

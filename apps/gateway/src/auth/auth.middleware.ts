@@ -51,11 +51,11 @@ export class AuthMiddleware implements NestMiddleware {
   }
 
   use(req: Request, _res: Response, next: NextFunction) {
-    const url = (req.originalUrl || req.url).split('?')[0];
+    const url = (req.originalUrl || req.url || req.path || '').split('?')[0];
 
     // Block browser/external access to internal service-to-service routes
     if (url.includes('/users/internal/')) {
-      const internalToken = req.headers['x-internal-token'];
+      const internalToken = req.headers?.['x-internal-token'];
       const expected = process.env.INTERNAL_SERVICE_TOKEN;
       if (!expected || internalToken !== expected) {
         throw new ForbiddenException('Internal endpoint access denied');
@@ -71,7 +71,7 @@ export class AuthMiddleware implements NestMiddleware {
     if (
       this.publicRoutes.some(
         (r) =>
-          (req.originalUrl || req.url).split('?')[0].startsWith(r.split(' ')[1]) &&
+          (req.originalUrl || req.url || req.path || '').split('?')[0].startsWith(r.split(' ')[1]) &&
           req.method === r.split(' ')[0],
       )
     ) {
@@ -81,6 +81,7 @@ export class AuthMiddleware implements NestMiddleware {
     // --- DEV MODE: inject mock user, skip JWT verification ---
     if (this.isAuthBypassed) {
       req['user'] = MOCK_USER;
+      req.headers = req.headers || {};
       req.headers['x-user-id'] = MOCK_USER.sub;
       req.headers['x-user-email'] = MOCK_USER.email;
       req.headers['x-user-roles'] = MOCK_USER.roles.join(',');
@@ -88,9 +89,9 @@ export class AuthMiddleware implements NestMiddleware {
     }
 
     // --- PRODUCTION MODE: verify JWT ---
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Thiếu hoặc sai định dạng Header Authorization');
+      throw new UnauthorizedException('Missing or invalid Authorization header');
     }
 
     try {
@@ -121,7 +122,7 @@ export class AuthMiddleware implements NestMiddleware {
 
       next();
     } catch (error) {
-      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException('Invalid or expired token');
     }
   }
 }

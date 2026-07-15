@@ -20,7 +20,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ siteId }) => {
 
   const handleCheckout = async (values: any) => {
     if (items.length === 0) {
-      messageApi.error('Giỏ hàng trống!');
+      messageApi.error('Cart is empty!');
       return;
     }
 
@@ -41,14 +41,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ siteId }) => {
       const paymentSession = await createPaymentSessionApi(siteId, order.id);
       
       clearCart();
-      messageApi.success('Chuyển hướng đến cổng thanh toán...');
+      messageApi.success('Redirecting to payment gateway...');
       
       // 3. Chuyển hướng sang trang PayOS giả lập
       window.location.href = paymentSession.qrCodeUrl;
       
     } catch (error: any) {
       console.error(error);
-      messageApi.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+      messageApi.error(error?.response?.data?.message || 'Error creating order');
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ siteId }) => {
 
       {/* Drawer Giỏ hàng */}
       <Drawer
-        title={<Title level={4} style={{ margin: 0 }}>Giỏ hàng của bạn</Title>}
+        title={<Title level={4} style={{ margin: 0 }}>Your Cart</Title>}
         placement="right"
         width={400}
         onClose={() => setOpen(false)}
@@ -113,7 +113,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ siteId }) => {
         {items.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: 100 }}>
             <ShoppingCartOutlined style={{ fontSize: 64, color: 'var(--color-border)' }} />
-            <Title level={5} style={{ color: 'var(--color-text-muted)', marginTop: 16 }}>Giỏ hàng đang trống</Title>
+            <Title level={5} style={{ color: 'var(--color-text-muted)', marginTop: 16 }}>Your cart is empty</Title>
           </div>
         ) : (
           <>
@@ -153,20 +153,20 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ siteId }) => {
             <Divider style={{ borderColor: 'var(--color-border)' }} />
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-              <Title level={4} style={{ color: 'var(--color-text-primary)', margin: 0 }}>Tổng cộng:</Title>
+              <Title level={4} style={{ color: 'var(--color-text-primary)', margin: 0 }}>Total:</Title>
               <Title level={4} style={{ color: 'var(--color-accent)', margin: 0 }}>{totalPrice.toLocaleString()}đ</Title>
             </div>
 
-            <Title level={5} style={{ color: 'var(--color-text-primary)' }}>Thông tin giao hàng</Title>
+            <Title level={5} style={{ color: 'var(--color-text-primary)' }}>Shipping Information</Title>
             <Form form={form} layout="vertical" onFinish={handleCheckout}>
-              <Form.Item name="name" rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
-                <Input placeholder="Họ và tên" size="large" />
+              <Form.Item name="name" rules={[{ required: true, message: 'Please enter your name' }]}>
+                <Input placeholder="Full Name" size="large" />
               </Form.Item>
-              <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Vui lòng nhập email hợp lệ' }]}>
-                <Input placeholder="Email liên hệ" size="large" />
+              <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
+                <Input placeholder="Contact Email" size="large" />
               </Form.Item>
-              <Form.Item name="address" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ giao hàng' }]}>
-                <Input.TextArea placeholder="Địa chỉ giao hàng" rows={3} size="large" />
+              <Form.Item name="address" rules={[{ required: true, message: 'Please enter shipping address' }]}>
+                <Input.TextArea placeholder="Shipping Address" rows={3} size="large" />
               </Form.Item>
               <Form.Item>
                 <Button 
@@ -177,7 +177,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ siteId }) => {
                   loading={loading}
                   style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)', marginTop: 16 }}
                 >
-                  Thanh toán qua PayOS
+                  Checkout via PayOS
                 </Button>
               </Form.Item>
             </Form>

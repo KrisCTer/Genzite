@@ -91,11 +91,11 @@ const UserManagement: React.FC = () => {
   const updateRolesMutation = useMutation({
     mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
     onSuccess: () => {
-      message.success('Cập nhật quyền thành công.');
+      message.success('Roles updated successfully.');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật quyền.');
+      message.error(err.response?.data?.message || 'Error: Cannot update roles.');
     }
   });
 

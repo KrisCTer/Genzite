@@ -188,7 +188,7 @@ const LandingPage: React.FC = () => {
     contactForm: 'contact-form-section',
   };
 
-  useSEO({ title: 'Trang chủ', description: 'Trải nghiệm nền tảng tạo website tự động bằng AI từ Genzite.' });
+  useSEO({ title: 'Home', description: 'Experience the AI-powered automated website creation platform from Genzite.' });
 
   useEffect(() => {
     const node = layoutRef.current;

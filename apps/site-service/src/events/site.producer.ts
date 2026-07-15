@@ -23,6 +23,15 @@ export class SiteProducer {
     await this.kafka.emit(KAFKA_TOPICS.PAGE_UPDATED, payload);
   }
 
+  async emitSiteInvited(payload: {
+    siteId: string;
+    siteName: string;
+    inviterEmail: string;
+    invitedEmail: string;
+  }) {
+    await this.kafka.emit(KAFKA_TOPICS.SITE_INVITED, payload);
+  }
+
   // Emit when widget config changes
   async emitWidgetConfigChanged(payload: {
     pageId: string;
@@ -30,5 +39,13 @@ export class SiteProducer {
     widgetCount: number;
   }) {
     await this.kafka.emit(KAFKA_TOPICS.WIDGET_CONFIG_CHANGED, payload);
+  }
+
+  async emitFeedbackSubmitted(payload: {
+    siteId?: string;
+    text: string;
+    userEmail: string;
+  }) {
+    await this.kafka.emit(KAFKA_TOPICS.FEEDBACK_SUBMITTED, payload);
   }
 }

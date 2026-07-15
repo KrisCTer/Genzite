@@ -42,31 +42,31 @@ export const UserPopover: React.FC<UserPopoverProps> = ({
           )}
         </div>
         <div className="user-popover-details">
-          <div className="user-popover-name">{user?.name || 'Châu Phúc Lợi'}</div>
-          <div className="user-popover-email">{user?.email || 'phucloidanghoconline@gmail.com'}</div>
+          <div className="user-popover-name">{user?.name || 'Jane Doe'}</div>
+          <div className="user-popover-email">{user?.email || 'jane.doe@example.com'}</div>
         </div>
       </div>
 
       <div className="user-popover-actions">
         <button className="user-popover-btn" onClick={() => window.location.href = '/workspace'}>
-          <LayoutDashboard size={16} /> Về Bảng điều khiển
+          <LayoutDashboard size={16} /> Go to Dashboard
         </button>
         <button className="user-popover-btn">
-          <Settings size={16} /> Cài đặt Genzite
+          <Settings size={16} /> Genzite Settings
         </button>
         <button className="user-popover-btn">
-          Quản lý tài khoản
+          Account Management
         </button>
         <button className="user-popover-btn">
-          Chuyển đổi tài khoản
+          Switch Account
         </button>
         <button className="user-popover-btn" onClick={onLogout}>
-          Đăng xuất
+          Sign Out
         </button>
       </div>
 
       <div className="user-popover-footer">
-        <a href="#">Chính sách quyền riêng tư</a> • <a href="#">Điều khoản dịch vụ</a>
+        <a href="#">Privacy Policy</a> • <a href="#">Terms of Service</a>
       </div>
     </div>
   );

@@ -32,6 +32,7 @@ export interface AiLogReport {
 interface AiLogState {
   isGenerating: boolean;
   currentJobId: string | null;
+  activeTargetPageId: string | null;
   activeStartTime?: number;
   activeModel?: string;
   activePrompt?: string;
@@ -50,7 +51,8 @@ interface AiLogState {
     siteId?: string,
     theme?: string,
     onSuccess?: (jobId: string, subdomain: string) => void,
-    onError?: (error: string) => void
+    onError?: (error: string) => void,
+    attachments?: { base64: string; mimeType: string }[]
   ) => Promise<void>;
   cancelGeneration: () => void;
 }
@@ -73,6 +75,7 @@ const formatModelName = (m?: string) => {
 export const useAiLogStore = create<AiLogState>((set, get) => ({
   isGenerating: false,
   currentJobId: null,
+  activeTargetPageId: null,
   activeTab: 'logs',
   steps: [],
   report: null,
@@ -137,6 +140,8 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
   },
 
   startGeneration: (jobId, prompt, model) => {
+    const targetMatch = prompt.match(/\[TARGET_PAGE:([a-zA-Z0-9-]+)\]/);
+    const targetPageId = targetMatch ? targetMatch[1] : null;
     const initialStep: AiLogStep = {
       id: `gen-${Date.now()}-0`,
       step: 'Analyzing prompt & initializing AI workflow...',
@@ -149,6 +154,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
     set({
       isGenerating: true,
       currentJobId: jobId,
+      activeTargetPageId: targetPageId,
       activeTab: 'logs',
       steps: [initialStep],
       report: {
@@ -207,13 +213,13 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       const userPrompt = state.activePrompt || '';
       
       let sectionTitle = 'Home, About, Projects, Contact';
-      if (userPrompt.toLowerCase().includes('home') || userPrompt.toLowerCase().includes('trang chủ')) {
+      if (userPrompt.toLowerCase().includes('home')) {
         sectionTitle = 'Home Page & Components';
-      } else if (userPrompt.toLowerCase().includes('about') || userPrompt.toLowerCase().includes('giới thiệu')) {
+      } else if (userPrompt.toLowerCase().includes('about')) {
         sectionTitle = 'About & Features Page';
-      } else if (userPrompt.toLowerCase().includes('product') || userPrompt.toLowerCase().includes('sản phẩm')) {
+      } else if (userPrompt.toLowerCase().includes('product')) {
         sectionTitle = 'Products & E-Commerce Grid';
-      } else if (userPrompt.toLowerCase().includes('contact') || userPrompt.toLowerCase().includes('liên hệ')) {
+      } else if (userPrompt.toLowerCase().includes('contact')) {
         sectionTitle = 'Contact & Support Section';
       } else if (userPrompt.length > 3) {
         sectionTitle = userPrompt.length > 40 ? userPrompt.substring(0, 40) + '...' : userPrompt;
@@ -261,6 +267,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       return {
         isGenerating: false,
         currentJobId: null,
+        activeTargetPageId: null,
         steps: updatedSteps,
         report: newReport
       };
@@ -276,17 +283,18 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       return {
         isGenerating: false,
         currentJobId: null,
+        activeTargetPageId: null,
         steps: updatedSteps
       };
     });
   },
   
-  submitSiteGeneration: async (prompt, model, siteId, theme, onSuccess, onError) => {
+  submitSiteGeneration: async (prompt, model, siteId, theme, onSuccess, onError, attachments) => {
     try {
       set({ isGenerating: true, activeStartTime: Date.now(), activeModel: model, activePrompt: prompt });
       get().startGeneration(`job-${Date.now()}`, prompt, model);
       
-      const data = await generateSiteApi({ prompt, model, siteId, theme });
+      const data = await generateSiteApi({ prompt, model, siteId, theme, attachments });
       
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
       globalSseConnection = new EventSource(`${baseUrl}/ai/stream/${data.jobId}`);
@@ -320,7 +328,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
         globalSseConnection?.close();
         globalSseConnection = null;
         set({ isGenerating: false });
-        get().failGeneration('Mất kết nối stream tiến trình AI');
+        get().failGeneration('Connection to AI process stream lost');
         onError?.('Connection to generation stream lost');
       };
     } catch (error: any) {
@@ -336,6 +344,6 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       globalSseConnection.close();
       globalSseConnection = null;
     }
-    set({ isGenerating: false });
+    set({ isGenerating: false, activeTargetPageId: null });
   }
 }));

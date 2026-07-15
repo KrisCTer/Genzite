@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Smartphone, Tablet, Monitor, Share2, RotateCw, ExternalLink, QrCode, Info, X } from 'lucide-react';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../../store/auth';
@@ -8,6 +8,8 @@ import './CanvasBuilder.css';
 
 const PreviewViewer: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
+  const [searchParams] = useSearchParams();
+  const pageId = searchParams.get('pageId');
   const [device, setDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -60,25 +62,49 @@ const PreviewViewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let targetWidth = 1440;
+    if (device === 'mobile') targetWidth = 390;
+    else if (device === 'tablet') targetWidth = 768;
+
     const updateScale = () => {
       if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const availableWidth = rect.width - 64; // 32px padding on each side
-      
-      let targetWidth = 1440;
-      if (device === 'mobile') targetWidth = 390;
-      else if (device === 'tablet') targetWidth = 768;
-
-      if (availableWidth < targetWidth) {
-        setScale(availableWidth / targetWidth);
-      } else {
-        setScale(1);
-      }
+      const availableWidth = containerRef.current.clientWidth - 64;
+      setScale(availableWidth < targetWidth ? availableWidth / targetWidth : 1);
     };
+
+    // ResizeObserver fires reliably right after layout, unlike 'resize'
+    const ro = new ResizeObserver(updateScale);
+    if (containerRef.current) ro.observe(containerRef.current);
     updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    return () => ro.disconnect();
   }, [device]);
+
+  const handleReload = () => {
+    const iframe = document.querySelector('iframe[title="Preview"]') as HTMLIFrameElement;
+    if (iframe) {
+      iframe.src = iframe.src;
+    }
+    
+    const el = document.getElementById('preview-viewer-canvas-wrapper');
+    if (el) {
+      el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      el.style.transform = `scale(${scale * 0.98})`;
+      el.style.opacity = '0.7';
+      el.style.filter = 'brightness(1.1)';
+      
+      setTimeout(() => {
+        el.style.transform = `scale(${scale})`;
+        el.style.opacity = '1';
+        el.style.filter = 'brightness(1)';
+        
+        setTimeout(() => {
+          el.style.transition = 'width 0.3s ease, transform 0.3s ease';
+          el.style.transform = `scale(${scale})`;
+          el.style.filter = '';
+        }, 300);
+      }, 200);
+    }
+  };
 
   const getWidth = () => {
     switch (device) {
@@ -94,14 +120,11 @@ const PreviewViewer: React.FC = () => {
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#07090f',
-      backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0)',
-      backgroundSize: '24px 24px',
       color: '#fff',
       overflow: 'hidden'
     }}>
       {/* Top Bar */}
-      <div className="canvas-toolbar" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="canvas-toolbar" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
@@ -119,8 +142,8 @@ const PreviewViewer: React.FC = () => {
           </div>
           <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="canvas-header-btn-icon" onClick={() => window.open(`/live/${siteId}`, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
-            <button className="canvas-header-btn-icon" onClick={() => window.location.reload()} title="Reload Preview"><RotateCw size={16} /></button>
+            <button className="canvas-header-btn-icon" onClick={() => window.open(`/live/${siteId}${pageId ? `?pageId=${pageId}` : ''}`, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
+            <button className="canvas-header-btn-icon" onClick={handleReload} title="Reload Preview"><RotateCw size={16} /></button>
             <button className="canvas-header-btn-icon" onClick={() => setIsQrModalOpen(true)} title="QR Code"><QrCode size={16} /></button>
           </div>
         </div>
@@ -128,7 +151,7 @@ const PreviewViewer: React.FC = () => {
         {/* Right: Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button className="canvas-header-btn-pill" onClick={() => setIsShareModalOpen(true)}>
-            <Share2 size={14} /> Chia sẻ
+            <Share2 size={14} /> Share
           </button>
           
           <div style={{ position: 'relative' }}>
@@ -183,25 +206,31 @@ const PreviewViewer: React.FC = () => {
           position: 'relative'
         }}
       >
-        <div 
+        {/* Canvas wrapper: fixed at device width, then CSS-scaled to fit the available space.
+             The iframe always renders at the true device width so its responsive breakpoints
+             fire correctly — scale() only affects visual presentation, not viewport geometry. */}
+        <div
           ref={iframeWrapperRef}
+          id="preview-viewer-canvas-wrapper"
           style={{
-          width: getWidth(),
-          height: '100%',
-          maxHeight: '800px',
-          background: '#fff',
-          borderRadius: 24,
-          border: '6px solid rgba(148, 163, 184, 0.4)',
-          overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          transition: 'width 0.3s ease, transform 0.3s ease',
-          transform: `scale(${scale})`,
-          transformOrigin: 'center center',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1
-        }}>
+            width: getWidth(),
+            height: '100%',
+            maxHeight: 800,
+            background: '#fff',
+            borderRadius: 24,
+            border: '6px solid rgba(148, 163, 184, 0.4)',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            transition: 'transform 0.3s ease, width 0.3s ease, min-width 0.3s ease',
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1,
+            flexShrink: 0,
+          }}
+        >
           {/* Security Banner */}
           {showBanner && (
             <div style={{
@@ -220,19 +249,29 @@ const PreviewViewer: React.FC = () => {
               position: 'relative'
             }}>
               <Info size={16} />
-              <span>Nội dung này do một người dùng Genzite tạo. Đừng nhập thông tin nhạy cảm vì chủ sở hữu có thể xem được thông tin đó.</span>
-              <X 
-                size={16} 
-                style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }} 
+              <span>This content was created by a Genzite user. Do not enter sensitive information as the owner can view it.</span>
+              <X
+                size={16}
+                style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }}
                 onClick={() => setShowBanner(false)}
                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                 onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
               />
             </div>
           )}
-          <iframe 
-            src={`/live/${siteId}`} 
-            style={{ width: '100%', flex: 1, border: 'none' }} 
+          {/* The iframe is given an EXPLICIT width matching the device target.
+               This guarantees its internal viewport is always the correct width
+               regardless of when React computes the scale value. */}
+          <iframe
+            src={`/live/${siteId}${pageId ? `?pageId=${pageId}` : ''}`}
+            style={{ 
+              width: getWidth(), 
+              minWidth: getWidth(), 
+              flex: 1, 
+              border: 'none', 
+              display: 'block',
+              transition: 'width 0.3s ease, min-width 0.3s ease'
+            }}
             title="Preview"
           />
         </div>
@@ -253,17 +292,17 @@ const PreviewViewer: React.FC = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 500, margin: '0 0 24px 0', textAlign: 'center' }}>
-            Quét mã QR
+            Scan QR Code
           </h2>
           <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 20 }}>
             <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(window.location.origin + '/live/' + siteId)}&margin=0`} 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(window.location.origin + '/live/' + siteId + (pageId ? `?pageId=${pageId}` : ''))}&margin=0`} 
               alt="QR Code" 
               style={{ width: 220, height: 220, display: 'block' }} 
             />
           </div>
           <div style={{ color: '#A1A1AA', textAlign: 'center', fontSize: 13.5, lineHeight: 1.6, fontWeight: 400 }}>
-            Quét mã này bằng thiết bị di động để<br/>xem bản xem trước.
+            Scan this code with a mobile device to<br/>view the preview.
           </div>
         </div>
       </Modal>
@@ -283,20 +322,20 @@ const PreviewViewer: React.FC = () => {
       >
         <div>
           <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: '0 0 24px 0' }}>
-            Chia sẻ dự án
+            Share Project
           </h2>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Cho phép chia sẻ và phối lại</span>
+            <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Allow sharing and remixing</span>
             <Switch checked={isShareEnabled} onChange={setIsShareEnabled} />
           </div>
           <div style={{ color: '#A1A1AA', fontSize: 13, marginBottom: 24 }}>
-            {isShareEnabled ? 'Bất cứ ai có liên kết đều có thể xem dự án này' : 'Chỉ bạn mới có thể truy cập vào dự án này'}
+            {isShareEnabled ? 'Anyone with the link can view this project' : 'Only you can access this project'}
           </div>
 
           <div style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 16, marginBottom: 24 }}>
             <div style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.5 }}>
-              Khi công khai dự án, bạn cho phép bất cứ ai có đường liên kết có thể xem và phối lại các bản thiết kế và mã đã tạo của dự án này. Bạn có thể thu hồi quyền truy cập công khai bất cứ lúc nào nhưng các bản thiết kế đã được phối lại sẽ không bị xoá.
+              When making a project public, you allow anyone with the link to view and remix the designs and generated code of this project. You can revoke public access at any time but remixed designs will not be deleted.
             </div>
           </div>
 
@@ -304,7 +343,7 @@ const PreviewViewer: React.FC = () => {
             disabled={!isShareEnabled}
             onClick={() => {
               navigator.clipboard.writeText(window.location.origin + '/live/' + siteId);
-              message.success('Đã sao chép liên kết chia sẻ dự án!');
+              message.success('Project share link copied!');
             }}
             style={{ 
               width: '100%', 
@@ -319,7 +358,7 @@ const PreviewViewer: React.FC = () => {
               transition: 'all 0.2s'
             }}
           >
-            Sao chép đường liên kết
+            Copy link
           </button>
         </div>
       </Modal>

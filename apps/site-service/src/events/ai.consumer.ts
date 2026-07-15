@@ -35,12 +35,20 @@ export class AiConsumer implements OnModuleInit {
     try {
       // 1. Create or fetch site
       let site: any;
-      if (siteData.site.id) {
+      const targetSiteId = siteData?.site?.id || payload.siteId || siteData?.site?.subdomain;
+      if (targetSiteId) {
         try {
-          site = await this.sitesService.findById(siteData.site.id, ownerId);
+          site = await this.sitesService.findById(targetSiteId, ownerId);
           this.logger.log(`Using existing Site ID: ${site.id} for subdomain ${site.subdomain}`);
           try {
+            const shouldUpdateName = siteData?.site?.name && 
+              siteData.site.name !== 'Home' && 
+              siteData.site.name !== 'Generated Site' && 
+              siteData.site.name !== 'My Genzite Project' &&
+              (['home', 'my genzite project', 'generated site', 'new site', 'new page', 'untitled'].includes(site.name?.trim().toLowerCase()) || site.name?.startsWith('gen-'));
+
             await this.sitesService.update(site.id, {
+              ...(shouldUpdateName ? { name: siteData.site.name } : {}),
               description: payload.prompt || site.description,
               settings: { ...(typeof site.settings === 'object' && site.settings ? site.settings : {}), prompt: payload.prompt }
             }, ownerId);
@@ -48,20 +56,26 @@ export class AiConsumer implements OnModuleInit {
             this.logger.warn(`Could not update site description/prompt: ${updateErr}`);
           }
         } catch (e) {
-          this.logger.log(`Site ID ${siteData.site.id} not found, creating it as new site...`);
+          this.logger.log(`Site ${targetSiteId} not found by ID/subdomain, creating it as new site...`);
+          const newSiteName = (siteData?.site?.name && siteData.site.name !== 'Home' && siteData.site.name !== 'Generated Site')
+            ? siteData.site.name
+            : 'My Genzite Project';
           site = await this.sitesService.create({
-            id: siteData.site.id,
-            name: siteData.site.name,
-            subdomain: siteData.site.subdomain,
+            id: siteData?.site?.id || (payload.siteId.startsWith('gen-') ? undefined : payload.siteId),
+            name: newSiteName,
+            subdomain: siteData?.site?.subdomain || payload.siteId || `gen-${Date.now()}`,
             description: payload.prompt,
             settings: { prompt: payload.prompt }
           }, ownerId);
           this.logger.log(`Created Site ID: ${site.id} for subdomain ${site.subdomain}`);
         }
       } else {
+        const newSiteName = (siteData?.site?.name && siteData.site.name !== 'Home' && siteData.site.name !== 'Generated Site')
+          ? siteData.site.name
+          : 'My Genzite Project';
         site = await this.sitesService.create({
-          name: siteData.site.name,
-          subdomain: siteData.site.subdomain,
+          name: newSiteName,
+          subdomain: siteData?.site?.subdomain || `gen-${Date.now()}`,
           description: payload.prompt,
           settings: { prompt: payload.prompt }
         }, ownerId);

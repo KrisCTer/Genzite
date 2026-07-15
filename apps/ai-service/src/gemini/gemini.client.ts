@@ -22,6 +22,7 @@ interface GenerateOptions {
   temperature?: number;
   maxOutputTokens?: number;
   tools?: FunctionDeclaration[];
+  images?: { base64: string; mimeType: string }[];
 }
 
 @Injectable()
@@ -43,7 +44,8 @@ export class GeminiClient {
     }
 
     if (apiKeys.length === 0) {
-      throw new Error('GEMINI_API_KEYS or GEMINI_API_KEY is not defined in environment variables');
+      this.logger.warn('No Gemini API keys found in environment variables (GEMINI_API_KEYS / GEMINI_API_KEY)');
+      apiKeys = ['dummy-key-for-initialization'];
     }
 
     this.genAIClients = apiKeys.map((key) => new GoogleGenerativeAI(key));
@@ -64,11 +66,27 @@ export class GeminiClient {
     });
   }
 
+  private buildParts(prompt: string, images?: { base64: string; mimeType: string }[]): any[] {
+    const parts: any[] = [{ text: prompt }];
+    if (images && images.length > 0) {
+      for (const img of images) {
+        const cleanBase64 = img.base64.replace(/^data:image\/[a-zA-Z0-9.+]+;base64,/, '');
+        parts.push({
+          inlineData: {
+            data: cleanBase64,
+            mimeType: img.mimeType || 'image/png',
+          },
+        });
+      }
+    }
+    return parts;
+  }
+
   /**
    * Generate free-form text content from a prompt.
    */
   async generateContent(prompt: string, options: GenerateOptions = {}): Promise<string> {
-    const { model: modelName, systemInstruction, temperature, maxOutputTokens } = options;
+    const { model: modelName, systemInstruction, temperature, maxOutputTokens, images } = options;
 
     try {
       const model = this.getModel(modelName, systemInstruction);
@@ -76,8 +94,9 @@ export class GeminiClient {
       if (temperature !== undefined) generationConfig.temperature = temperature;
       if (maxOutputTokens !== undefined) generationConfig.maxOutputTokens = maxOutputTokens;
 
+      const parts = this.buildParts(prompt, images);
       const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts }],
         generationConfig,
         tools: options.tools ? [{ functionDeclarations: options.tools }] : undefined,
       });
@@ -102,7 +121,7 @@ export class GeminiClient {
     prompt: string,
     options: GenerateOptions = {},
   ): Promise<T> {
-    const { model: modelName, systemInstruction, temperature, maxOutputTokens } = options;
+    const { model: modelName, systemInstruction, temperature, maxOutputTokens, images } = options;
 
     try {
       const model = this.getModel(modelName, systemInstruction);
@@ -112,8 +131,9 @@ export class GeminiClient {
       if (temperature !== undefined) generationConfig.temperature = temperature;
       if (maxOutputTokens !== undefined) generationConfig.maxOutputTokens = maxOutputTokens;
 
+      const parts = this.buildParts(prompt, images);
       const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts }],
         generationConfig,
         tools: options.tools ? [{ functionDeclarations: options.tools }] : undefined,
       });

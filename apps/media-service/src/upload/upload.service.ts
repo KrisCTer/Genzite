@@ -18,6 +18,21 @@ export class UploadService {
     // AWS region used to access S3.
     region: process.env.AWS_REGION,
   });
+
+  private getPublicUrl(s3Key: string): string {
+    if (!s3Key) return "";
+    if (s3Key.startsWith("http://") || s3Key.startsWith("https://")) {
+      return s3Key;
+    }
+    const bucket = process.env.AWS_S3_BUCKET || "genzite-media-dev";
+    const endpoint = process.env.AWS_ENDPOINT;
+    if (endpoint) {
+      return `${endpoint.replace(/\/$/, "")}/${bucket}/${s3Key}`;
+    }
+    const region = process.env.AWS_REGION || "ap-southeast-1";
+    return `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
+  }
+
   async generatePresignedUrl(
     ownerId: string,
     filename: string,
@@ -85,7 +100,40 @@ export class UploadService {
       mimeType: media.mimeType,
       ownerId: media.ownerId,
     });
-    return media;
+    return {
+      ...media,
+      url: this.getPublicUrl(media.s3Key),
+    };
+  }
+
+  async deleteByS3Key(s3Key: string) {
+    // 1. Delete from S3
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: s3Key,
+      }),
+    );
+
+    // 2. Delete from Postgres if exists
+    const existing = await this.prisma.mediaFile.findUnique({
+      where: { s3Key },
+    });
+    
+    if (existing) {
+      await this.prisma.mediaFile.delete({
+        where: { id: existing.id },
+      });
+
+      // Notify other services
+      await this.mediaProducer.emitMediaDeleted({
+        mediaId: existing.id,
+        s3Key: existing.s3Key,
+        ownerId: existing.ownerId,
+      });
+    }
+
+    return { success: true, s3Key };
   }
 
   async deleteByS3Key(s3Key: string) {

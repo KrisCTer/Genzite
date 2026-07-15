@@ -82,8 +82,11 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
     onUploadProgress,
   });
 
+  // Derive the permanent public URL: strip auth query-string from the presigned PUT URL
+  const publicUrl = uploadUrl.split('?')[0];
+
   // 3. Confirm upload with the backend
-  const confirmRes = await apiClient.post<MediaFile>('/media/confirm', {
+  const confirmRes = await apiClient.post('/media/confirm', {
     s3Key,
     filename: file.name,
     mimeType: file.type,
@@ -93,6 +96,23 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
   const confirmed = confirmRes.data;
   return {
     ...confirmed,
+    filename: file.name,
     url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${confirmed.s3Key}`,
-  };
+  } as MediaFile;
 };
+
+export const deleteMediaFileApi = async (mediaId: string) => {
+  const response = await apiClient.delete(`/media/${mediaId}`);
+  return response.data;
+};
+
+export const fetchTrashMediaApi = async () => {
+  const response = await apiClient.get<MediaFile[]>('/media/trash/list');
+  return response.data;
+};
+
+export const restoreMediaApi = async (mediaId: string) => {
+  const response = await apiClient.post(`/media/${mediaId}/restore`);
+  return response.data;
+};
+

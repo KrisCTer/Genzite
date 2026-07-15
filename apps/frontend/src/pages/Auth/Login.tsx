@@ -63,7 +63,10 @@ const Login: React.FC = () => {
   const { message } = App.useApp();
   const token = useAuthStore((state) => state.token);
 
-  // Cognito verification modal states removed (switching to Link flow)
+  // Cognito verification modal states
+  const [verificationCode, setVerificationCode] = useState<string>('');
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string>('');
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -129,9 +132,10 @@ const Login: React.FC = () => {
               refreshToken: undefined,
             };
           }
+<<<<<<< HEAD
         } catch (authErr: any) {
           if (authErr.name === 'UserNotConfirmedException') {
-            throw new Error('Tài khoản chưa được xác thực. Vui lòng kiểm tra email và click vào link kích hoạt.');
+            throw new Error('Account is not verified. Please check your email and click the activation link.');
           }
           console.warn('Cognito auth failed, falling back to local database authentication', authErr);
           localStorage.removeItem('gz_token');
@@ -155,12 +159,12 @@ const Login: React.FC = () => {
     onError: (err: any) => {
       console.error('Login error', err);
       const errorCode = err.response?.data?.errorCode;
-      let errMsg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      let errMsg = 'Login failed. Please try again.';
 
       if (errorCode === 'AUTH_INVALID_CREDENTIALS') {
-        errMsg = 'Tài khoản hoặc mật khẩu không chính xác.';
+        errMsg = 'Invalid email or password.';
       } else if (errorCode === 'AUTH_ACCOUNT_LOCKED') {
-        errMsg = 'Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.';
+        errMsg = 'Account locked due to too many failed login attempts. Please try again later.';
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message;
       } else if (err.message) {
@@ -206,21 +210,45 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       setRegisterError(null);
       if (data.isCognito) {
-        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP' || data.nextStep?.signUpStep === 'DONE') {
-          message.success('Đăng ký thành công! Vui lòng kiểm tra email và click vào link để xác thực tài khoản.');
+        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
+          setPendingVerificationEmail(data.email);
+          setIsVerificationModalOpen(true);
+          message.info('A verification code has been sent to your email.');
+        } else if (data.nextStep?.signUpStep === 'DONE') {
+          message.success('Registration successful! Please check your email and click the link to verify your account.');
           setIsSignUp(false);
         } else {
-          message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+          message.success('Registration successful! Please sign in.');
           setIsSignUp(false);
         }
       } else {
-        message.success((data as any).message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
+        message.success((data as any).message || 'Account created successfully! Please sign in.');
         setIsSignUp(false);
       }
     },
     onError: (err: any) => {
       console.error('Registration error', err);
-      setRegisterError(err.message || err.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
+      setRegisterError(err.message || err.response?.data?.message || 'Registration failed. The email might already exist.');
+    },
+  });
+
+  const confirmSignUpMutation = useMutation({
+    mutationFn: async (code: string) => {
+      await confirmSignUp({
+        username: pendingVerificationEmail,
+        confirmationCode: code,
+      });
+    },
+    onSuccess: () => {
+      setIsVerificationModalOpen(false);
+      setVerificationCode('');
+      message.success('Account verified successfully! Please sign in.');
+      setIsSignUp(false);
+    },
+    onError: (err: any) => {
+      console.error('Verification error', err);
+      message.error(err.message || 'Invalid verification code.');
+>>>>>>> main
     },
   });
 
@@ -684,7 +712,40 @@ const Login: React.FC = () => {
         </defs>
       </svg>
 
-      {/* Cognito verification modal removed */}
+      {/* Cognito verification modal */}
+      <Modal
+        title={<span className="text-white text-lg font-bold">Cognito Account Verification</span>}
+        open={isVerificationModalOpen}
+        onCancel={() => setIsVerificationModalOpen(false)}
+        footer={null}
+        className="gz-verification-modal"
+        styles={{
+          body: { backgroundColor: '#090d16', padding: '24px 0 12px 0' },
+          content: { backgroundColor: '#090d16', border: '1px solid rgba(255,255,255,0.05)' },
+          header: { backgroundColor: '#090d16', borderBottom: 'none' },
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-slate-400 text-sm">
+            Please enter the 6-digit verification code sent to <strong className="text-white">{pendingVerificationEmail}</strong>.
+          </p>
+          <Input
+            placeholder="Verification Code (e.g. 123456)"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            className={`${inputCls} text-center text-lg tracking-widest`}
+            maxLength={6}
+          />
+          <Button
+            type="primary"
+            onClick={() => confirmSignUpMutation.mutate(verificationCode)}
+            loading={confirmSignUpMutation.isPending}
+            className={`${ctaBtnCls} w-full max-w-full`}
+          >
+            Verify
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

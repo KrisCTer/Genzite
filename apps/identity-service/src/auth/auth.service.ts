@@ -123,7 +123,7 @@ export class AuthService implements OnModuleInit {
     if (!user) {
       throw new UnauthorizedException({
         errorCode: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Tài khoản hoặc mật khẩu không chính xác.',
+        message: 'Invalid email or password.',
       });
     }
 
@@ -135,14 +135,14 @@ export class AuthService implements OnModuleInit {
     ) {
       throw new UnauthorizedException({
         errorCode: 'AUTH_ACCOUNT_LOCKED',
-        message: 'Tài khoản đã bị khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.',
+        message: 'Account locked due to too many failed login attempts. Please try again later.',
       });
     }
 
     if (user.status === 'INACTIVE') {
       throw new UnauthorizedException({
         errorCode: 'AUTH_ACCOUNT_INACTIVE',
-        message: 'Tài khoản đã bị vô hiệu hóa.',
+        message: 'Account has been disabled.',
       });
     }
 
@@ -171,7 +171,7 @@ export class AuthService implements OnModuleInit {
 
       throw new UnauthorizedException({
         errorCode: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Tài khoản hoặc mật khẩu không chính xác.',
+        message: 'Invalid email or password.',
       });
     }
 
@@ -239,13 +239,13 @@ export class AuthService implements OnModuleInit {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException({
       errorCode: 'AUTH_USER_NOT_FOUND',
-      message: 'Người dùng không tồn tại.',
+      message: 'User does not exist.',
     });
 
     const isPasswordValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
     if (!isPasswordValid) throw new UnauthorizedException({
       errorCode: 'AUTH_INVALID_OLD_PASSWORD',
-      message: 'Mật khẩu cũ không chính xác.',
+      message: 'Incorrect old password.',
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -280,14 +280,14 @@ export class AuthService implements OnModuleInit {
     } catch {
       throw new UnauthorizedException({
         errorCode: 'AUTH_INVALID_REFRESH_TOKEN',
-        message: 'Refresh token không hợp lệ hoặc đã hết hạn.',
+        message: 'Refresh token is invalid or expired.',
       });
     }
 
     if (payload.type !== 'refresh') {
       throw new UnauthorizedException({
         errorCode: 'AUTH_INVALID_REFRESH_TOKEN',
-        message: 'Refresh token không hợp lệ.',
+        message: 'Invalid refresh token.',
       });
     }
 
@@ -297,7 +297,7 @@ export class AuthService implements OnModuleInit {
     if (!stored || stored.isRevoked || stored.expiresAt < new Date()) {
       throw new UnauthorizedException({
         errorCode: 'AUTH_INVALID_REFRESH_TOKEN',
-        message: 'Refresh token không hợp lệ hoặc đã bị thu hồi.',
+        message: 'Refresh token is invalid or has been revoked.',
       });
     }
 
@@ -314,7 +314,7 @@ export class AuthService implements OnModuleInit {
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException({
         errorCode: 'AUTH_ACCOUNT_INACTIVE',
-        message: 'Tài khoản không khả dụng.',
+        message: 'Account is unavailable.',
       });
     }
 

@@ -35,7 +35,7 @@ export const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widgets }) => {
     return <div className="p-10 text-center text-zinc-500">No content available.</div>;
   }
 
-  // Sắp xếp theo sortOrder
+  // Sort by sortOrder
   const sortedWidgets = [...widgets].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
@@ -46,45 +46,81 @@ export const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widgets }) => {
             return <Header key={index} {...widget.contentConfig} />;
             
           case 'HERO':
+          case 'HERO_SECTION':
+          case 'HEROSECTION':
+          case 'BANNER':
             return <HeroSection key={index} {...widget.contentConfig} />;
-          
+            
           case 'FEATURES':
-          case 'GALLERY':
+          case 'FEATURELIST':
+          case 'KEY_FEATURES':
+          case 'HIGHLIGHTS':
+          case 'CARDS':
           case 'CARD':
-            // We use Features.tsx to display grids for similar types
+          case 'BENEFITS':
+          case 'SERVICES':
+          case 'WHY_US':
             return <Features key={index} {...widget.contentConfig} />;
             
           case 'TEXT':
+          case 'TEXTCONTENT':
+          case 'ABOUT':
+          case 'INFO':
+          case 'INTRO':
+          case 'SUMMARY':
+          case 'OVERVIEW':
             return <Text key={index} {...widget.contentConfig} />;
             
           case 'IMAGE':
+          case 'IMAGEGALLERY':
+          case 'GALLERY':
+          case 'SHOWREEL':
+          case 'MEDIA':
             return <Image key={index} {...widget.contentConfig} />;
             
           case 'FORM':
+          case 'LEAD_FORM':
             return <Form key={index} {...widget.contentConfig} />;
             
           case 'PRICING':
+          case 'PRICING_TABLE':
+          case 'TIERS':
+          case 'PLANS':
             return <Pricing key={index} {...widget.contentConfig} />;
             
           case 'TESTIMONIAL':
+          case 'TESTIMONIALS':
+          case 'REVIEWS':
             return <Testimonial key={index} {...widget.contentConfig} />;
             
           case 'CTA':
+          case 'CALL_TO_ACTION':
+          case 'ACTION_BANNER':
             return <Cta key={index} {...widget.contentConfig} />;
             
           case 'STATS':
+          case 'NUMBERS':
+          case 'METRICS':
             return <Stats key={index} {...widget.contentConfig} />;
             
           case 'FAQ':
+          case 'QUESTIONS':
             return <Faq key={index} {...widget.contentConfig} />;
             
           case 'CONTACT':
+          case 'CONTACT_US':
             return <Contact key={index} {...widget.contentConfig} />;
           
           case 'FOOTER':
+          case 'BOTTOMBAR':
             return <Footer key={index} {...widget.contentConfig} />;
             
           case 'PRODUCT_GRID':
+          case 'PRODUCT_SHOWCASE':
+          case 'PRODUCTGRID':
+          case 'PRODUCTS':
+          case 'SHOWCASE':
+          case 'CATALOG':
             return <ProductGrid key={index} {...widget.contentConfig} />;
             
           case 'CART':
@@ -106,11 +142,11 @@ export const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widgets }) => {
             return <PaymentStatus key={index} {...widget.contentConfig} />;
             
           default:
-            return (
-              <div key={index} className="p-10 border border-dashed border-zinc-700 text-center text-zinc-400 bg-zinc-900/50">
-                [Unrecognized Widget Type: {widget.type}]
-              </div>
-            );
+            // Graceful cyber fallback: Render Features or Text instead of error box
+            if (widget.contentConfig && (widget.contentConfig.items || widget.contentConfig.features || widget.contentConfig.products)) {
+              return <Features key={index} {...widget.contentConfig} heading={widget.contentConfig.title || widget.type} />;
+            }
+            return <Text key={index} {...widget.contentConfig} title={widget.contentConfig.title || widget.type} content={widget.contentConfig.content || widget.contentConfig.description || JSON.stringify(widget.contentConfig)} />;
         }
       })}
     </div>
