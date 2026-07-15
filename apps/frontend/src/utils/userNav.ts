@@ -24,10 +24,6 @@ export const ADMIN_NAV_ITEMS: UserNavItem[] = [
   { key: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/notifications`, roles: STAFF_ROLES },
   { key: 'identity', label: 'User Management', path: `${ADMIN_BASE}/identity`, roles: ['ADMIN'] },
 
-  { key: 'media', label: 'Media Library', path: `${ADMIN_BASE}/media`, roles: STAFF_ROLES },
-  { key: 'cms', label: 'Data CMS', path: `${ADMIN_BASE}/cms`, roles: STAFF_ROLES },
-  { key: 'site', label: 'Site Builder', path: `${ADMIN_BASE}/site`, roles: STAFF_ROLES },
-  { key: 'canvas', label: 'AI Canvas', path: '/project', roles: STAFF_ROLES },
 ];
 
 export function normalizeRoles(roles: string[] | undefined): string[] {

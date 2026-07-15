@@ -2,21 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { resetPasswordApi } from '../../api/auth';
+import { confirmResetPassword } from 'aws-amplify/auth';
 import { motion } from 'framer-motion';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [token, setToken] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const tokenParam = searchParams.get('token');
-    if (tokenParam) {
-      setToken(tokenParam);
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
     } else {
-      message.error('Invalid or missing reset token.');
+      message.error('Invalid or missing email.');
     }
 
     // SEO setup
@@ -31,27 +31,29 @@ const ResetPassword: React.FC = () => {
   }, [location]);
 
   const resetMutation = useMutation({
-    mutationFn: resetPasswordApi,
+    mutationFn: async ({ code, newPassword }: { code: string, newPassword: string }) => {
+      await confirmResetPassword({ username: email, confirmationCode: code, newPassword });
+    },
     onSuccess: () => {
       message.success('Password has been reset successfully!');
       navigate('/login');
     },
     onError: (err: any) => {
       console.error('Reset password error', err);
-      message.error(err.response?.data?.message || 'Failed to reset password. Token might be expired.');
+      message.error(err.message || err.response?.data?.message || 'Failed to reset password. Code might be invalid or expired.');
     },
   });
 
   const handleFinish = (values: any) => {
-    if (!token) {
-      message.error('Cannot reset password without a valid token.');
+    if (!email) {
+      message.error('Cannot reset password without a valid email.');
       return;
     }
     if (values.password !== values.confirmPassword) {
       message.error('Passwords do not match');
       return;
     }
-    resetMutation.mutate({ token, newPassword: values.password });
+    resetMutation.mutate({ code: values.code, newPassword: values.password });
   };
 
   const inputCls =
@@ -100,6 +102,13 @@ const ResetPassword: React.FC = () => {
           className="flex flex-col gap-4 w-full text-left"
         >
           <Form.Item
+            name="code"
+            rules={[{ required: true, message: 'Verification code is required' }]}
+          >
+            <Input placeholder="6-digit Verification Code" className={inputCls} autoComplete="off" />
+          </Form.Item>
+
+          <Form.Item
             name="password"
             rules={[{ required: true, message: 'New password is required' }]}
           >
@@ -118,7 +127,7 @@ const ResetPassword: React.FC = () => {
               type="primary"
               htmlType="submit"
               loading={resetMutation.isPending}
-              disabled={!token}
+              disabled={!email}
               className={ctaBtnCls}
             >
               Reset Password

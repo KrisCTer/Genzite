@@ -51,13 +51,6 @@ export class UsersService {
 
     if (!user) {
       // Provision default role
-      const adminRole = await this.prisma.role.findFirst({
-        where: { name: 'ADMIN' },
-      });
-      const userRole = await this.prisma.role.findFirst({
-        where: { name: 'USER' },
-      });
-      const roleToAssign = adminRole || userRole;
 
       user = await this.prisma.user.create({
         data: {
@@ -65,13 +58,16 @@ export class UsersService {
           email,
           name,
           passwordHash: '', // Cognito user - no local password
-          roles: roleToAssign
-            ? {
-                create: {
-                  roleId: roleToAssign.id,
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: 'VIEWER' },
+                  create: { name: 'VIEWER', description: 'Standard viewer role' },
                 },
-              }
-            : undefined,
+              },
+            },
+          },
         },
         include: {
           roles: {

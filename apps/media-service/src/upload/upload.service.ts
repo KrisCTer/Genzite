@@ -135,4 +135,34 @@ export class UploadService {
 
     return { success: true, s3Key };
   }
+
+  async deleteByS3Key(s3Key: string) {
+    // 1. Delete from S3
+    await this.s3.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: s3Key,
+      }),
+    );
+
+    // 2. Delete from Postgres if exists
+    const existing = await this.prisma.mediaFile.findUnique({
+      where: { s3Key },
+    });
+    
+    if (existing) {
+      await this.prisma.mediaFile.delete({
+        where: { id: existing.id },
+      });
+
+      // Notify other services
+      await this.mediaProducer.emitMediaDeleted({
+        mediaId: existing.id,
+        s3Key: existing.s3Key,
+        ownerId: existing.ownerId,
+      });
+    }
+
+    return { success: true, s3Key };
+  }
 }

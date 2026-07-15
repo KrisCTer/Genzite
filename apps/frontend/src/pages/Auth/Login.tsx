@@ -132,7 +132,11 @@ const Login: React.FC = () => {
               refreshToken: undefined,
             };
           }
-        } catch (authErr) {
+<<<<<<< HEAD
+        } catch (authErr: any) {
+          if (authErr.name === 'UserNotConfirmedException') {
+            throw new Error('Account is not verified. Please check your email and click the activation link.');
+          }
           console.warn('Cognito auth failed, falling back to local database authentication', authErr);
           localStorage.removeItem('gz_token');
         }
@@ -210,6 +214,9 @@ const Login: React.FC = () => {
           setPendingVerificationEmail(data.email);
           setIsVerificationModalOpen(true);
           message.info('A verification code has been sent to your email.');
+        } else if (data.nextStep?.signUpStep === 'DONE') {
+          message.success('Registration successful! Please check your email and click the link to verify your account.');
+          setIsSignUp(false);
         } else {
           message.success('Registration successful! Please sign in.');
           setIsSignUp(false);
@@ -241,8 +248,11 @@ const Login: React.FC = () => {
     onError: (err: any) => {
       console.error('Verification error', err);
       message.error(err.message || 'Invalid verification code.');
+>>>>>>> main
     },
   });
+
+  // confirmSignUpMutation removed (using Link verification instead of Code)
 
   // ── handlers ───────────────────────────────────────────────────────────────
 
@@ -395,23 +405,7 @@ const Login: React.FC = () => {
                     </Button>
                   </div>
 
-                  {/* Centered Social Logins directly below Sign In button */}
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('Google')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GoogleIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('GitHub')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GithubIcon />
-                    </button>
-                  </div>
+
                 </Form>
               </div>
             </div>
@@ -483,7 +477,7 @@ const Login: React.FC = () => {
                       validator: (_, value: boolean) =>
                         value ? Promise.resolve() : Promise.reject(new Error('Accept terms to continue')),
                     }]}
-                    className="!mb-0"
+                    className="!mb-0 text-center [&_.ant-form-item-explain]:!justify-center [&_.ant-form-item-explain-error]:!text-center"
                   >
                     <label className="flex items-center justify-center gap-2 text-[11px] text-slate-400 cursor-pointer select-none mx-auto">
                       <input type="checkbox" className="accent-cyan-500 w-3.5 h-3.5 rounded" />
@@ -494,7 +488,7 @@ const Login: React.FC = () => {
                   {/* CTA — Centered pill button */}
                   <div className="text-center">
                     <Button type="primary" htmlType="submit" className={ctaBtnCls}>
-                      Join Us
+                      Sign Up
                     </Button>
                   </div>
                 </Form>
@@ -549,13 +543,13 @@ const Login: React.FC = () => {
                 <div className="w-full max-w-[280px] flex flex-col justify-center items-center text-center gap-4">
                   <div>
                     <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                      {isSignUp ? 'Welcome Back!' : 'Hello Friend!'}
+                      {isSignUp ? 'Hello Friend!' : 'Welcome Back!'}
                     </h2>
                   </div>
                   <p className="text-slate-200 text-sm leading-relaxed">
                     {isSignUp
-                      ? 'To keep connected with us please login with your personal info.'
-                      : 'Enter your personal details and start your journey with us.'}
+                      ? 'Enter your personal details and start your journey with us.'
+                      : 'To keep connected with us please login with your personal info.'}
                   </p>
 
                   <div className="w-full flex flex-col items-center">
@@ -619,23 +613,7 @@ const Login: React.FC = () => {
                     </Button>
                   </div>
 
-                  {/* Centered Social Logins directly below Sign In button */}
-                  <div className="mt-4 flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('Google')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GoogleIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('GitHub')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GithubIcon />
-                    </button>
-                  </div>
+
                 </Form>
                 <p className="text-center text-sm text-slate-400 mt-2">
                   Don't have an account?{' '}
@@ -690,6 +668,7 @@ const Login: React.FC = () => {
                       validator: (_, value: boolean) =>
                         value ? Promise.resolve() : Promise.reject(new Error('Accept terms to continue')),
                     }]}
+                    className="text-center [&_.ant-form-item-explain]:!justify-center [&_.ant-form-item-explain-error]:!text-center"
                   >
                     <label className="flex items-center justify-center gap-2 text-[11px] text-slate-400 cursor-pointer select-none mx-auto">
                       <input type="checkbox" className="accent-cyan-500 w-3.5 h-3.5 rounded" />
@@ -697,7 +676,7 @@ const Login: React.FC = () => {
                     </label>
                   </Form.Item>
                   <Button type="primary" htmlType="submit" className={ctaBtnCls}>
-                    Join Us
+                    Sign Up
                   </Button>
                 </Form>
                 <p className="text-center text-sm text-slate-400">
