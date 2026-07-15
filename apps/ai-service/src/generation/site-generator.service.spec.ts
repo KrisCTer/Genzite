@@ -65,8 +65,8 @@ describe('SiteGeneratorService', () => {
     });
 
     it('should ignore generic aiNames like "Home" or "Website" and derive from prompt', () => {
-      const name = (service as any).deriveProjectNameFromPrompt('Tạo website quán cà phê không gian xanh', 'Home');
-      expect(name).toBe('Quán Cà Phê Không Gian Xanh');
+      const name = (service as any).deriveProjectNameFromPrompt('Create a green space coffee shop website', 'Home');
+      expect(name).toBe('A Green Space Coffee Shop Website');
     });
 
     it('should clean tags and action prefixes when deriving from prompt', () => {

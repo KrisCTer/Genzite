@@ -19,9 +19,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
   const getDynamicDescription = () => {
     switch (selectedOption) {
-      case 'zip': return "Tải xuống tệp .zip chứa mã nguồn HTML, CSS và tài sản của trang web.";
-      case 'copy': return "Sao chép toàn bộ mã HTML của trang hiện tại vào bảng nhớ tạm.";
-      case 'summarize': return "Tạo tài liệu về yêu cầu đối với sản phẩm cho dự án của bạn";
+      case 'zip': return "Download a .zip file containing the HTML, CSS, and assets of the website.";
+      case 'copy': return "Copy the entire HTML code of the current page to the clipboard.";
+      case 'summarize': return "Generate Product Requirements Document for your project";
       default: return "";
     }
   };

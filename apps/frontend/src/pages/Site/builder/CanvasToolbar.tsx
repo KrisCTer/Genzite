@@ -776,7 +776,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           )}
           <button
             className="canvas-header-btn-icon"
-            title="Gửi lỗi / Báo cáo sự cố (Bug Report)"
+            title="Send bug report"
             onClick={() => setIsBugReportOpen(true)}
           >
             <BugOutlined style={{ fontSize: 16 }} />

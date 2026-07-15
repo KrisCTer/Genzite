@@ -690,7 +690,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         wrapper: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#38BDF8;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
       };
 
-      if (name.includes('page body') || name.includes('wrapper') || name.includes('thân trang')) return ICONS.wrapper;
+      if (name.includes('page body') || name.includes('wrapper')) return ICONS.wrapper;
       if (type === 'image' || tagName === 'img') return ICONS.image;
       if (type === 'video' || tagName === 'video' || tagName === 'iframe') return ICONS.video;
       if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) return ICONS.heading;

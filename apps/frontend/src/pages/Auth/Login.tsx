@@ -155,12 +155,12 @@ const Login: React.FC = () => {
     onError: (err: any) => {
       console.error('Login error', err);
       const errorCode = err.response?.data?.errorCode;
-      let errMsg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      let errMsg = 'Login failed. Please try again.';
 
       if (errorCode === 'AUTH_INVALID_CREDENTIALS') {
-        errMsg = 'Tài khoản hoặc mật khẩu không chính xác.';
+        errMsg = 'Invalid email or password.';
       } else if (errorCode === 'AUTH_ACCOUNT_LOCKED') {
-        errMsg = 'Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.';
+        errMsg = 'Account locked due to too many failed login attempts. Please try again later.';
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message;
       } else if (err.message) {
@@ -209,19 +209,19 @@ const Login: React.FC = () => {
         if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
           setPendingVerificationEmail(data.email);
           setIsVerificationModalOpen(true);
-          message.info('Mã xác thực đã được gửi đến email của bạn.');
+          message.info('A verification code has been sent to your email.');
         } else {
-          message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+          message.success('Registration successful! Please sign in.');
           setIsSignUp(false);
         }
       } else {
-        message.success((data as any).message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
+        message.success((data as any).message || 'Account created successfully! Please sign in.');
         setIsSignUp(false);
       }
     },
     onError: (err: any) => {
       console.error('Registration error', err);
-      setRegisterError(err.message || err.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
+      setRegisterError(err.message || err.response?.data?.message || 'Registration failed. The email might already exist.');
     },
   });
 
@@ -235,12 +235,12 @@ const Login: React.FC = () => {
     onSuccess: () => {
       setIsVerificationModalOpen(false);
       setVerificationCode('');
-      message.success('Xác thực tài khoản thành công! Vui lòng đăng nhập.');
+      message.success('Account verified successfully! Please sign in.');
       setIsSignUp(false);
     },
     onError: (err: any) => {
       console.error('Verification error', err);
-      message.error(err.message || 'Mã xác thực không chính xác.');
+      message.error(err.message || 'Invalid verification code.');
     },
   });
 
@@ -735,7 +735,7 @@ const Login: React.FC = () => {
 
       {/* Cognito verification modal */}
       <Modal
-        title={<span className="text-white text-lg font-bold">Xác thực tài khoản Cognito</span>}
+        title={<span className="text-white text-lg font-bold">Cognito Account Verification</span>}
         open={isVerificationModalOpen}
         onCancel={() => setIsVerificationModalOpen(false)}
         footer={null}
@@ -748,10 +748,10 @@ const Login: React.FC = () => {
       >
         <div className="flex flex-col gap-4">
           <p className="text-slate-400 text-sm">
-            Vui lòng nhập mã xác thực gồm 6 chữ số đã được gửi tới email <strong className="text-white">{pendingVerificationEmail}</strong>.
+            Please enter the 6-digit verification code sent to <strong className="text-white">{pendingVerificationEmail}</strong>.
           </p>
           <Input
-            placeholder="Mã xác thực (e.g. 123456)"
+            placeholder="Verification Code (e.g. 123456)"
             value={verificationCode}
             onChange={(e) => setVerificationCode(e.target.value)}
             className={`${inputCls} text-center text-lg tracking-widest`}
@@ -763,7 +763,7 @@ const Login: React.FC = () => {
             loading={confirmSignUpMutation.isPending}
             className={`${ctaBtnCls} w-full max-w-full`}
           >
-            Xác thực
+            Verify
           </Button>
         </div>
       </Modal>

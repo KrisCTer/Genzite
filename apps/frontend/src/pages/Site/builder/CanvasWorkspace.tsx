@@ -1232,7 +1232,7 @@ ${htmlContent}
               const isSelectedPage = selectedId?.includes(page.id) || (!selectedId && index === 0);
               const isPageRegenerating = isGenerating && (
                 activeTargetPageId === page.id || 
-                (!activeTargetPageId && isSelectedPage && activePrompt && !activePrompt.match(/(?:Create|Tạo trang|Thêm trang|Tạo|Thêm)\s+/i))
+                (!activeTargetPageId && isSelectedPage && activePrompt && !activePrompt.match(/(?:Create|Add page|Add|Generate)\s+/i))
               );
               const currentStepObj = aiSteps.length > 0 ? aiSteps[aiSteps.length - 1] : null;
 

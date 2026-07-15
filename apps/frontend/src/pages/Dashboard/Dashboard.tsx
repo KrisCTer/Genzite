@@ -6,7 +6,7 @@ import { fetchCollectionsApi } from '../../api/cms';
 import { fetchSitesApi } from '../../api/sites';
 import { Users, Database, Globe, Sparkles, Shield, UserCircle, Clock, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../store/auth';
-import '../NotificationsStyle.css'; // Kế thừa phong cách Dark Space / Glassmorphism
+import '../NotificationsStyle.css'; // Inherit Dark Space / Glassmorphism style
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export const Dashboard: React.FC = () => {
 
   const [timeStr, setTimeStr] = useState(new Date().toISOString());
 
-  // Tối ưu hóa setInterval tránh leak memory
+  // Optimize setInterval to prevent memory leaks
   useEffect(() => {
     let animationFrameId: number;
     let lastUpdate = Date.now();

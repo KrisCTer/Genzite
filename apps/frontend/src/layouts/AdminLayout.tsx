@@ -209,7 +209,7 @@ const AdminLayout: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            title="Về trang chủ"
+            title="Go to Homepage"
             style={{
               background: 'none',
               border: 'none',

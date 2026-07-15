@@ -91,7 +91,7 @@ export class AuthMiddleware implements NestMiddleware {
     // --- PRODUCTION MODE: verify JWT ---
     const authHeader = req.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Thiếu hoặc sai định dạng Header Authorization');
+      throw new UnauthorizedException('Missing or invalid Authorization header');
     }
 
     try {
@@ -122,7 +122,7 @@ export class AuthMiddleware implements NestMiddleware {
 
       next();
     } catch (error) {
-      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException('Invalid or expired token');
     }
   }
 }

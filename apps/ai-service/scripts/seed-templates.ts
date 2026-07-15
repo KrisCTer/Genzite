@@ -15,7 +15,7 @@ const GOLDEN_TEMPLATES = [
   {
     name: "Minimalist E-Commerce",
     category: "ecommerce",
-    tags: ["shop", "bán", "store", "mua", "sản phẩm"],
+    tags: ["shop", "sell", "store", "buy", "product"],
     content: {
       site: { name: "Minimalist E-Commerce", subdomain: "shop-minimal" },
       pages: [
@@ -34,7 +34,7 @@ const GOLDEN_TEMPLATES = [
   {
     name: "Creative Portfolio",
     category: "portfolio",
-    tags: ["portfolio", "cá nhân", "cv", "resume", "dự án", "hồ sơ"],
+    tags: ["portfolio", "personal", "cv", "resume", "project", "profile"],
     content: {
       site: { name: "Creative Portfolio", subdomain: "my-portfolio" },
       pages: [
@@ -53,7 +53,7 @@ const GOLDEN_TEMPLATES = [
   {
     name: "Tech Insights Blog",
     category: "blog",
-    tags: ["blog", "tin tức", "bài viết", "news"],
+    tags: ["blog", "news", "article", "post"],
     content: {
       site: { name: "Tech Insights Blog", subdomain: "tech-blog" },
       pages: [
