@@ -7,7 +7,6 @@ import { fetchNotificationsApi } from '../../api/notifications';
 import {
   User as UserIcon,
   Bell,
-  Clock,
   Layout,
   ChevronRight
 } from 'lucide-react';
@@ -61,15 +60,8 @@ const MemberDashboard: React.FC = () => {
       }),
     [timeStr],
   );
-  const welcomeGreeting = useMemo(() => {
-    const hour = new Date(timeStr).getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  }, [timeStr]);
 
   const unreadCount = (notifications ?? []).filter((n) => !n.isRead).length;
-  const displayName = (user?.metadata as any)?.displayName || user?.name || 'you';
   const displayEmail = user?.email || 'N/A';
   const displayRoles = (user?.roles ?? ['VIEWER']).join(' · ');
 
@@ -183,3 +175,4 @@ const MemberDashboard: React.FC = () => {
 };
 
 export default MemberDashboard;
+

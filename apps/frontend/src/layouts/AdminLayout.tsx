@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Dropdown, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
+import { Layout, Menu, Typography, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
 import {
-  UserOutlined,
   DatabaseOutlined,
   BellOutlined,
-  SettingOutlined,
-  LogoutOutlined,
   RocketOutlined,
 } from '@ant-design/icons';
-import UserAvatar from '../components/UserAvatar';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi, type AppNotification } from '../api/notifications';
+import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
-import { logoutApi } from '../api/auth';
-import { hasMemberAccess, getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
+import { getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
 import { resolveUserRoles } from '../utils/jwt';
 import UserAccountMenu from '../components/UserAccountMenu';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
-import { Shield, Sparkles, Info, DollarSign } from 'lucide-react';
+import { 
+  Sparkles, 
+  Info, 
+  Shield, 
+  DollarSign
+} from 'lucide-react';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -61,13 +61,12 @@ const AdminLayout: React.FC = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const isAdminArea = location.pathname.startsWith(ADMIN_BASE);
   const effectiveRoles = resolveUserRoles(user?.roles, token);
   const menuConfig = isAdminArea ? ADMIN_MENU : WORKSPACE_MENU;
   const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
   const notificationsPath = getNotificationsPath(effectiveRoles);
-  const profilePath = getProfilePath(effectiveRoles);
 
   const isFullWidthPage = location.pathname.includes('/notifications') ||
     location.pathname.includes('/identity') ||
@@ -78,10 +77,12 @@ const AdminLayout: React.FC = () => {
   const path = location.pathname;
   if (path.includes('/dashboard') || path === '/workspace') pageTitle = 'Dashboard';
   else if (path.includes('/projects') || path.includes('/sites')) pageTitle = 'Projects';
-  else if (path.includes('/profile') || path.includes('/identity')) pageTitle = 'Personal Profile';
+  else if (path.includes('/profile') || path.includes('/identity') || path.includes('/user-management')) pageTitle = path.includes('/user-management') ? 'User Management' : 'Personal Profile';
   else if (path.includes('/notifications')) pageTitle = 'Notifications';
   else if (path.includes('/trash')) pageTitle = 'Trash';
   else if (path.includes('/canvas')) pageTitle = 'AI Canvas';
+  else if (path.includes('/media')) pageTitle = 'Media Library';
+  else if (path.includes('/cms')) pageTitle = 'CMS Collections';
 
   const queryClient = useQueryClient();
   const { data: notifications, isLoading: notifLoading } = useQuery({
