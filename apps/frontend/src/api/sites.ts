@@ -30,7 +30,10 @@ export interface Widget {
 // ============ Sites API ============
 export const fetchSitesApi = async () => {
   const response = await apiClient.get<Site[]>('/sites');
-  return response.data;
+  const raw = response.data;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).data)) return (raw as any).data;
+  return [];
 };
 
 export const fetchSiteByIdApi = async (id: string) => {
@@ -56,7 +59,11 @@ export const deleteSiteApi = async (id: string) => {
 // ============ Pages API ============
 export const fetchPagesApi = async (siteId: string) => {
   const response = await apiClient.get<Page[]>(`/sites/${siteId}/pages`);
-  return response.data;
+  const raw = response.data;
+  // Backend may wrap result in { data: [...] } — extract the array
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).data)) return (raw as any).data;
+  return [];
 };
 
 export const createPageApi = async (siteId: string, data: { title: string; slug: string }) => {
@@ -77,13 +84,19 @@ export const deletePageApi = async (pageId: string) => {
 // ============ Widgets API ============
 export const fetchWidgetsApi = async (pageId: string) => {
   const response = await apiClient.get<Widget[]>(`/sites/pages/${pageId}/widgets`);
-  return response.data;
+  const raw = response.data;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).data)) return (raw as any).data;
+  return [];
 };
 
 /** Public version — no auth token required. Used by the /live viewer for anonymous access. */
 export const fetchWidgetsPublicApi = async (pageId: string) => {
   const response = await apiClient.get<Widget[]>(`/sites/pages/${pageId}/widgets/public`);
-  return response.data;
+  const raw = response.data;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).data)) return (raw as any).data;
+  return [];
 };
 
 export const replaceWidgetsApi = async (pageId: string, widgets: Array<{ type: string; contentConfig: Record<string, unknown>; sortOrder: number }>) => {
