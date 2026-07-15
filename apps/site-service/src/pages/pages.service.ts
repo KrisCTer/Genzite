@@ -15,19 +15,29 @@ export class PagesService {
     private readonly siteProducer: SiteProducer,
   ) {}
 
-  private async verifySiteOwnership(siteId: string, userId: string) {
-    const site = await this.prisma.site.findUnique({
-      where: {
-        id: siteId,
-      },
+  private async verifySiteOwnership(siteIdOrSubdomain: string, userId: string, allowPublicRead: boolean = false, userEmail?: string) {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(siteIdOrSubdomain);
+    const site = await this.prisma.site.findFirst({
+      where: isUUID ? { id: siteIdOrSubdomain } : { subdomain: siteIdOrSubdomain },
     });
 
     if (!site) {
       throw new NotFoundException("Site not found");
     }
 
-    if (site.ownerId !== userId) {
-      throw new ForbiddenException("You do not own this site");
+    if (allowPublicRead) {
+      const isPublic = (site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
+      const isRestricted = (site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
+      const sharedEmails = (site.settings as any)?.sharedEmails || [];
+      const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+
+      if (site.ownerId !== userId && !isPublic && !isSharedWithUser) {
+        throw new ForbiddenException("You do not own this site and it is not shared with you");
+      }
+    } else {
+      if (site.ownerId !== userId) {
+        throw new ForbiddenException("You do not own this site");
+      }
     }
 
     return site;
@@ -51,12 +61,12 @@ export class PagesService {
     return page;
   }
 
-  async findBySiteId(siteId: string, userId: string) {
-    await this.verifySiteOwnership(siteId, userId);
+  async findBySiteId(siteId: string, userId: string, userEmail?: string) {
+    const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
     
     return this.prisma.page.findMany({
       where: {
-        siteId,
+        siteId: site.id,
       },
       orderBy: {
         sortOrder: "asc",
@@ -64,23 +74,23 @@ export class PagesService {
     });
   }
 
-  async findById(id: string, siteId: string, userId: string) {
-    await this.verifySiteOwnership(siteId, userId);
+  async findById(id: string, siteId: string, userId: string, userEmail?: string) {
+    const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
     
     return this.prisma.page.findFirst({
       where: {
         id,
-        siteId,
+        siteId: site.id,
       },
     });
   }
 
-  async findBySlug(siteId: string, slug: string, userId: string) {
-    await this.verifySiteOwnership(siteId, userId);
+  async findBySlug(siteId: string, slug: string, userId: string, userEmail?: string) {
+    const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
     
     return this.prisma.page.findFirst({
       where: {
-        siteId,
+        siteId: site.id,
         slug,
       },
     });
@@ -95,12 +105,12 @@ export class PagesService {
     userId: string,
   ) {
     // Step 1: Check if user has permission for the site
-    await this.verifySiteOwnership(siteId, userId);
+    const site = await this.verifySiteOwnership(siteId, userId);
 
     // Step 2: Check for duplicate slug in the site
     const existed = await this.prisma.page.findFirst({
       where: {
-        siteId,
+        siteId: site.id,
         slug: dto.slug,
       },
     });
@@ -112,7 +122,7 @@ export class PagesService {
     // Step 3: Get the last page of the site
     const lastPage = await this.prisma.page.findFirst({
       where: {
-        siteId,
+        siteId: site.id,
       },
       orderBy: {
         sortOrder: "desc",
@@ -127,7 +137,7 @@ export class PagesService {
       data: {
         title: dto.title,
         slug: dto.slug,
-        siteId,
+        siteId: site.id,
         sortOrder: nextSortOrder,
       },
     });

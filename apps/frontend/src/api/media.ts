@@ -75,13 +75,37 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
     onUploadProgress,
   });
 
+  // Derive the permanent public URL: strip auth query-string from the presigned PUT URL
+  const publicUrl = uploadUrl.split('?')[0];
+
   // 3. Confirm upload with the backend
-  const confirmRes = await apiClient.post<MediaFile>('/media/confirm', {
+  const confirmRes = await apiClient.post('/media/confirm', {
     s3Key,
     filename: file.name,
     mimeType: file.type,
     sizeBytes: file.size,
   });
 
-  return confirmRes.data;
+  // Backend Prisma model doesn't include a url field — attach it here
+  return {
+    ...confirmRes.data,
+    url: publicUrl,
+    filename: file.name,
+  } as MediaFile;
 };
+
+export const deleteMediaFileApi = async (mediaId: string) => {
+  const response = await apiClient.delete(`/media/${mediaId}`);
+  return response.data;
+};
+
+export const fetchTrashMediaApi = async () => {
+  const response = await apiClient.get<MediaFile[]>('/media/trash/list');
+  return response.data;
+};
+
+export const restoreMediaApi = async (mediaId: string) => {
+  const response = await apiClient.post(`/media/${mediaId}/restore`);
+  return response.data;
+};
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Card, Typography, Space, Modal, Form, Input, Popconfirm, Row, Col, App } from 'antd';
-import { PlusOutlined, GlobalOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
+import { PlusOutlined, GlobalOutlined, DeleteOutlined, SettingOutlined, BarChartOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchSitesApi, createSiteApi, deleteSiteApi, updateSiteApi, type Site } from '../../api/sites';
 import { useNavigate } from 'react-router-dom';
@@ -138,14 +138,24 @@ const SitesList: React.FC = () => {
               </p>
               <div style={{ marginTop: 'var(--space-24)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Created {new Date(site.createdAt).toLocaleDateString()}</span>
-                <Button 
-                  type="primary" 
-                  ghost 
-                  size="small" 
-                  onClick={() => navigate(`/project/${site.id}`)}
-                >
-                  Open Project
-                </Button>
+                <Space>
+                  <Button 
+                    type="default" 
+                    size="small" 
+                    icon={<BarChartOutlined />}
+                    onClick={() => navigate(`/workspace/observability/${site.id}`)}
+                  >
+                    Logs & Metrics
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    ghost 
+                    size="small" 
+                    onClick={() => navigate(`/project/${site.id}`)}
+                  >
+                    Open Project
+                  </Button>
+                </Space>
               </div>
             </Card>
           </Col>

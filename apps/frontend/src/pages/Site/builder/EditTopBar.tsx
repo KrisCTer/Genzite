@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Tablet, Monitor, Save, Undo2, Redo2, ArrowLeft, Move, LayoutGrid, Check, Hand, ZoomIn, ZoomOut, Maximize, MoveVertical, RefreshCcw } from 'lucide-react';
+import { Smartphone, Tablet, Monitor, Save, Undo2, Redo2, ArrowLeft, Check, Hand, ZoomIn, ZoomOut, Maximize, MoveVertical, RefreshCcw } from 'lucide-react';
 import { Button, Tooltip, Space, Dropdown } from 'antd';
 
 interface EditTopBarProps {
@@ -23,8 +23,6 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
   siteName = 'Untitled Project',
   onSave,
   isSaving,
-  dragMode = 'absolute',
-  onToggleDragMode,
   siteId
 }) => {
   const [justSaved, setJustSaved] = React.useState(false);
@@ -74,19 +72,9 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
   };
 
   return (
-    <div style={{ 
-      height: 60, 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between',
-      padding: '0 20px',
-      background: '#07090f',
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
-      color: '#fff',
-      zIndex: 100
-    }}>
+    <div className="canvas-toolbar">
       {/* Left: Logo & Project Name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div className="canvas-toolbar-left">
         <div 
           style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} 
           onClick={() => window.location.href = `/project/${siteId || ''}`}
@@ -95,12 +83,38 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
           <span style={{ fontSize: 10, padding: '2px 6px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, verticalAlign: 'middle', fontWeight: 600, color: '#a1a1aa' }}>EDIT</span>
         </div>
 
-        <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-        <span style={{ color: '#cbd5e1', fontSize: 14, fontWeight: 500 }}>{siteName}</span>
+        <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)', marginLeft: 8, marginRight: 8 }} />
+        
+        <div
+          className="canvas-project-title-wrapper"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'default',
+            padding: '4px 10px',
+            borderRadius: 8,
+            transition: 'all 0.2s ease',
+            border: '1px solid transparent'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.borderColor = 'transparent';
+          }}
+          title={siteName}
+        >
+          <span style={{ fontSize: 15, fontWeight: 600, color: '#fff', letterSpacing: '0.01em', fontFamily: 'var(--font-sans)' }}>
+            {siteName}
+          </span>
+        </div>
       </div>
 
       {/* Center: Device Controls, Undo/Redo & Drag Mode Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="canvas-toolbar-center" style={{ gap: 12 }}>
         {/* Device view buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: 8 }}>
           <Tooltip title="Desktop View (1440px)">
@@ -218,49 +232,11 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
             </div>
           </Tooltip>
         </div>
-
-        {/* Drag Mode Toggle */}
-        {onToggleDragMode && (
-          <>
-            <style>{`
-              @keyframes gz-drag-pop {
-                0% { transform: scale(0.8); opacity: 0.7; }
-                50% { transform: scale(1.25); filter: brightness(1.4); }
-                100% { transform: scale(1); opacity: 1; }
-              }
-            `}</style>
-            <Tooltip title={dragMode === 'absolute' ? "Current: Free Drag (X/Y Coordinates). Click to switch to Flow Layout." : "Current: Flow Layout (Standard Document Flow). Click to switch to Free Drag."}>
-              <div 
-                key={dragMode}
-                onClick={() => onToggleDragMode(dragMode === 'absolute' ? '' : 'absolute')} 
-                style={{ 
-                  cursor: 'pointer', 
-                  padding: '6px 12px', 
-                  borderRadius: 8, 
-                  background: dragMode === 'absolute' ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.4))' : 'linear-gradient(135deg, rgba(52, 211, 153, 0.25), rgba(16, 185, 129, 0.4))', 
-                  color: dragMode === 'absolute' ? '#38BDF8' : '#34D399',
-                  border: dragMode === 'absolute' ? '1px solid #38BDF8' : '1px solid #34D399',
-                  boxShadow: dragMode === 'absolute' ? '0 0 12px rgba(56, 189, 248, 0.5)' : '0 0 12px rgba(52, 211, 153, 0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                  animation: 'gz-drag-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                }}
-              >
-                {dragMode === 'absolute' ? <Move size={16} /> : <LayoutGrid size={16} />}
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: dragMode === 'absolute' ? '#38BDF8' : '#34D399', boxShadow: dragMode === 'absolute' ? '0 0 8px #38BDF8' : '0 0 8px #34D399' }} />
-              </div>
-            </Tooltip>
-          </>
-        )}
+        {/* Free Drag Mode active (Flow mode removed) */}
       </div>
 
       {/* Right: Back to Project & Save */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="canvas-toolbar-right" style={{ gap: 12 }}>
         <Space size={10}>
           <Button 
             icon={<ArrowLeft size={16} />} 
@@ -279,7 +255,6 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
             Back to Project
           </Button>
           <Button 
-            type="primary" 
             icon={justSaved ? <Check size={16} /> : <Save size={16} />} 
             onClick={onSave} 
             loading={isSaving} 
@@ -289,9 +264,12 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              background: justSaved ? '#10B981' : undefined,
-              borderColor: justSaved ? '#10B981' : undefined,
-              boxShadow: justSaved ? '0 0 16px rgba(16, 185, 129, 0.6)' : undefined,
+              background: justSaved ? 'rgba(16, 185, 129, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+              borderColor: justSaved ? 'rgba(16, 185, 129, 0.3)' : 'rgba(6, 182, 212, 0.3)',
+              color: justSaved ? '#10B981' : '#06B6D4',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              boxShadow: justSaved ? '0 0 16px rgba(16, 185, 129, 0.2)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
               transform: justSaved ? 'scale(1.04)' : undefined,
               transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
             }}

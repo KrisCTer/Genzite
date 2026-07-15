@@ -6,6 +6,7 @@ import {
   BadRequestException,
   Delete,
   Param,
+  Post,
 } from "@nestjs/common";
 import { RegistryService } from "./registry.service.js";
 
@@ -42,5 +43,34 @@ export class RegistryController {
     }
 
     return this.registryService.deleteMedia(mediaId, ownerId);
+  }
+
+  @Get("trash/list")
+  async findTrash(
+    @Headers("x-user-id") ownerId: string,
+    @Query("page") page = "1",
+    @Query("limit") limit = "20",
+  ) {
+    if (!ownerId) {
+      throw new BadRequestException("x-user-id header is required");
+    }
+
+    return this.registryService.findTrash(
+      ownerId,
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  @Post(":mediaId/restore")
+  async restoreMedia(
+    @Headers("x-user-id") ownerId: string,
+    @Param("mediaId") mediaId: string,
+  ) {
+    if (!ownerId) {
+      throw new BadRequestException("x-user-id header is required");
+    }
+
+    return this.registryService.restoreMedia(mediaId, ownerId);
   }
 }

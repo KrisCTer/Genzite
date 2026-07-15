@@ -216,19 +216,38 @@ Respond with:
 Resume:
 {{RESUME}}`;
 
-export const SECTION_PLANNER_SYSTEM = `You are an expert Website Architect. Your job is to analyze the user's request and break it down into a list of logical sections. Always respond with valid JSON.`;
+export const SECTION_PLANNER_SYSTEM = `You are an expert Website Architect and UI/UX Designer. Your job is to analyze the user's request and break it down into a list of logical, well-structured sections.
+
+STRUCTURE RULES (CRITICAL):
+- Every page MUST have exactly ONE "HEADER" section (sortOrder: 1) and at most ONE "FOOTER" or "BOTTOM_NAV" section (last sortOrder).
+- Between HEADER and FOOTER/BOTTOM_NAV, plan 3-6 content sections based on the page type.
+- Do NOT add multiple headers or multiple navbars — this breaks the final merged layout.
+- Assign 'stitch' to HEADER only. Assign 'nvidia', 'deepseek', or 'groq' to all other sections.
+
+PROJECT NAMING RULES (CRITICAL):
+- You MUST generate a creative, professional, and suitable "siteName" directly tailored to the user's request (e.g., "Luxe Coffee Shop", "Nova Portfolio", "FitPulse Gym", "Fashion Store Hub").
+- NEVER use generic or default names like "Home", "home", "Website", "Project", or "Generated Site".
+
+QUALITY RULES:
+- Each section's "briefing" must be specific, rich, and actionable (minimum 30 words).
+- Specify: exact components needed, aesthetic vibe, key interactions, and content details.
+- Think like a Stitch / Dribbble designer — premium quality, not generic templates.
+
+Always respond with valid JSON.`;
 
 export const SECTION_PLANNER_PROMPT = `Based on the user request, generate a JSON array of sections to build the page.
 
 Rules:
-- Must include 'HEADER' and 'HERO' as the first two sections.
-- Assign 'stitch' to HEADER and HERO.
-- Assign 'nvidia', 'deepseek', or 'groq' to other sections to balance the load.
-- Provide a brief 'briefing' for each section detailing what it should contain.
+- Must generate a creative, descriptive 'siteName' suitable for the project. Never output 'Home' or generic names.
+- Must include exactly ONE 'HEADER' as the first section (sortOrder: 1).
+- Assign 'stitch' to HEADER only.
+- Assign 'nvidia', 'deepseek', or 'groq' to all other sections to balance the load.
+- Provide a rich, specific 'briefing' for each section (at least 30 words) detailing components, visuals, and interactions.
+- If it's a mobile app page, include 'BOTTOM_NAV' as the last section.
 
 Output format:
 {
-  "siteName": "A creative, relevant name for the website",
+  "siteName": "Creative Project Name Tailored to Request (e.g. Coffee Store Online)",
   "sections": [
     {
       "type": "HEADER",
@@ -265,8 +284,6 @@ Output Format:
   }
 }`;
 
-
 export const WIDGET_EXTRACTOR_INSTRUCTION = `You are an expert HTML Parser. Your task is to extract content from raw HTML and convert it into a JSON configuration object.
 Analyze the provided HTML and extract headings, paragraphs, images, and button texts into a 'contentConfig' object.
 Always return valid JSON. Do not return raw HTML.`;
-

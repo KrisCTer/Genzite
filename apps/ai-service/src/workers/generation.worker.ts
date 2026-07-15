@@ -12,6 +12,7 @@ export interface SiteGenerationJobData {
   model?: string;
   siteId?: string;
   theme?: string;
+  attachments?: { base64: string; mimeType: string }[];
 }
 
 export interface CmsGenerationJobData {
@@ -48,8 +49,8 @@ export class SiteGenerationWorker extends WorkerHost {
   }
 
   async process(job: Job<SiteGenerationJobData>): Promise<any> {
-    const { prompt, ownerId, model, siteId, theme } = job.data;
-    this.logger.log(`Processing site generation: job=${job.id}, owner=${ownerId}`);
+    const { prompt, ownerId, model, siteId, theme, attachments } = job.data;
+    this.logger.log(`Processing site generation: job=${job.id}, owner=${ownerId}, attachments=${attachments?.length || 0}`);
 
     const result = await this.siteGenerator.generate(
       prompt, 
@@ -59,7 +60,8 @@ export class SiteGenerationWorker extends WorkerHost {
       theme,
       async (step, percent) => {
         await job.updateProgress({ step, percent });
-      }
+      },
+      attachments
     );
 
     const resolvedSiteId = siteId || result.projectId || result.site?.subdomain || `gen-${Date.now()}`;

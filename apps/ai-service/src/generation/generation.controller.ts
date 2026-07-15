@@ -47,6 +47,7 @@ export class GenerationController implements OnModuleInit, OnModuleDestroy {
       model: dto.model,
       siteId: dto.siteId,
       theme: dto.theme,
+      attachments: dto.attachments,
     });
 
     return {

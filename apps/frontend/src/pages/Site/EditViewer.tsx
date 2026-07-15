@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message, Spin } from 'antd';
 import { fetchPagesApi, fetchWidgetsApi, replaceWidgetsApi, fetchSiteByIdApi, type Widget } from '../../api/sites';
@@ -7,18 +7,21 @@ import EditTopBar from './builder/EditTopBar';
 import EditLeftPanel from './builder/EditLeftPanel';
 import EditRightPanel from './builder/EditRightPanel';
 import GrapesEditor, { type GrapesEditorRef } from './builder/GrapesEditor';
+import WidgetRenderer from './builder/WidgetRenderer';
+import { MediaLibraryModal } from './builder/components/MediaLibraryModal';
+import { renderToStaticMarkup } from 'react-dom/server';
 import './CanvasBuilder.css';
 
 const EditViewer: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const [searchParams] = useSearchParams();
   const pageId = searchParams.get('pageId');
-  const navigate = useNavigate();
   const [device, setDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('desktop');
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [dragMode, setDragMode] = useState<'absolute' | ''>('absolute');
+  const dragMode = 'absolute';
   const [isPanActive, setIsPanActive] = useState(false);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   
   const [zoom, setZoom] = useState(0.6);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -28,7 +31,22 @@ const EditViewer: React.FC = () => {
   
   const canvasCenterRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<GrapesEditorRef>(null);
+  const [grapesEditorInstance, setGrapesEditorInstance] = useState<any>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleInit = (e: any) => {
+      if (e.detail?.editor) {
+        setGrapesEditorInstance(e.detail.editor);
+      }
+    };
+    window.addEventListener('genzite:grapes:init', handleInit);
+    if (editorRef.current && typeof (editorRef.current as any).getEditor === 'function') {
+      const ed = (editorRef.current as any).getEditor();
+      if (ed) setGrapesEditorInstance(ed);
+    }
+    return () => window.removeEventListener('genzite:grapes:init', handleInit);
+  }, []);
 
   useEffect(() => {
     const handleZoomIn = () => {
@@ -206,29 +224,102 @@ const EditViewer: React.FC = () => {
     }
   });
 
-  const handleSave = () => {
-    if (!editorRef.current || !activePage?.id) return;
-    const html = editorRef.current.getHtml();
-    const css = editorRef.current.getCss();
-    
-    // Find GRAPESJS widget and update it
+  const getPageHtmlForGrapes = () => {
     const grapesWidget = widgets?.find(w => w.type === 'GRAPESJS');
-    if (!grapesWidget) {
-      message.warning('Could not find GrapesJS page to save!');
-      return;
-    }
+    if (grapesWidget) return grapesWidget.contentConfig?.html || '';
+    if (!widgets || widgets.length === 0) return '';
 
-    const updatedWidget = {
-      ...grapesWidget,
+    return widgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(widget => {
+      if (widget.type === 'CUSTOM_HTML' || widget.type === 'HTML') {
+        return widget.contentConfig?.html || '';
+      }
+      return renderToStaticMarkup(
+        <div id={widget.id || (widget as any)._id} data-gjs-type="default">
+          <WidgetRenderer type={widget.type} config={widget.contentConfig} isActive={false} />
+        </div>
+      );
+    }).join('\n');
+  };
+
+  const handleSave = () => {
+    if (!activePage?.id) return;
+    const grapesWidget = widgets?.find(w => w.type === 'GRAPESJS');
+    
+    if (editorRef.current) {
+      const html = editorRef.current.getHtml();
+      const css = editorRef.current.getCss();
+      
+      if (grapesWidget) {
+        const updatedWidget = {
+          ...grapesWidget,
+          contentConfig: {
+            ...(grapesWidget.contentConfig || {}),
+            html,
+            css
+          }
+        };
+        const newWidgets = widgets?.map(w => w.id === grapesWidget.id ? updatedWidget : w) || [];
+        saveMutation.mutate(newWidgets);
+      } else {
+        // Convert the entire page into a single GRAPESJS widget
+        const newGrapesWidget = {
+          id: `w-${Date.now()}`,
+          type: 'GRAPESJS',
+          sortOrder: 10,
+          contentConfig: {
+            html,
+            css
+          }
+        };
+        saveMutation.mutate([newGrapesWidget]);
+      }
+    } else if (widgets) {
+      saveMutation.mutate(widgets);
+    }
+  };
+
+  const handleAddWidget = (type: string) => {
+    if (!activePage?.id || !widgets) return;
+    const newWidget: any = {
+      _id: `w-${Date.now()}`,
+      id: `w-${Date.now()}`,
+      type: type,
+      sortOrder: (widgets.length + 1) * 10,
       contentConfig: {
-        ...(grapesWidget.contentConfig || {}),
-        html,
-        css
+        title: `New ${type.replace(/_/g, ' ')}`,
+        subtitle: 'Customize this section in the properties panel or prompt AI to refine it.',
       }
     };
+    const updated = [...widgets, newWidget];
+    setSelectedWidgetId(newWidget._id);
+    saveMutation.mutate(updated);
+  };
 
-    const newWidgets = widgets?.map(w => w.id === grapesWidget.id ? updatedWidget : w) || [];
-    saveMutation.mutate(newWidgets);
+  const handleDeleteWidget = (id: string) => {
+    if (!activePage?.id || !widgets) return;
+    const updated = widgets.filter(w => w.id !== id && (w as any)._id !== id);
+    if (selectedWidgetId === id) setSelectedWidgetId(null);
+    saveMutation.mutate(updated);
+  };
+
+  const handleMoveWidget = (id: string, direction: 'up' | 'down') => {
+    if (!activePage?.id || !widgets) return;
+    const idx = widgets.findIndex(w => w.id === id || (w as any)._id === id);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= widgets.length) return;
+    const updated = [...widgets];
+    const temp = updated[idx];
+    updated[idx] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    updated.forEach((w, i) => { (w as any).sortOrder = (i + 1) * 10; });
+    saveMutation.mutate(updated);
+  };
+
+  const handleUpdateWidgetConfig = (id: string, newConfig: any) => {
+    if (!activePage?.id || !widgets) return;
+    const updated = widgets.map(w => (w.id === id || (w as any)._id === id) ? { ...w, contentConfig: newConfig } : w);
+    saveMutation.mutate(updated);
   };
 
   const grapesWidget = widgets?.find(w => w.type === 'GRAPESJS');
@@ -258,7 +349,6 @@ const EditViewer: React.FC = () => {
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#07090f',
       overflow: 'hidden'
     }}>
       <EditTopBar 
@@ -271,19 +361,25 @@ const EditViewer: React.FC = () => {
         setRightPanelOpen={setRightPanelOpen}
         onSave={handleSave}
         isSaving={saveMutation.isPending}
-        dragMode={dragMode}
-        onToggleDragMode={(mode) => {
-          setDragMode(mode);
-          editorRef.current?.setDragMode(mode);
-        }}
         siteId={siteId}
       />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <EditLeftPanel isOpen={leftPanelOpen} />
+        <EditLeftPanel 
+          isOpen={leftPanelOpen}
+          setIsOpen={setLeftPanelOpen}
+          widgets={widgets || []}
+          selectedId={selectedWidgetId}
+          onSelectWidget={(id) => setSelectedWidgetId(id)}
+          onAddWidget={handleAddWidget}
+          onDeleteWidget={handleDeleteWidget}
+          onMoveWidget={handleMoveWidget}
+          isGrapesPage={true}
+          editor={grapesEditorInstance}
+        />
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-           {/* Center Area */}
+           {/* Canvas Center — Figma-style artboard area */}
            <div 
               ref={canvasCenterRef}
               onMouseDown={handleMouseDown}
@@ -296,15 +392,20 @@ const EditViewer: React.FC = () => {
                 display: 'flex',
                 padding: 0,
                 overflow: 'hidden',
-                backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0)',
-                backgroundSize: '24px 24px',
                 cursor: isPanning ? 'grabbing' : isPanActive ? 'grab' : 'default',
+                position: 'relative',
+                // Figma/Framer-style dot grid background
+                background: [
+                  'radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)',
+                ].join(', '),
+                backgroundSize: '20px 20px',
+                backgroundPosition: 'center center',
              }}>
               {isLoading ? (
                 <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                   <Spin size="large" />
                 </div>
-              ) : grapesWidget ? (
+              ) : activePage && widgets ? (
                 <div
                   className="canvas-viewport"
                   style={{
@@ -313,11 +414,39 @@ const EditViewer: React.FC = () => {
                     position: 'absolute',
                     left: 0, top: 0, right: 0, bottom: 0,
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: 0,
                     pointerEvents: (isPanActive || isPanning) ? 'none' : 'auto',
                   }}
                 >
+                  {/* Page size label floating above frame */}
+                  <div style={{
+                    marginBottom: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: 'rgba(148,163,184,0.6)',
+                      letterSpacing: '0.04em',
+                      fontFamily: 'ui-monospace, monospace',
+                      background: 'rgba(15,23,42,0.6)',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backdropFilter: 'blur(4px)',
+                      border: '1px solid rgba(148,163,184,0.12)',
+                    }}>
+                      {device === 'mobile' ? '📱 390 × 844' : device === 'tablet' ? '📟 768 × 1024' : '🖥️ 1440 × 900'}
+                      {' '}&nbsp;{'—'}&nbsp; {Math.round(zoom * 100)}%
+                    </span>
+                  </div>
+
                   <div 
                     id="edit-viewer-canvas-wrapper"
                     style={{ 
@@ -327,17 +456,22 @@ const EditViewer: React.FC = () => {
                       maxHeight: device === 'full' ? 'none' : getHeight(),
                       overflow: 'hidden',
                       background: '#fff',
-                      border: device !== 'full' ? '6px solid rgba(148, 163, 184, 0.4)' : 'none',
-                      boxShadow: device !== 'full' ? `0 25px 50px -12px rgba(0,0,0,0.5), 0 0 20px ${(site?.settings as any)?.themeColor || '#06B6D4'}33` : 'none',
-                      borderRadius: device !== 'full' ? 24 : 0,
-                      transition: 'all 0.3s ease',
-                      flexShrink: 0
+                      border: device !== 'full' ? '1.5px solid rgba(148, 163, 184, 0.25)' : 'none',
+                      boxShadow: device !== 'full' ? `
+                        0 0 0 1px rgba(148,163,184,0.1),
+                        0 20px 60px -12px rgba(0,0,0,0.6),
+                        0 0 40px ${(site?.settings as any)?.themeColor || '#06B6D4'}22
+                      ` : 'none',
+                      borderRadius: device !== 'full' ? 12 : 0,
+                      transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
+                      flexShrink: 0,
+                      position: 'relative',
                   }}>
                     <GrapesEditor 
-                      key={`grapes-${reloadKey}`}
+                      key={`grapes-${reloadKey}-${activePage.id}`}
                       ref={editorRef} 
-                      htmlContent={grapesWidget.contentConfig?.html || ''} 
-                      cssContent={grapesWidget.contentConfig?.css || ''}
+                      htmlContent={getPageHtmlForGrapes()} 
+                      cssContent={grapesWidget?.contentConfig?.css || ''}
                       initialDragMode={dragMode}
                       canvasDevice={device}
                     />
@@ -346,15 +480,22 @@ const EditViewer: React.FC = () => {
               ) : (
                 <div style={{ color: '#fff' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <h2 style={{ marginBottom: 16 }}>Builder Mode</h2>
-                    <p style={{ color: '#94a3b8' }}>This page does not use GrapesJS engine. Please use standard drag-and-drop mode.</p>
+                    <h2 style={{ marginBottom: 16 }}>No Page Selected</h2>
+                    <p style={{ color: '#94a3b8' }}>Please select or create a page to start building.</p>
                   </div>
                 </div>
               )}
            </div>
         </div>
 
-        <EditRightPanel isOpen={rightPanelOpen} />
+        <EditRightPanel 
+          isOpen={rightPanelOpen}
+          setIsOpen={setRightPanelOpen}
+          selectedWidget={(widgets || []).find(w => w.id === selectedWidgetId || (w as any)._id === selectedWidgetId)}
+          onUpdateWidgetContent={(cfg) => selectedWidgetId && handleUpdateWidgetConfig(selectedWidgetId, cfg)}
+          isGrapesPage={true}
+        />
+        <MediaLibraryModal globalListener={true} />
       </div>
     </div>
   );

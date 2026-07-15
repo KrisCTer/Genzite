@@ -21,6 +21,7 @@ interface AiGenerateOptions {
   temperature?: number;
   maxOutputTokens?: number;
   tools?: FunctionDeclaration[];
+  images?: { base64: string; mimeType: string }[];
 }
 
 /**

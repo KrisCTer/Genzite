@@ -4,12 +4,16 @@ import { FileImage, Globe, Sparkles } from 'lucide-react';
 interface AddMenuProps {
   onClose: () => void;
   onImprove?: () => void;
+  onUploadFile?: () => void;
 }
 
-const AddMenu = forwardRef<HTMLDivElement, AddMenuProps>(({ onClose, onImprove }, ref) => {
+const AddMenu = forwardRef<HTMLDivElement, AddMenuProps>(({ onClose, onImprove, onUploadFile }, ref) => {
   return (
     <div className="ai-add-menu" ref={ref}>
-      <button className="ai-add-item" type="button" onClick={onClose}>
+      <button className="ai-add-item" type="button" onClick={() => {
+        if (onUploadFile) onUploadFile();
+        onClose();
+      }}>
         <FileImage size={16} />
         <span>Upload file</span>
       </button>

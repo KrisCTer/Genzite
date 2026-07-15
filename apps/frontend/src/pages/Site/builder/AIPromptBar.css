@@ -796,6 +796,10 @@
   bottom: auto !important;
   left: auto !important;
   transform: none !important;
+  cursor: grab;
+}
+.ai-prompt-quick.compact-quick:active {
+  cursor: grabbing;
 }
 .ai-prompt-quick.compact-quick::-webkit-scrollbar {
   display: none;
@@ -816,6 +820,8 @@
   white-space: nowrap;
   transition: all 0.2s ease;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  user-select: none;
 }
 
 .ai-prompt-quick-chip.compact-chip:hover {
@@ -852,3 +858,17 @@
   transition: all 0.3s ease;
 }
 
+/* Remove any blue outline or border from chat input box and prompt container when clicked or focused */
+.ai-prompt-input:focus,
+.ai-prompt-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.ai-prompt-bar-inner:focus-within,
+.ai-prompt-bar.compact .ai-prompt-bar-inner:focus-within {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  outline: none !important;
+}

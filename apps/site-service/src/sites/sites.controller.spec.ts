@@ -16,6 +16,7 @@ describe('SitesController', () => {
             findAll: jest.fn(),
             findById: jest.fn(),
             create: jest.fn(),
+            duplicate: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
           },
@@ -48,6 +49,18 @@ describe('SitesController', () => {
       await controller.create(dto, userId);
 
       expect(service.create).toHaveBeenCalledWith(dto, 'user-1');
+    });
+  });
+
+  describe('duplicate', () => {
+    it('should duplicate site', async () => {
+      const userId = 'user-1';
+      const siteId = 'site-1';
+      jest.spyOn(service, 'duplicate').mockResolvedValue({ id: 'site-2' } as any);
+
+      await controller.duplicate(siteId, userId);
+
+      expect(service.duplicate).toHaveBeenCalledWith(siteId, userId);
     });
   });
 });

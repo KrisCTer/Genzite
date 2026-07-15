@@ -67,7 +67,7 @@ export class ProxyController {
     // Log incoming request and target service
     const user = (req as any).user;
     const userId = user?.id ? `User[${user.id}]` : 'Guest';
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown IP';
+    const clientIp = req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'Unknown IP';
     this.logger.log(`[${req.method}] ${req.url} | Caller: ${userId} (${clientIp}) ➜ Routing to Service: [${serviceKey || 'Unknown'}]`);
 
     if (!proxyHandler) {

@@ -23,6 +23,7 @@ describe('PagesService', () => {
             },
             site: {
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
             },
           },
         },
@@ -39,7 +40,7 @@ describe('PagesService', () => {
 
   describe('findBySiteId', () => {
     it('should return all pages for a site', async () => {
-      jest.spyOn(prisma.site, 'findUnique').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
+      jest.spyOn(prisma.site, 'findFirst').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
       jest.spyOn(prisma.page, 'findMany').mockResolvedValue([{ id: 'page-1' }] as any);
 
       const result = await service.findBySiteId('site-1', 'user-1');
@@ -55,7 +56,7 @@ describe('PagesService', () => {
   describe('create', () => {
     it('should create a page', async () => {
       const createDto = { title: 'Home', slug: 'home', path: '/' };
-      jest.spyOn(prisma.site, 'findUnique').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
+      jest.spyOn(prisma.site, 'findFirst').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
       jest.spyOn(prisma.page, 'create').mockResolvedValue({ id: 'page-1', ...createDto } as any);
 
       const result = await service.create('site-1', createDto, 'user-1');

@@ -20,11 +20,11 @@ describe('AiConsumer', () => {
         AiConsumer,
         {
           provide: SitesService,
-          useValue: { create: jest.fn() },
+          useValue: { create: jest.fn(), findById: jest.fn(), update: jest.fn() },
         },
         {
           provide: PagesService,
-          useValue: { create: jest.fn() },
+          useValue: { create: jest.fn(), findBySlug: jest.fn() },
         },
         {
           provide: WidgetsService,
@@ -76,6 +76,7 @@ describe('AiConsumer', () => {
       expect(handler).toBeDefined();
 
       jest.spyOn(sitesService, 'create').mockResolvedValue({ id: 'site-1', subdomain: 'test' } as any);
+      jest.spyOn(pagesService, 'findBySlug').mockResolvedValue(null as any);
       jest.spyOn(pagesService, 'create').mockResolvedValue({ id: 'page-1' } as any);
       jest.spyOn(widgetsService, 'replaceWidgets').mockResolvedValue(null as any);
 
@@ -84,6 +85,31 @@ describe('AiConsumer', () => {
       expect(sitesService.create).toHaveBeenCalled();
       expect(pagesService.create).toHaveBeenCalled();
       expect(widgetsService.replaceWidgets).toHaveBeenCalled();
+    });
+
+    it('should update existing site name if current name is generic ("Home") and new creative name is provided', async () => {
+      const payload = {
+        ownerId: 'user-1',
+        siteId: 'site-1',
+        prompt: 'Create a coffee shop website',
+        siteData: {
+          site: {
+            name: 'Coffee Shop Online',
+            subdomain: 'test-site',
+          },
+          pages: []
+        }
+      };
+
+      const handler = topicHandlers[KAFKA_TOPICS.SITE_GENERATED];
+      jest.spyOn(sitesService, 'findById').mockResolvedValue({ id: 'site-1', name: 'Home', subdomain: 'test-site' } as any);
+      const updateSpy = jest.spyOn(sitesService, 'update').mockResolvedValue({ id: 'site-1', name: 'Coffee Shop Online' } as any);
+
+      await handler({ payload });
+
+      expect(updateSpy).toHaveBeenCalledWith('site-1', expect.objectContaining({
+        name: 'Coffee Shop Online'
+      }), 'user-1');
     });
   });
 });

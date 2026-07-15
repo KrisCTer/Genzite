@@ -4,15 +4,18 @@ import { fetchSitesApi } from '../../../api/sites';
 import { Search, LayoutGrid, Users, Monitor, Layout, Component } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './ProjectSidebar.css';
+import { useAuthStore } from '../../../store/auth';
 
 const ProjectSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mine' | 'shared'>('mine');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const token = useAuthStore(state => state.token);
 
   const { data: apiSites = [] } = useQuery({
     queryKey: ['sites'],
     queryFn: fetchSitesApi,
+    enabled: !!token,
   });
 
   const sites = apiSites;

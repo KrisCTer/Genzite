@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   PieChartOutlined,
+  AppstoreOutlined,
   TeamOutlined,
   UserOutlined,
   PictureOutlined,
@@ -8,6 +9,7 @@ import {
   GlobalOutlined,
   BellOutlined,
   RobotOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import {
   ADMIN_BASE,
@@ -27,8 +29,10 @@ export type NavMenuConfig = {
 
 export const WORKSPACE_MENU: NavMenuConfig[] = [
   { label: 'Dashboard', key: WORKSPACE_BASE, icon: <PieChartOutlined />, roles: VIEWER_ROLES },
+  { label: 'Projects', key: `${WORKSPACE_BASE}/projects`, icon: <AppstoreOutlined />, roles: VIEWER_ROLES },
   { label: 'Profile', key: `${WORKSPACE_BASE}/profile`, icon: <UserOutlined />, roles: VIEWER_ROLES },
   { label: 'Notifications', key: `${WORKSPACE_BASE}/notifications`, icon: <BellOutlined />, roles: VIEWER_ROLES },
+  { label: 'Trash', key: `${WORKSPACE_BASE}/trash`, icon: <DeleteOutlined />, roles: VIEWER_ROLES },
   {
     label: 'AI Services',
     key: 'workspace-ai',
@@ -44,6 +48,7 @@ export const ADMIN_MENU: NavMenuConfig[] = [
   { label: 'Dashboard', key: ADMIN_BASE, icon: <PieChartOutlined />, roles: STAFF_ROLES },
   { label: 'Profile', key: `${ADMIN_BASE}/profile`, icon: <UserOutlined />, roles: STAFF_ROLES },
   { label: 'Notifications', key: `${ADMIN_BASE}/notifications`, icon: <BellOutlined />, roles: STAFF_ROLES },
+  { label: 'Trash', key: `${ADMIN_BASE}/trash`, icon: <DeleteOutlined />, roles: STAFF_ROLES },
   { label: 'Identity (Users/Roles)', key: `${ADMIN_BASE}/identity`, icon: <TeamOutlined />, roles: ['ADMIN'] },
   { label: 'Media Library', key: `${ADMIN_BASE}/media`, icon: <PictureOutlined />, roles: STAFF_ROLES },
   { label: 'Data CMS', key: `${ADMIN_BASE}/cms`, icon: <DatabaseOutlined />, roles: STAFF_ROLES },

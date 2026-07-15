@@ -13,6 +13,8 @@
     "prisma": "node ../../scripts/dev.mjs prisma studio --service notification-service -- --port 5556"
   },
   "dependencies": {
+    "@genzite/kafka": "workspace:*",
+    "@genzite/shared-types": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.1",
@@ -20,10 +22,9 @@
     "@prisma/client": "^6.19.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "@genzite/kafka": "workspace:*",
-    "@genzite/shared-types": "workspace:*"
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
@@ -32,6 +33,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.1",
     "jest": "^30.0.0",
     "prisma": "^6.19.0",
     "ts-jest": "^29.2.5",

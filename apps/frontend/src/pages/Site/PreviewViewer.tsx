@@ -62,24 +62,21 @@ const PreviewViewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let targetWidth = 1440;
+    if (device === 'mobile') targetWidth = 390;
+    else if (device === 'tablet') targetWidth = 768;
+
     const updateScale = () => {
       if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const availableWidth = rect.width - 64; // 32px padding on each side
-      
-      let targetWidth = 1440;
-      if (device === 'mobile') targetWidth = 390;
-      else if (device === 'tablet') targetWidth = 768;
-
-      if (availableWidth < targetWidth) {
-        setScale(availableWidth / targetWidth);
-      } else {
-        setScale(1);
-      }
+      const availableWidth = containerRef.current.clientWidth - 64;
+      setScale(availableWidth < targetWidth ? availableWidth / targetWidth : 1);
     };
+
+    // ResizeObserver fires reliably right after layout, unlike 'resize'
+    const ro = new ResizeObserver(updateScale);
+    if (containerRef.current) ro.observe(containerRef.current);
     updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    return () => ro.disconnect();
   }, [device]);
 
   const handleReload = () => {
@@ -123,9 +120,6 @@ const PreviewViewer: React.FC = () => {
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#07090f',
-      backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0)',
-      backgroundSize: '24px 24px',
       color: '#fff',
       overflow: 'hidden'
     }}>
@@ -148,7 +142,7 @@ const PreviewViewer: React.FC = () => {
           </div>
           <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="canvas-header-btn-icon" onClick={() => window.open(`/live/${siteId}`, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
+            <button className="canvas-header-btn-icon" onClick={() => window.open(`/live/${siteId}${pageId ? `?pageId=${pageId}` : ''}`, '_blank')} title="Open Live"><ExternalLink size={16} /></button>
             <button className="canvas-header-btn-icon" onClick={handleReload} title="Reload Preview"><RotateCw size={16} /></button>
             <button className="canvas-header-btn-icon" onClick={() => setIsQrModalOpen(true)} title="QR Code"><QrCode size={16} /></button>
           </div>
@@ -212,26 +206,31 @@ const PreviewViewer: React.FC = () => {
           position: 'relative'
         }}
       >
-        <div 
+        {/* Canvas wrapper: fixed at device width, then CSS-scaled to fit the available space.
+             The iframe always renders at the true device width so its responsive breakpoints
+             fire correctly — scale() only affects visual presentation, not viewport geometry. */}
+        <div
           ref={iframeWrapperRef}
           id="preview-viewer-canvas-wrapper"
           style={{
-          width: getWidth(),
-          height: '100%',
-          maxHeight: '800px',
-          background: '#fff',
-          borderRadius: 24,
-          border: '6px solid rgba(148, 163, 184, 0.4)',
-          overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          transition: 'width 0.3s ease, transform 0.3s ease',
-          transform: `scale(${scale})`,
-          transformOrigin: 'center center',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1
-        }}>
+            width: getWidth(),
+            height: '100%',
+            maxHeight: 800,
+            background: '#fff',
+            borderRadius: 24,
+            border: '6px solid rgba(148, 163, 184, 0.4)',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            transition: 'transform 0.3s ease, width 0.3s ease, min-width 0.3s ease',
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1,
+            flexShrink: 0,
+          }}
+        >
           {/* Security Banner */}
           {showBanner && (
             <div style={{
@@ -251,18 +250,28 @@ const PreviewViewer: React.FC = () => {
             }}>
               <Info size={16} />
               <span>Nội dung này do một người dùng Genzite tạo. Đừng nhập thông tin nhạy cảm vì chủ sở hữu có thể xem được thông tin đó.</span>
-              <X 
-                size={16} 
-                style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }} 
+              <X
+                size={16}
+                style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }}
                 onClick={() => setShowBanner(false)}
                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                 onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
               />
             </div>
           )}
-          <iframe 
-            src={`/live/${siteId}${pageId ? `?pageId=${pageId}` : ''}`} 
-            style={{ width: '100%', flex: 1, border: 'none' }} 
+          {/* The iframe is given an EXPLICIT width matching the device target.
+               This guarantees its internal viewport is always the correct width
+               regardless of when React computes the scale value. */}
+          <iframe
+            src={`/live/${siteId}${pageId ? `?pageId=${pageId}` : ''}`}
+            style={{ 
+              width: getWidth(), 
+              minWidth: getWidth(), 
+              flex: 1, 
+              border: 'none', 
+              display: 'block',
+              transition: 'width 0.3s ease, min-width 0.3s ease'
+            }}
             title="Preview"
           />
         </div>
@@ -287,7 +296,7 @@ const PreviewViewer: React.FC = () => {
           </h2>
           <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 20 }}>
             <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(window.location.origin + '/live/' + siteId)}&margin=0`} 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(window.location.origin + '/live/' + siteId + (pageId ? `?pageId=${pageId}` : ''))}&margin=0`} 
               alt="QR Code" 
               style={{ width: 220, height: 220, display: 'block' }} 
             />
