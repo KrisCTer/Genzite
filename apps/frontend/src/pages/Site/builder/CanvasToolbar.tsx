@@ -899,12 +899,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               style={{ width: 38, height: 38, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)', marginLeft: 4 }}
               title={user?.name || 'User Profile'}
             >
-              {user?.name ? (
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : user?.name ? (
                 <div className="avatar-initials">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               ) : (
-                <img src={user?.avatarUrl || "https://i.pravatar.cc/150?img=33"} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src="https://i.pravatar.cc/150?img=33" alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               )}
             </div>
 

@@ -8,6 +8,7 @@ export interface MediaFile {
   id: string;
   filename: string;
   url: string;
+  s3Key: string;
   mimeType: string;
   size: number;
   uploadedAt: string;
