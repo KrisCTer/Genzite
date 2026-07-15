@@ -428,7 +428,7 @@ export class SiteGeneratorService {
       };
 
       if (siteId) {
-        extractionResult.site['id'] = siteId;
+        (extractionResult.site as any)['id'] = siteId;
       }
 
       const result: GeneratedSite = {
@@ -709,7 +709,7 @@ Return ONLY this JSON shape:
           // Also strip inline <style> tags from the html if present
           if (cc.html && typeof cc.html === 'string') {
             const styleMatches = cc.html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [];
-            styleMatches.forEach(s => {
+            styleMatches.forEach((s: string) => {
               const inner = s.replace(/<style[^>]*>/i, '').replace(/<\/style>/i, '').trim();
               if (inner) allCss.push(inner);
             });

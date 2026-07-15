@@ -118,8 +118,8 @@ export class AiConsumer implements OnModuleInit {
 
       // 4. E-COMMERCE HYBRID PAGE AUTO-GENERATION
       // Check if site has e-commerce widgets
-      const isEcommerce = siteData.pages.some(p => 
-        p.widgets.some(w => ['PRODUCT_GRID', 'CART', 'CHECKOUT'].includes(w.type.toUpperCase()))
+      const isEcommerce = siteData.pages.some((p: any) => 
+        p.widgets.some((w: any) => ['PRODUCT_GRID', 'CART', 'CHECKOUT'].includes(w.type.toUpperCase()))
       );
 
       if (isEcommerce) {

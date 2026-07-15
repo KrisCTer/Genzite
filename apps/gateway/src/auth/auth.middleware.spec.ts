@@ -1,14 +1,15 @@
 import { AuthMiddleware } from './auth.middleware';
 import { UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
+import { RequestWithUser } from '@genzite/shared-types';
+import { Response, NextFunction } from 'express';
 
 // Mock jsonwebtoken
 jest.mock('jsonwebtoken');
 
 describe('AuthMiddleware', () => {
   let middleware: AuthMiddleware;
-  let req: Partial<Request>;
+  let req: Partial<RequestWithUser>;
   let res: Partial<Response>;
   let next: NextFunction;
 
@@ -34,9 +35,9 @@ describe('AuthMiddleware', () => {
     process.env.JWT_SECRET = 'test-secret';
     middleware = new AuthMiddleware();
     
-    req = { method: 'POST', path: '/api/v1/auth/login', headers: {} } as Partial<Request>;
+    req = { method: 'POST', path: '/api/v1/auth/login', headers: {} } as unknown as Partial<RequestWithUser>;
     
-    middleware.use(req as Request, res as Response, next);
+    middleware.use(req as RequestWithUser, res as Response, next);
     
     expect(next).toHaveBeenCalled();
     expect(req['user']).toBeUndefined();
@@ -46,7 +47,7 @@ describe('AuthMiddleware', () => {
     process.env.AUTH_BYPASS = 'true';
     middleware = new AuthMiddleware();
     
-    middleware.use(req as Request, res as Response, next);
+    middleware.use(req as RequestWithUser, res as Response, next);
     
     expect(next).toHaveBeenCalled();
     expect(req['user']).toBeDefined();
@@ -57,7 +58,7 @@ describe('AuthMiddleware', () => {
     process.env.JWT_SECRET = 'prod-secret';
     middleware = new AuthMiddleware();
     
-    expect(() => middleware.use(req as Request, res as Response, next)).toThrow(UnauthorizedException);
+    expect(() => middleware.use(req as RequestWithUser, res as Response, next)).toThrow(UnauthorizedException);
   });
 
   it('should verify JWT and inject user in production', () => {
@@ -72,7 +73,7 @@ describe('AuthMiddleware', () => {
       roles: ['USER'],
     });
 
-    middleware.use(req as Request, res as Response, next);
+    middleware.use(req as RequestWithUser, res as Response, next);
     
     expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'prod-secret');
     expect(next).toHaveBeenCalled();
@@ -90,6 +91,6 @@ describe('AuthMiddleware', () => {
       throw new Error('Invalid token');
     });
 
-    expect(() => middleware.use(req as Request, res as Response, next)).toThrow(UnauthorizedException);
+    expect(() => middleware.use(req as RequestWithUser, res as Response, next)).toThrow(UnauthorizedException);
   });
 });
