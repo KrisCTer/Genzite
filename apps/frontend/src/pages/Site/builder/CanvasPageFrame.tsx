@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
-import { Monitor, Smartphone, Tablet, Edit2 } from 'lucide-react';
+import { Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWidgetsApi } from '../../../api/sites';
 import WidgetRenderer from './WidgetRenderer';
@@ -207,7 +207,14 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     ? (hasGrapes ? fullGrapesHeight : Math.max(computedHeight, 900))
     : fixedViewportHeight;
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('genzite:page:dimensions', {
+      detail: { pageId, width: deviceWidth, height: Math.round(deviceHeight) }
+    }));
+  }, [pageId, deviceWidth, deviceHeight]);
+
   return (
+
     <div 
       style={{ position: 'relative', width: deviceWidth, height: deviceHeight, minHeight: 800, margin: '0 auto', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
       onPointerDown={(e) => {

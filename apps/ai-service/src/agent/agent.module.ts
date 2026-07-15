@@ -1,7 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { GeminiModule } from '../gemini/gemini.module.js';
 import { GenerationModule } from '../generation/generation.module.js';
-import { RecruitmentModule } from '../recruitment/recruitment.module.js';
 import { PipelineModule } from '../pipeline/pipeline.module.js';
 import { BullModule } from '@nestjs/bullmq';
 import { AgentController } from './agent.controller.js';
@@ -12,12 +11,8 @@ import { ToolRegistry } from './tools/tool.registry.js';
 import { AI_TOOLS } from './tools/tool.interface.js';
 import { GenerateSiteTool } from './tools/implementations/generate-site.tool.js';
 import { GenerateCmsTool } from './tools/implementations/generate-cms.tool.js';
-import { AnalyzeCvTool } from './tools/implementations/analyze-cv.tool.js';
-import { StartInterviewTool } from './tools/implementations/start-interview.tool.js';
-import { CareerCoachingTool } from './tools/implementations/career-coaching.tool.js';
 import { GenerateComponentTool } from './tools/implementations/generate-component.tool.js';
 import { GeneratePageTool } from './tools/implementations/generate-page.tool.js';
-import { CvAnalysisPipelineTool } from '../pipeline/tools/cv-analysis-pipeline.tool.js';
 import { SiteBuilderPipelineTool } from '../pipeline/tools/site-builder-pipeline.tool.js';
 import { UiAgentService } from './modes/ui-agent.service.js';
 
@@ -25,14 +20,10 @@ const TOOL_PROVIDERS = [
   // Direct service tools
   GenerateSiteTool,
   GenerateCmsTool,
-  AnalyzeCvTool,
-  StartInterviewTool,
-  CareerCoachingTool,
   // UI design tools
   GenerateComponentTool,
   GeneratePageTool,
   // Pipeline tools (multi-step, more intelligent)
-  CvAnalysisPipelineTool,
   SiteBuilderPipelineTool,
 ];
 
@@ -40,7 +31,6 @@ const TOOL_PROVIDERS = [
   imports: [
     GeminiModule,
     forwardRef(() => GenerationModule),
-    RecruitmentModule,
     PipelineModule,
     BullModule.registerQueue({ name: AI_QUEUES.AGENT_TASKS }),
   ],
@@ -60,3 +50,4 @@ const TOOL_PROVIDERS = [
   exports: [AgentService, ToolRegistry, PlannerService, UiAgentService],
 })
 export class AgentModule {}
+

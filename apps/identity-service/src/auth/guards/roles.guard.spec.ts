@@ -44,7 +44,7 @@ describe('RolesGuard', () => {
     const context = createMockContext({ sub: 'user-1', email: 'test@example.com' });
     
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-    expect(() => guard.canActivate(context)).toThrow('Insufficient permissions');
+    expect(() => guard.canActivate(context)).toThrow('You do not have the necessary roles for this action.');
   });
 
   it('should throw ForbiddenException if user has empty roles array []', () => {

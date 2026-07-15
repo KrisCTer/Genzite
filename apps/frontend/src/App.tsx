@@ -45,6 +45,7 @@ const PageBuilder = lazy(() => import('./pages/Site/PageBuilder'));
 const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage'));
 const TrashPage = lazy(() => import('./pages/Trash/TrashPage'));
 const ObservabilityDashboard = lazy(() => import('./pages/Observability/ObservabilityDashboard'));
+const GlobalSettings = lazy(() => import('./pages/Admin/GlobalSettings'));
 
 const FullPageLoader = () => (
   <div className="min-h-screen bg-[#030712] flex items-center justify-center">
@@ -131,10 +132,15 @@ const memberAiRoutes = (
   </>
 );
 
+const AiMetricsDashboard = lazy(() => import('./pages/Observability/AiMetricsDashboard'));
+const BullMQDashboard = lazy(() => import('./pages/Observability/BullMQDashboard'));
+
 const staffAiRoutes = (
   <>
     <Route path="ai">
       <Route path="generate" element={<Navigate to="/project" replace />} />
+      <Route path="metrics" element={<AiMetricsDashboard />} />
+      <Route path="queues" element={<BullMQDashboard />} />
     </Route>
   </>
 );
@@ -143,12 +149,17 @@ const App: React.FC = () => {
   const hostname = window.location.hostname;
 
   let subdomain: string | null = null;
-  if (hostname.endsWith('.genzite.com')) {
-    const potentialSubdomain = hostname.replace('.genzite.com', '');
-    if (potentialSubdomain && potentialSubdomain !== 'www' && potentialSubdomain !== 'app') {
-      subdomain = potentialSubdomain;
+  const knownDomains = ['.codespheree.id.vn', '.genzite.com', '.genzite.studio', '.genzite.ai'];
+  for (const domain of knownDomains) {
+    if (hostname.endsWith(domain)) {
+      const potentialSubdomain = hostname.replace(domain, '');
+      if (potentialSubdomain && potentialSubdomain !== 'www' && potentialSubdomain !== 'app') {
+        subdomain = potentialSubdomain;
+        break;
+      }
     }
-  } else if (hostname.includes('localhost')) {
+  }
+  if (!subdomain && hostname.includes('localhost')) {
     const domainParts = hostname.split('.');
     if (domainParts.length >= 2 && domainParts[0] !== 'www' && domainParts[0] !== 'app' && domainParts[0] !== 'localhost') {
       subdomain = domainParts[0];
@@ -234,9 +245,19 @@ const App: React.FC = () => {
                   }
                 >
                   <Route index element={<StaffDashboard />} />
+                  <Route path="observability" element={<ObservabilityDashboard />} />
                   <Route path="profile" element={<Profile />} />
+
                   <Route path="notifications" element={<AdminNotificationsPage />} />
                   <Route path="trash" element={<TrashPage />} />
+                  <Route 
+                    path="settings" 
+                    element={
+                      <ProtectedRoute requireRoles={['ADMIN']}>
+                        <GlobalSettings />
+                      </ProtectedRoute>
+                    } 
+                  />
                   <Route
                     path="identity"
                     element={

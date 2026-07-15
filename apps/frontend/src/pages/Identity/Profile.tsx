@@ -4,12 +4,10 @@ import { InboxOutlined } from '@ant-design/icons';
 import { 
   User, 
   Mail, 
-  Wallet, 
   CalendarDays,
   Lock,
   ShieldCheck,
-  Camera,
-  Link
+  Camera
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -185,7 +183,7 @@ const Profile: React.FC = () => {
   const userRoles = profile?.roles || user?.roles || ['USER'];
   const isActive = (profile?.status || user?.status) === 'ACTIVE';
   const createdAt = profile?.createdAt || user?.createdAt;
-  const credits = profile?.credits ?? 0;
+
   
   const rawId = profile?.id || user?.id || '';
   const displayUid = rawId ? `UID: ${rawId.substring(0, 8).toUpperCase()}` : 'UID: UNKNOWN';

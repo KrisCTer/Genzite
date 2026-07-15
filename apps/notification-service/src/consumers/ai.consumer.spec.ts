@@ -21,8 +21,6 @@ describe('AiConsumer', () => {
           useValue: {
             createSiteGeneratedNotification: jest.fn(),
             createCmsGeneratedNotification: jest.fn(),
-            createResumeAnalyzedNotification: jest.fn(),
-            createInterviewCompletedNotification: jest.fn(),
           },
         },
         {
@@ -67,32 +65,6 @@ describe('AiConsumer', () => {
       await handler({ payload });
       
       expect(notificationsService.createCmsGeneratedNotification).toHaveBeenCalledWith('user-1', 'site-1');
-    });
-  });
-
-  describe('RESUME_ANALYZED', () => {
-    it('should call createResumeAnalyzedNotification', async () => {
-      const payload = { ownerId: 'user-1', resumeId: 'resume-1', atsScore: 85 };
-      
-      const handler = topicHandlers[KAFKA_TOPICS.RESUME_ANALYZED];
-      expect(handler).toBeDefined();
-      
-      await handler({ payload });
-      
-      expect(notificationsService.createResumeAnalyzedNotification).toHaveBeenCalledWith('user-1', 'resume-1', 85);
-    });
-  });
-
-  describe('INTERVIEW_COMPLETED', () => {
-    it('should call createInterviewCompletedNotification', async () => {
-      const payload = { ownerId: 'user-1', sessionId: 'session-1', resumeId: 'resume-1', overallScore: 90 };
-      
-      const handler = topicHandlers[KAFKA_TOPICS.INTERVIEW_COMPLETED];
-      expect(handler).toBeDefined();
-      
-      await handler({ payload });
-      
-      expect(notificationsService.createInterviewCompletedNotification).toHaveBeenCalledWith('user-1', 'session-1', 'resume-1', 90);
     });
   });
 });

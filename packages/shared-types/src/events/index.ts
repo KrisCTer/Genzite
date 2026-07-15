@@ -188,25 +188,6 @@ export interface CmsGeneratedEvent extends BaseEvent {
 }
 
 
-export interface ResumeAnalyzedEvent extends BaseEvent {
-  type: "resume.analyzed";
-  payload: {
-    resumeId: string;
-    ownerId: string;
-    atsScore: number;
-  };
-}
-
-export interface InterviewCompletedEvent extends BaseEvent {
-  type: "interview.completed";
-  payload: {
-    sessionId: string;
-    resumeId: string;
-    ownerId: string;
-    overallScore: number;
-  };
-}
-
 // --- Union type for all events ---
 export type GenziteEvent =
   | UserRegisteredEvent
@@ -224,8 +205,6 @@ export type GenziteEvent =
   | MediaDeletedEvent
   | SiteGeneratedEvent
   | CmsGeneratedEvent
-  | ResumeAnalyzedEvent
-  | InterviewCompletedEvent
   | WidgetConfigChangedEvent
   | CreditsAdjustedEvent
   | SiteInvitedEvent
@@ -250,8 +229,6 @@ export const KAFKA_TOPICS = {
   MEDIA_DELETED: 'media.deleted',
   SITE_GENERATED: 'site.generated',
   CMS_GENERATED: 'cms.generated',
-  RESUME_ANALYZED: 'resume.analyzed',
-  INTERVIEW_COMPLETED: 'interview.completed',
   AUDIT_LOG: 'audit.log',
   ORDER_CREATED: 'order.created',
   PAYMENT_COMPLETED: 'payment.completed',

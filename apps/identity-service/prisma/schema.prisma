@@ -141,3 +141,15 @@ model AuditLog {
   @@map("audit_logs")
   @@schema("identity")
 }
+
+// ======================== SYSTEM SETTING ========================
+
+model SystemSetting {
+  key         String   @id
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+  @@schema("identity")
+}

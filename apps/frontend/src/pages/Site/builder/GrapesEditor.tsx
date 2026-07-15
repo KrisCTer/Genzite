@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unused-vars, no-empty, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/ban-ts-comment, no-empty, react-hooks/exhaustive-deps */
 import React, { useEffect, useRef } from 'react';
 // @ts-ignore
 import grapesjs from 'grapesjs';
@@ -36,7 +36,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
   const editorRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
   const onSaveRef = useRef(onSave);
-  
+
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
@@ -133,7 +133,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       allowScripts: 1,
       storageManager: { type: 'none' }, // We'll handle saving manually
       panels: { defaults: [] }, // We hide default panels and build our own
-      selectorManager: { 
+      selectorManager: {
         appendTo: '#gjs-selectors',
       },
       styleManager: {
@@ -267,6 +267,27 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
 
     // Once editor is ready, load the HTML/CSS content
     editor.on('load', () => {
+      // ── Protect against iframe script syntax/redeclaration crashes (`Identifier '...' has already been declared`) ──
+      try {
+        const iframeWin = editor.Canvas.getFrameEl()?.contentWindow as any;
+        if (iframeWin && iframeWin.Node && iframeWin.Node.prototype) {
+          const origAppendChild = iframeWin.Node.prototype.appendChild;
+          iframeWin.Node.prototype.appendChild = function <T extends Node>(newChild: T): T {
+            try {
+              if (newChild && newChild.nodeName === 'SCRIPT') {
+                const scriptEl = newChild as unknown as HTMLScriptElement;
+                if (scriptEl.textContent && !scriptEl.textContent.trim().startsWith('(() => {')) {
+                  scriptEl.textContent = `(() => { try { ${scriptEl.textContent} } catch (err) { console.warn('Iframe script error:', err); } })();`;
+                }
+              }
+            } catch (_) { }
+            return origAppendChild.call(this, newChild);
+          };
+        }
+      } catch (e) {
+        console.warn('Could not intercept iframe script execution:', e);
+      }
+
       // ── "Real Page" Infinite Canvas Setup ────────────────────────────
       const canvasModule = editor.Canvas as any;
       const frame = canvasModule.getFrameEl();
@@ -290,7 +311,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         frameWrapper.style.borderRadius = '0';
         frameWrapper.style.overflow = 'hidden';
         frameWrapper.style.backgroundColor = 'transparent';
-        
+
         // Force width to 100% so it fits our custom EditViewer container sizes
         frameWrapper.style.setProperty('width', '100%', 'important');
         frame.style.setProperty('width', '100%', 'important');
@@ -320,7 +341,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
             if (containerRef.current) {
               containerRef.current.style.height = `${height}px`;
             }
-            
+
             const doc = editor.Canvas.getDocument();
             if (doc?.documentElement) doc.documentElement.style.overflow = 'hidden';
             if (doc?.body) doc.body.style.overflow = 'hidden';
@@ -331,7 +352,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
             if (containerRef.current) {
               containerRef.current.style.height = '100%';
             }
-            
+
             const doc = editor.Canvas.getDocument();
             if (doc?.documentElement) doc.documentElement.style.overflow = 'auto';
             if (doc?.body) doc.body.style.overflow = 'auto';
@@ -418,52 +439,96 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         document.head.appendChild(noUiStyle);
       }
 
-      // ── Canvas-viewport Border Drag-to-Scroll ─────────────────────────────
-      // Trigger: cursor exits the visible canvas-viewport boundary during drag.
-      // - outerMouseY < canvasViewport.top    → scroll page up
-      // - outerMouseY > canvasViewport.bottom → scroll page down
-      // - Anywhere inside canvas-viewport     → NO scroll (page locked in place)
-      //
-      // NOTE: Do NOT patch iframeWin.scrollBy — GrapesJS uses it internally to
-      // track the dragged component position relative to the cursor. Patching it
-      // causes the component to lag and not follow the mouse.
-      // autoscrollLimit:0 + disableNativeAutoScroll() already prevent jump-scroll.
-
-      const disableNativeAutoScroll = () => {
-        try {
-          const cv = (editor.Canvas as any).getCanvasView?.() || (editor.Canvas as any)._cv;
-          if (cv) { cv.checkAutoScroll = () => {}; cv.autoscroll = () => {}; }
-          const sorter = (editor as any).Sorter || (editor as any).sorter;
-          if (sorter) { sorter.checkAutoScroll = () => {}; sorter.autoscroll = () => {}; }
-        } catch (_) {}
-      };
-      disableNativeAutoScroll();
-
+      // ── Page Boundary Drag-to-Scroll & Top-Layer Drag Optimization ────────
       let isDraggingComponent = false;
       let outerMouseY = -1;
       let autoScrollRafId: number | null = null;
+      let elevatedElement: HTMLElement | null = null;
+      let elevatedOrigStyles: { zIndex: string; position: string; opacity: string } | null = null;
+      let elevatedParents: { el: HTMLElement; origZIndex: string; origPosition: string }[] = [];
+      let dragEventsAttachedForDoc: Document | null = null;
+
+      // GrapesJS's internal AutoScroller (dùng cho Sorter/component-drag) tự cuộn iframe
+      // dựa theo rect thô của iframe, KHÔNG biết về scale canvas (vd 60%) hay page-boundary
+      // custom của mình -> luôn cuộn sớm/sai. Không thể tắt trực tiếp instance của nó, nên
+      // ta chặn hẳn `scrollBy` công khai (mọi bên gọi, kể cả GrapesJS đều bị no-op), và tự
+      // cuộn thông qua bản gốc đã lưu trước khi ghi đè — chỉ code của mình dùng được.
+      let originalIframeScrollBy: ((...args: any[]) => void) | null = null;
+      let originalCenterScrollBy: ((...args: any[]) => void) | null = null;
+
+      const neutralizeNativeAutoScroll = () => {
+        try {
+          const frameEl = editor.Canvas.getFrameEl();
+          const iframeWin = frameEl?.contentWindow as any;
+          if (iframeWin && !iframeWin.__gzScrollNeutralized) {
+            iframeWin.__gzScrollNeutralized = true;
+            originalIframeScrollBy = iframeWin.scrollBy.bind(iframeWin);
+            iframeWin.scrollBy = () => {};
+          }
+        } catch (_) {}
+        try {
+          const centerEl = document.querySelector('.canvas-center') as any;
+          if (centerEl && !centerEl.__gzScrollNeutralized) {
+            centerEl.__gzScrollNeutralized = true;
+            originalCenterScrollBy = centerEl.scrollBy.bind(centerEl);
+            centerEl.scrollBy = () => {};
+          }
+        } catch (_) {}
+      };
+      neutralizeNativeAutoScroll();
+
+      const updateMousePos = (clientY: number, isFromIframe: boolean) => {
+        if (isFromIframe) {
+          const frameEl = editor.Canvas.getFrameEl();
+          if (frameEl) {
+            const rect = frameEl.getBoundingClientRect();
+            const iframeWin = frameEl.contentWindow as any;
+            const iframeInnerHeight = iframeWin?.innerHeight || rect.height;
+            const scaleY = iframeInnerHeight > 0 ? rect.height / iframeInnerHeight : 1;
+            outerMouseY = rect.top + clientY * scaleY;
+          } else {
+            outerMouseY = clientY;
+          }
+        } else {
+          outerMouseY = clientY;
+        }
+      };
+
+      const getPageBoundaryRect = (): DOMRect | null => {
+        const isFullHeight = (window as any).__currentCanvasDevice === 'full';
+        if (isFullHeight) {
+          const centerScrollEl = document.querySelector('.canvas-center');
+          if (centerScrollEl) return centerScrollEl.getBoundingClientRect();
+        }
+        const pageWrapper = document.getElementById('edit-viewer-canvas-wrapper') || editor.Canvas.getFrameEl();
+        return pageWrapper ? pageWrapper.getBoundingClientRect() : null;
+      };
 
       const startAutoScrollLoop = () => {
         if (autoScrollRafId) return;
         const loop = () => {
           if (!isDraggingComponent) { autoScrollRafId = null; return; }
-          const iframeWin = editor.Canvas.getFrameEl()?.contentWindow;
-          // Use the PARENT of canvas-viewport (the overflow:hidden canvas container).
-          // canvas-viewport has CSS transform:scale(zoom) → its getBoundingClientRect()
-          // returns a SHRUNK rect at zoom < 1, causing false scroll triggers inside the artboard.
-          // The parent element has NO transform and correctly covers the full visible canvas area.
-          const canvasContainer = (document.querySelector('.canvas-viewport') as HTMLElement | null)?.parentElement;
-          if (iframeWin && canvasContainer && outerMouseY >= 0) {
-            const rect = canvasContainer.getBoundingClientRect();
-            const scrollSpeed = 5;
+          const rect = getPageBoundaryRect();
+          const isFullHeight = (window as any).__currentCanvasDevice === 'full';
+
+          if (rect && outerMouseY >= 0) {
+            const edgeZone = 24;
             let scrollYDelta = 0;
-            if (outerMouseY < rect.top) {
-              scrollYDelta = -scrollSpeed; // above canvas-viewport top → scroll up
-            } else if (outerMouseY > rect.bottom) {
-              scrollYDelta = scrollSpeed;  // below canvas-viewport bottom → scroll down
+
+            if (outerMouseY < rect.top + edgeZone) {
+              const depth = (rect.top + edgeZone) - outerMouseY;
+              scrollYDelta = -Math.min(20, Math.max(3, Math.round(depth * 0.5)));
+            } else if (outerMouseY > rect.bottom - edgeZone) {
+              const depth = outerMouseY - (rect.bottom - edgeZone);
+              scrollYDelta = Math.min(20, Math.max(3, Math.round(depth * 0.5)));
             }
+
             if (scrollYDelta !== 0) {
-              iframeWin.scrollBy(0, scrollYDelta);
+              if (isFullHeight) {
+                originalCenterScrollBy?.(0, scrollYDelta);
+              } else {
+                originalIframeScrollBy?.(0, scrollYDelta);
+              }
             }
           }
           autoScrollRafId = requestAnimationFrame(loop);
@@ -471,27 +536,139 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         autoScrollRafId = requestAnimationFrame(loop);
       };
 
+      let dragVisibilityObserver: MutationObserver | null = null;
+
+      const forceElementVisible = (el: HTMLElement) => {
+        // Ép các thuộc tính GrapesJS hay dùng để ẩn phần tử khi Sorter đang tính lại vị trí
+        if (el.style.display === 'none') {
+          el.style.removeProperty('display');
+        }
+        if (window.getComputedStyle(el).visibility === 'hidden') {
+          el.style.setProperty('visibility', 'visible', 'important');
+        }
+        el.style.setProperty('opacity', '0.35', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important'); // tránh ghost bị "kẹt" nhận hover
+      };
+
+      const startDragVisibilityGuard = (el: HTMLElement) => {
+        stopDragVisibilityGuard();
+        forceElementVisible(el);
+        dragVisibilityObserver = new MutationObserver(() => {
+          if (isDraggingComponent) forceElementVisible(el);
+        });
+        dragVisibilityObserver.observe(el, {
+          attributes: true,
+          attributeFilter: ['style', 'class'],
+        });
+      };
+
+      const stopDragVisibilityGuard = () => {
+        dragVisibilityObserver?.disconnect();
+        dragVisibilityObserver = null;
+      };
+
+      const elevateComponentToTopLayer = (modelOrEl?: any) => {
+        try {
+          const model = modelOrEl?.getEl ? modelOrEl : editor.getSelected();
+          const el = model?.getEl() || (modelOrEl instanceof HTMLElement ? modelOrEl : null);
+          if (!el) return;
+
+          elevatedElement = el;
+          elevatedOrigStyles = {
+            zIndex: el.style.zIndex || '',
+            position: el.style.position || '',
+            opacity: el.style.opacity || '',
+          };
+
+          el.style.setProperty('z-index', '9999999', 'important');
+          if (window.getComputedStyle(el).position === 'static') {
+            el.style.setProperty('position', 'relative', 'important');
+          }
+
+          // Giữ phần tử luôn hiển thị mờ trong suốt quá trình kéo, kể cả khi
+          // GrapesJS Sorter liên tục cố ẩn nó để vẽ placeholder
+          startDragVisibilityGuard(el);
+
+          elevatedParents = [];
+          const iframeDoc = editor.Canvas.getDocument();
+          let parent = el.parentElement;
+          while (parent && parent !== iframeDoc?.body && parent !== iframeDoc?.documentElement) {
+            elevatedParents.push({
+              el: parent,
+              origZIndex: parent.style.zIndex || '',
+              origPosition: parent.style.position || '',
+            });
+            parent.style.setProperty('z-index', '9999999', 'important');
+            if (window.getComputedStyle(parent).position === 'static') {
+              parent.style.setProperty('position', 'relative', 'important');
+            }
+            parent = parent.parentElement;
+          }
+        } catch (_) {}
+      };
+
+      const restoreComponentLayers = () => {
+        stopDragVisibilityGuard();
+        try {
+          if (elevatedElement && elevatedOrigStyles) {
+            elevatedElement.style.zIndex = elevatedOrigStyles.zIndex;
+            elevatedElement.style.position = elevatedOrigStyles.position;
+            if (elevatedOrigStyles.opacity) {
+              elevatedElement.style.opacity = elevatedOrigStyles.opacity;
+            } else {
+              elevatedElement.style.removeProperty('opacity');
+            }
+            elevatedElement.style.removeProperty('pointer-events');
+            elevatedElement.style.removeProperty('visibility');
+          }
+          elevatedParents.forEach(({ el, origZIndex, origPosition }) => {
+            el.style.zIndex = origZIndex;
+            el.style.position = origPosition;
+          });
+        } catch (_) {}
+        elevatedElement = null;
+        elevatedOrigStyles = null;
+        elevatedParents = [];
+      };
+
       const stopDragScroll = () => {
         isDraggingComponent = false;
         if (autoScrollRafId) { cancelAnimationFrame(autoScrollRafId); autoScrollRafId = null; }
+        restoreComponentLayers();
       };
 
-      editor.on('component:drag:start sorter:drag:start block:drag:start', () => {
-        disableNativeAutoScroll();
+      editor.on('component:drag:start sorter:drag:start block:drag:start', (arg: any) => {
+        neutralizeNativeAutoScroll();
         isDraggingComponent = true;
+        elevateComponentToTopLayer(arg);
+
+        const currentIframeDoc = editor.Canvas.getDocument();
+        if (currentIframeDoc && dragEventsAttachedForDoc !== currentIframeDoc) {
+          dragEventsAttachedForDoc = currentIframeDoc;
+          currentIframeDoc.addEventListener('mousemove', (e: MouseEvent) => {
+            updateMousePos(e.clientY, true);
+          }, { passive: true });
+          currentIframeDoc.addEventListener('mouseup', stopDragScroll, { passive: true });
+        }
         startAutoScrollLoop();
       });
       editor.on('component:drag:end sorter:drag:end block:drag:stop', stopDragScroll);
       window.addEventListener('mouseup', stopDragScroll, { passive: true });
 
-      // Track cursor in OUTER document (always fires even during GrapesJS drag)
       document.addEventListener('mousemove', (e: MouseEvent) => {
-        outerMouseY = e.clientY;
+        updateMousePos(e.clientY, false);
       }, { passive: true });
 
       const iframeDoc = editor.Canvas.getDocument();
       if (iframeDoc) {
-        iframeDoc.addEventListener('mouseup', stopDragScroll, { passive: true });
+        // Ensure drag helper elements are always at top layer
+        const topLayerStyle = iframeDoc.createElement('style');
+        topLayerStyle.innerHTML = `
+          .gjs-placeholder, .gjs-drag-helper, .gjs-highlighter, .gjs-dragging, [data-gjs-dragging="true"], .gjs-comp-selected {
+            z-index: 99999999 !important;
+          }
+        `;
+        iframeDoc.head.appendChild(topLayerStyle);
       }
 
       // ── Mount panels into sidebar containers ────────────────────────────
@@ -576,7 +753,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       `;
 
       // Update or create in main document.head
-      let existingStyle = document.getElementById('gz-toolbar-override');
+      const existingStyle = document.getElementById('gz-toolbar-override');
       if (existingStyle) {
         existingStyle.innerHTML = cssContent;
       } else {
@@ -590,7 +767,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       try {
         const iframeDoc = editor?.Canvas?.getDocument();
         if (iframeDoc && iframeDoc.head) {
-          let iframeStyle = iframeDoc.getElementById('gz-toolbar-override');
+          const iframeStyle = iframeDoc.getElementById('gz-toolbar-override');
           if (iframeStyle) {
             iframeStyle.innerHTML = cssContent;
           } else {
@@ -652,7 +829,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       wrapper: 'Body', text: 'Text', textnode: 'Text',
       image: 'Image', link: 'Link', video: 'Video',
     };
-      const TAG_NAMES: Record<string, string> = {
+    const TAG_NAMES: Record<string, string> = {
       section: 'Section', header: 'Header', footer: 'Footer',
       nav: 'Navigation', form: 'Form', button: 'Button',
       ul: 'List', ol: 'List', li: 'List Item', table: 'Table',
@@ -671,7 +848,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       const type = (model.get('type') || '').toLowerCase();
       const tagName = (model.get('tagName') || 'div').toLowerCase();
       const name = (model.getName() || '').toLowerCase();
-      
+
       const ICONS: Record<string, string> = {
         image: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#38BDF8;flex-shrink:0"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
         text: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#FCD34D;flex-shrink:0"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>',
@@ -705,7 +882,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       if (tagName === 'ul' || tagName === 'ol' || tagName === 'li') return ICONS.list;
       if (tagName === 'table' || tagName === 'tr' || tagName === 'td' || tagName === 'th') return ICONS.table;
       if (type === 'section' || tagName === 'section' || name.includes('section')) return ICONS.section;
-      
+
       return ICONS.div;
     };
 
@@ -854,11 +1031,6 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
           setFloatingToolbarState(prev => ({ ...prev, open: false, model: null }));
           return;
         }
-
-        // Hide default toolbar to avoid jumping and double toolbars
-        try {
-          selected.set('toolbar', []);
-        } catch (e) { }
 
         const el = selected.getEl();
         const iframeEl = editor.Canvas.getFrameEl();
@@ -1049,6 +1221,11 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
           iframeDoc.head.appendChild(forceDarkStyle);
         }
       }
+      doc.body.querySelectorAll('script').forEach(script => {
+        if (script.textContent && !script.textContent.trim().startsWith('(() => {')) {
+          script.textContent = `(() => { try { ${script.textContent} } catch (err) { console.warn('Script error inside editor:', err); } })();`;
+        }
+      });
       editor.setComponents(doc.body.innerHTML);
       if (cssContent) {
         editor.setStyle(cssContent);

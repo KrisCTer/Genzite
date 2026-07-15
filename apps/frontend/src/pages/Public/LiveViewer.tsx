@@ -31,6 +31,13 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   const navigate = useNavigate();
   
   const [pages, setPages] = useState<any[]>([]);
+  const [pageNotFound, setPageNotFound] = useState(false);
+  const [currentPageName, setCurrentPageName] = useState<string>('');
+
+  const isPublicSubdomain = typeof window !== 'undefined' && (
+    window.location.hostname.includes('codespheree.id.vn') || window.location.hostname.includes('genzite.studio')
+  ) && !window.location.hostname.startsWith('www.') && !window.location.hostname.startsWith('app.') && window.location.hostname !== 'codespheree.id.vn';
+  const mainStudioUrl = 'https://codespheree.id.vn/project';
 
   useEffect(() => {
     if (siteId) {
@@ -67,30 +74,42 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
        targetPage = pages.find((p: any) => p.id === paramPageId || p.slug === paramPageId);
     }
 
-    // 4. Fallback to 'home' or first page
+    // 4. Edge case check: if not root and page not found
     if (!targetPage) {
-      targetPage = pages.find((p: any) => p.slug === 'home' || p.slug === '/') || pages[0];
+      if (location.pathname !== '/' && location.pathname !== '') {
+        setPageNotFound(true);
+        return;
+      } else {
+        targetPage = pages.find((p: any) => p.slug === 'home' || p.slug === '/') || pages[0];
+      }
+    } else {
+      setPageNotFound(false);
+    }
+
+    if (targetPage) {
+      setCurrentPageName(targetPage.name || 'Untitled Page');
+      document.title = `${targetPage.name || 'Page'} | ${siteId || 'Genzite Studio'}`;
     }
 
     if (targetPage && targetPage.id !== resolvedPageId) {
       setResolvedPageId(targetPage.id);
     }
-  }, [pages, location.pathname, searchParams, paramPageId, isParamActuallySiteId, resolvedPageId]);
+  }, [pages, location.pathname, searchParams, paramPageId, isParamActuallySiteId, resolvedPageId, siteId]);
 
   useEffect(() => {
-    if (resolvedPageId) {
+    if (resolvedPageId && !pageNotFound) {
       setLoading(true);
       fetchWidgetsPublicApi(resolvedPageId)
         .then(data => { setWidgets(data); setError(false); setLoading(false); })
         .catch(() => { setError(true); setLoading(false); });
     }
-  }, [resolvedPageId]);
+  }, [resolvedPageId, pageNotFound]);
 
   // Intercept postMessage from GrapesIframe
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === 'GRAPES_NAVIGATE' && e.data.href) {
-         let targetHref = e.data.href;
+         const targetHref = e.data.href;
          if (targetHref.startsWith('http')) {
             window.open(targetHref, '_blank');
          } else {
@@ -112,7 +131,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
     );
   }
 
-  if (error) {
+  if (error || pageNotFound) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -126,19 +145,43 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
           alignItems: 'center', justifyContent: 'center', maxWidth: 480, textAlign: 'center'
         }}>
           <h1 style={{ fontSize: 96, fontWeight: 800, color: 'rgba(255, 255, 255, 0.08)', margin: 0, lineHeight: 1 }}>404</h1>
-          <p style={{ fontSize: 20, fontWeight: 500, color: '#fff', marginTop: 24, marginBottom: 8 }}>Oops, something went wrong!</p>
-          <p style={{ color: 'rgba(255, 255, 255, 0.5)', marginBottom: 32 }}>
-            The requested project or page does not exist or has not been published yet.
+          <p style={{ fontSize: 20, fontWeight: 500, color: '#fff', marginTop: 24, marginBottom: 8 }}>
+            {pageNotFound ? 'Page Not Found' : 'Site Not Found or Private'}
           </p>
-          <Link to="/project">
-            <button style={{
-              background: '#fff', color: '#000', border: 'none', padding: '12px 24px',
-              borderRadius: 8, fontWeight: 500, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
-            }}>
-              Back to Dashboard
-            </button>
-          </Link>
+          <p style={{ color: 'rgba(255, 255, 255, 0.5)', marginBottom: 32 }}>
+            {pageNotFound
+              ? `The page "${location.pathname}" does not exist on this site.`
+              : 'The requested project does not exist, has not been published yet, or is set to private.'}
+          </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {pageNotFound && (
+              <button onClick={() => { setPageNotFound(false); navigate('/'); }} style={{
+                background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '12px 24px',
+                borderRadius: 8, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+              }}>
+                Go to Homepage
+              </button>
+            )}
+            {isPublicSubdomain ? (
+              <a href={mainStudioUrl} style={{
+                background: '#fff', color: '#000', border: 'none', padding: '12px 24px',
+                borderRadius: 8, fontWeight: 500, cursor: 'pointer', textDecoration: 'none',
+                display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+              }}>
+                Back to Genzite Studio
+              </a>
+            ) : (
+              <Link to="/project">
+                <button style={{
+                  background: '#fff', color: '#000', border: 'none', padding: '12px 24px',
+                  borderRadius: 8, fontWeight: 500, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
+                }}>
+                  Back to Dashboard
+                </button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -152,6 +195,34 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   const widgetsToRender = grapesWidgets.length > 0
     ? [grapesWidgets[grapesWidgets.length - 1]]
     : sortedWidgets;
+
+  if (widgetsToRender.length === 0) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: '#09090b', color: '#fff', textAlign: 'center', padding: 24
+      }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: 16, padding: '48px 36px', maxWidth: 440
+        }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: '#e4e4e7', margin: '0 0 8px' }}>Empty Page</h2>
+          <p style={{ color: '#a1a1aa', fontSize: 14, margin: '0 0 24px' }}>
+            The page "{currentPageName || location.pathname}" does not have any widgets or published content yet.
+          </p>
+          {isPublicSubdomain ? (
+            <a href={mainStudioUrl} style={{ color: '#60A5FA', fontSize: 14, textDecoration: 'none', fontWeight: 500 }}>
+              Build with Genzite Studio &rarr;
+            </a>
+          ) : (
+            <Link to={`/project/${siteId}`} style={{ color: '#60A5FA', fontSize: 14, textDecoration: 'none', fontWeight: 500 }}>
+              Open Page Builder &rarr;
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: '#fff', overflowX: 'hidden' }}>

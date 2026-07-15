@@ -9,6 +9,7 @@ import { RegistryService } from "./registry/registry.service.js";
 import { MediaCleanupCron } from "./registry/media-cleanup.cron.js";
 import { KafkaModule } from "@genzite/kafka";
 import { MediaProducer } from "./events/media.producer.js";
+import { HealthController } from "./health/health.controller.js";
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { MediaProducer } from "./events/media.producer.js";
 
     PrismaModule,
   ],
-  controllers: [UploadController, RegistryController],
+  controllers: [HealthController, UploadController, RegistryController],
   providers: [
     UploadService,
     RegistryService,

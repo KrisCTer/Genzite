@@ -11,6 +11,7 @@ const ProjectSidebar: React.FC = () => {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const token = useAuthStore(state => state.token);
+  const user = useAuthStore(state => state.user);
 
   const { data: apiSites = [] } = useQuery({
     queryKey: ['sites'],
@@ -19,7 +20,17 @@ const ProjectSidebar: React.FC = () => {
   });
 
   const sites = apiSites;
-  const filteredSites = sites.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredSites = sites.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+
+    const isMine = s.ownerId === user?.id || (!s.ownerId && activeTab === 'mine');
+    if (activeTab === 'mine') {
+      return isMine;
+    } else {
+      return !isMine;
+    }
+  });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -88,37 +99,45 @@ const ProjectSidebar: React.FC = () => {
       </div>
 
       <div className="gz-project-list">
-        {displayGroups.map((groupName) => (
-          <div key={groupName} className="gz-project-group">
-            <div className="gz-project-group-title">{groupName}</div>
-            <div className="gz-project-group-items">
-              {grouped[groupName].map((site: any) => (
-                <div 
-                  key={site.id} 
-                  className="gz-project-item"
-                  onClick={() => site.id.length > 5 ? navigate(`/project/${site.id}`) : null}
-                >
-                  <div className="gz-project-thumb">
-                    <div 
-                      className="gz-project-thumb-inner" 
-                      style={{ background: site.thumb ? undefined : getGradient(site.id) }}
-                    >
-                      {/* Using mock CSS classes for predefined backgrounds in screenshot */}
-                      {site.thumb && <div className={`gz-project-thumb-bg ${site.thumb}`}></div>}
-                    </div>
-                  </div>
-                  <div className="gz-project-info">
-                    <div className="gz-project-name">{site.name}</div>
-                    <div className="gz-project-meta">
-                      {renderIcon(site.icon)}
-                      <span>{new Date(site.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {displayGroups.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 16px', color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>
+            {activeTab === 'mine' 
+              ? (search ? 'No projects matching your search.' : 'No projects yet. Start with your design above!')
+              : (search ? 'No shared projects matching your search.' : 'No projects shared with you yet.')}
           </div>
-        ))}
+        ) : (
+          displayGroups.map((groupName) => (
+            <div key={groupName} className="gz-project-group">
+              <div className="gz-project-group-title">{groupName}</div>
+              <div className="gz-project-group-items">
+                {grouped[groupName].map((site: any) => (
+                  <div 
+                    key={site.id} 
+                    className="gz-project-item"
+                    onClick={() => site.id.length > 5 ? navigate(`/project/${site.id}`) : null}
+                  >
+                    <div className="gz-project-thumb">
+                      <div 
+                        className="gz-project-thumb-inner" 
+                        style={{ background: site.thumb ? undefined : getGradient(site.id) }}
+                      >
+                        {/* Using mock CSS classes for predefined backgrounds in screenshot */}
+                        {site.thumb && <div className={`gz-project-thumb-bg ${site.thumb}`}></div>}
+                      </div>
+                    </div>
+                    <div className="gz-project-info">
+                      <div className="gz-project-name">{site.name}</div>
+                      <div className="gz-project-meta">
+                        {renderIcon(site.icon)}
+                        <span>{new Date(site.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

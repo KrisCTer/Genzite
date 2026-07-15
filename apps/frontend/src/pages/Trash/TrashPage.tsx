@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Typography, Card, Button, List, Popconfirm, App, Space } from 'antd';
-import { DeleteOutlined, UndoOutlined, GlobalOutlined, PictureOutlined } from '@ant-design/icons';
+import { Card, Button, List, Popconfirm, App } from 'antd';
+import { UndoOutlined, GlobalOutlined, PictureOutlined } from '@ant-design/icons';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchTrashSitesApi, restoreSiteApi, type Site } from '../../api/sites';
 import { fetchTrashMediaApi, restoreMediaApi, type MediaFile } from '../../api/media';
 import './TrashPage.css';
 
-const { Title, Text } = Typography;
 
 const TrashPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('sites');
@@ -92,7 +92,7 @@ const TrashPage: React.FC = () => {
                     <List.Item.Meta
                       avatar={<GlobalOutlined style={{ fontSize: 24, color: 'var(--color-text-secondary)' }} />}
                       title={site.name}
-                      description={`${site.subdomain}.genzite.com`}
+                      description={`${site.subdomain}.${window.location.hostname.includes('genzite.studio') ? 'genzite.studio' : (window.location.hostname.includes('localhost') ? 'localhost' : 'codespheree.id.vn')}`}
                     />
                   </List.Item>
                 )}

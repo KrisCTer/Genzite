@@ -109,7 +109,7 @@ graph TD
 
             %% PRIVATE DATA SUBNETS
             subgraph PRIV_DATA["💾 Private Subnets — Data — AZ-a / AZ-b"]
-                RDS["🐘 Amazon RDS PostgreSQL<br/>Multi-AZ (Production)<br/>─────────────────<br/>Relational: Users, RBAC, Config<br/>JSONB: CMS, Resumes, JDs,<br/>Products, Orders, Collections<br/>─────────────────<br/>ORM: Prisma<br/>Entity: UserSiteRecord"]
+                RDS["🐘 Amazon RDS PostgreSQL<br/>Multi-AZ (Production)<br/>─────────────────<br/>Relational: Users, RBAC, Config<br/>JSONB: CMS, Resumes, JDs,<br/>Collections<br/>─────────────────<br/>ORM: Prisma<br/>Entity: UserSiteRecord"]
                 REDIS["⚡ Amazon ElastiCache Redis<br/>⚠️ Optional for MVP<br/>─────────────────<br/>Session Cache<br/>Query Cache<br/>AI Response Cache<br/>(Prompt Hash → Response)"]
             end
 

@@ -15,6 +15,7 @@ describe('UsersController', () => {
           provide: UsersService,
           useValue: {
             findById: jest.fn(),
+            findOrCreateUser: jest.fn(),
           },
         },
       ],
@@ -32,14 +33,14 @@ describe('UsersController', () => {
   });
 
   describe('getProfile', () => {
-    it('should extract userId from req and call usersService.findById', async () => {
-      const mockReq = { user: { sub: 'user-id-123' } };
-      const mockUser = { id: 'user-id-123', name: 'Test' };
-      jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser as any);
+    it('should extract userId from req and call usersService.findOrCreateUser', async () => {
+      const mockReq = { user: { sub: 'user-id-123', email: 'test@test.com' } };
+      const mockUser = { id: 'user-id-123', name: 'test' };
+      jest.spyOn(usersService, 'findOrCreateUser').mockResolvedValue(mockUser as any);
 
       const result = await controller.getProfile(mockReq);
 
-      expect(usersService.findById).toHaveBeenCalledWith('user-id-123');
+      expect(usersService.findOrCreateUser).toHaveBeenCalledWith('user-id-123', 'test@test.com', 'test');
       expect(result).toEqual(mockUser);
     });
   });

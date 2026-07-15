@@ -5,14 +5,18 @@ import { fetchUsersApi } from '../../api/users';
 import { fetchCollectionsApi } from '../../api/cms';
 import { fetchSitesApi } from '../../api/sites';
 import { Users, Database, Globe, Sparkles, Shield, UserCircle, ChevronRight } from 'lucide-react';
+import { useAuthStore } from '../../store/auth';
 import '../NotificationsStyle.css'; // Inherit Dark Space / Glassmorphism style
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const adminName = ((user?.metadata as any)?.displayName || user?.name)?.split(' ')[0];
 
   const { data: users } = useQuery({ queryKey: ['users'], queryFn: fetchUsersApi });
   const { data: collections } = useQuery({ queryKey: ['cms-collections'], queryFn: () => fetchCollectionsApi('') });
   const { data: sites } = useQuery({ queryKey: ['sites'], queryFn: fetchSitesApi });
+
 
   const [timeStr, setTimeStr] = useState(new Date().toISOString());
 
@@ -52,6 +56,13 @@ export const Dashboard: React.FC = () => {
       }),
     [timeStr],
   );
+
+  const welcomeGreeting = useMemo(() => {
+    const hour = new Date(timeStr).getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }, [timeStr]);
 
   const dataMap: Record<string, unknown[]> = {
     users: Array.isArray(users) ? users : [],
@@ -102,6 +113,12 @@ export const Dashboard: React.FC = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 className="hub-header-title truncate" title={`${welcomeGreeting}${adminName ? `, ${adminName}` : ''}!`}>
+              {welcomeGreeting}{adminName ? `, ${adminName}` : ''}!
+            </h1>
+            <p className="hub-header-desc">
+              System overview — real-time synchronized data.
+            </p>
           </div>
           
           {/* Date & Time Display without background/icon */}

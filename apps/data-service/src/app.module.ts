@@ -8,6 +8,7 @@ import { CollectionsController } from './collections/collections.controller.js';
 import { CollectionsService } from './collections/collections.service.js';
 import { RecordsController } from './records/records.controller.js';
 import { RecordsService } from './records/records.service.js';
+import { HealthController } from './health/health.controller.js';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { RecordsService } from './records/records.service.js';
     ValidationModule,
     EventsModule,
   ],
-  controllers: [CollectionsController, RecordsController],
+  controllers: [HealthController, CollectionsController, RecordsController],
   providers: [CollectionsService, RecordsService],
 })
 export class AppModule {}

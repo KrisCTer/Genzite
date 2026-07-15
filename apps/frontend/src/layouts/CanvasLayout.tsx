@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import './CanvasLayout.css';
-
 import { RocketOutlined } from '@ant-design/icons';
+
+
 import NotificationBell from '../components/NotificationBell';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../store/auth';

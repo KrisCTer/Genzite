@@ -38,12 +38,12 @@ import {
   CopyOutlined,
   CloseOutlined
 } from '@ant-design/icons';
-import { Sparkles, X, Monitor, Trash2 } from 'lucide-react';
+import { Sparkles, X, Trash2 } from 'lucide-react';
 import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
 import { useAiLogStore } from '../../../store/aiLogs';
-import { ThemeEditorPanel } from './workspace-components/ThemeEditorPanel';
+import { ThemeEditorPanel, THEMES, generateDesignMd } from './workspace-components/ThemeEditorPanel';
 import { ExportPanel } from './workspace-components/ExportPanel';
 import { LeftSidebar } from './workspace-components/LeftSidebar';
 import { useAuthStore } from '../../../store/auth';
@@ -88,7 +88,12 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [pageToDelete, setPageToDelete] = useState<any>(null);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const isOwner = !!(user?.id && site?.ownerId && site.ownerId === user.id);
+  const isGenerating = useAiLogStore((state) => state.isGenerating);
+  const isOwner = !!(
+    (user?.id && site?.ownerId && site.ownerId === user.id) ||
+    (user?.id && (!site?.ownerId || siteId?.startsWith('gen-') || siteId?.startsWith('new-') || isGenerating)) ||
+    (!site?.ownerId && (siteId?.startsWith('gen-') || siteId?.startsWith('new-') || isGenerating))
+  );
 
   const CANVAS_IMAGES_KEY = `genzite-canvas-images-${siteId}`;
   const [floatingImages, setFloatingImages] = useState<{ id: string; url: string; name: string; previewUrl?: string; uploading?: boolean }[]>(() => {
@@ -225,6 +230,20 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     return () => window.removeEventListener('genzite:history:state', handleHistoryState);
   }, [pages]);
 
+  const [pageDimensions, setPageDimensions] = useState<Record<string, { width: number; height: number }>>({});
+  useEffect(() => {
+    const handlePageDimensions = (e: any) => {
+      if (e.detail?.pageId && e.detail.width && e.detail.height) {
+        setPageDimensions(prev => ({
+          ...prev,
+          [e.detail.pageId]: { width: e.detail.width, height: e.detail.height }
+        }));
+      }
+    };
+    window.addEventListener('genzite:page:dimensions', handlePageDimensions);
+    return () => window.removeEventListener('genzite:page:dimensions', handlePageDimensions);
+  }, []);
+
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -302,7 +321,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   }, [site?.settings?.platform]);
 
-  const isGenerating = useAiLogStore(state => state.isGenerating);
   const activeTargetPageId = useAiLogStore(state => state.activeTargetPageId);
   const activePrompt = useAiLogStore(state => state.activePrompt);
   const aiSteps = useAiLogStore(state => state.steps);
@@ -489,36 +507,65 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   };
 
-  const handleDownload = async () => {
-    const activePage = getTargetActivePage();
-    if (!activePage) return;
+  const handleDownload = async (options?: { selectedPageIds?: string[]; rootFolderName?: string; zipFileName?: string }) => {
+    if (!pages || pages.length === 0) return;
     
-    const hideMessage = message.loading('Preparing download data...', 0);
+    const hideMessage = message.loading('Đang chuẩn bị dữ liệu tải về...', 0);
     try {
       const zip = new JSZip();
       
-      const htmlString = getActivePageCode();
-      zip.file(`${activePage.slug || 'index'}.html`, htmlString);
+      const rootFolderStr = (options?.rootFolderName || site?.name || site?.subdomain || 'Project').trim() || 'Project';
+      const rootFolder = zip.folder(rootFolderStr);
+      if (!rootFolder) {
+        throw new Error('Failed to create root folder inside zip');
+      }
+
+      const targetPageIds = options?.selectedPageIds && options.selectedPageIds.length > 0
+        ? options.selectedPageIds
+        : pages.map((p: any) => p.id);
       
-      const designPrompt = activePage?.settings?.designPrompt || site?.settings?.systemPrompt || 'No design prompt specified.';
-      zip.file('DESIGN.md', designPrompt);
+      const selectedPages = pages.filter((p: any) => targetPageIds.includes(p.id));
+      if (selectedPages.length === 0) {
+        hideMessage();
+        message.warning('Vui lòng chọn ít nhất 1 trang để tải về!');
+        return;
+      }
+
+      const activeThemeObj = detailThemeId === 'custom' 
+        ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
+        : (detailThemeId ? THEMES.find(t => t.id === detailThemeId) : THEMES[0]) || THEMES[0];
+
+      for (const page of selectedPages) {
+        const pageFolderName = (page.title || page.slug || 'page').trim().replace(/[^a-zA-Z0-9_\-\u00C0-\u024F\u1E00-\u1EFF]/g, '_') || `page_${page.id.slice(0, 4)}`;
+        const pageFolder = rootFolder.folder(pageFolderName);
+        if (!pageFolder) continue;
+
+        const htmlString = getPageCode(page);
+        const fileName = `${page.slug || 'index'}.html`;
+        pageFolder.file(fileName, htmlString);
+
+        const rawPrompt = page?.settings?.designPrompt || site?.settings?.systemPrompt || ((site?.settings as any)?.prompt) || site?.description || '';
+        const designPrompt = rawPrompt.trim().startsWith('---') 
+          ? rawPrompt 
+          : generateDesignMd(activeThemeObj, themeColorOverrides, themeFonts, themeMode, themeRadius, rawPrompt);
+        pageFolder.file('DESIGN.md', designPrompt);
+      }
       
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      saveAs(zipBlob, `${activePage.slug || 'export'}.zip`);
+      const finalZipName = `${options?.zipFileName || rootFolderStr}.zip`;
+      saveAs(zipBlob, finalZipName);
       hideMessage();
-      message.success('Downloaded successfully!');
       setIsExportOpen(false);
     } catch (err) {
       console.error(err);
       hideMessage();
-      message.error('Failed to download!');
+      message.error('Tải về thất bại!');
     }
   };
 
   const handleCopyCode = () => {
     const htmlString = getActivePageCode();
     navigator.clipboard.writeText(htmlString);
-    message.success('Đã sao chép mã HTML vào bảng nhớ tạm!');
     setIsExportOpen(false);
   };
 
@@ -567,7 +614,6 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
 - **Engagement**: High interaction rates with "The Journal" and Collection deep-dives.
 - **Conversion**: A frictionless, premium path to purchase.`;
 
-        message.success('Đã tạo tóm tắt dự án thành công!');
         hideMessage();
         
         setFloatingNotes(prev => [...prev, { id: `note-${Date.now()}`, title: 'Project Brief', content: summaryText }]);
@@ -583,11 +629,10 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   };
 
-  const getActivePageCode = useCallback(() => {
-    const activePage = getTargetActivePage();
-    if (!activePage || !allPagesWidgets) return '';
+  const getPageCode = useCallback((targetPage: any) => {
+    if (!targetPage || !allPagesWidgets) return '';
     
-    const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
+    const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(targetPage.id) || w.pageId === targetPage.id);
     const grapesWidget = pageWidgets.find((w: any) => w.type === 'GRAPESJS');
     
     let htmlContent = '';
@@ -607,7 +652,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>${activePage.title} | ${site?.name || 'Project'}</title>
+<title>${targetPage.title} | ${site?.name || 'Project'}</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -627,7 +672,12 @@ ${cssContent}
 ${htmlContent}
 </body>
 </html>`;
-  }, [pages, selectedId, allPagesWidgets, site]);
+  }, [allPagesWidgets, site]);
+
+  const getActivePageCode = useCallback(() => {
+    const activePage = getTargetActivePage();
+    return getPageCode(activePage);
+  }, [getTargetActivePage, getPageCode]);
 
   const extractRealProjectColors = () => {
     const colorCounts: Record<string, number> = {};
@@ -1230,9 +1280,10 @@ ${htmlContent}
 
             {(pages || []).map((page: any, index: number) => {
               const isSelectedPage = selectedId?.includes(page.id) || (!selectedId && index === 0);
+              const isCreatePagePrompt = activePrompt && /(?:Create|Add page|Add|Generate|Tạo|Thêm|Thêm trang|Tạo trang|Làm trang|Xây dựng trang)\s+|(?:page|trang|screen)\s+(?:mới|new|giới thiệu|about|contact|liên hệ|sản phẩm|products|pricing|bảng giá|faq|blog|login|register|đăng nhập|đăng ký|giỏ hàng|cart|checkout)/i.test(activePrompt);
               const isPageRegenerating = isGenerating && (
                 activeTargetPageId === page.id || 
-                (!activeTargetPageId && isSelectedPage && activePrompt && !activePrompt.match(/(?:Create|Add page|Add|Generate)\s+/i))
+                (!activeTargetPageId && isSelectedPage && !isCreatePagePrompt && (selectedId !== null || pages.length <= 1))
               );
               const currentStepObj = aiSteps.length > 0 ? aiSteps[aiSteps.length - 1] : null;
 
@@ -1840,10 +1891,8 @@ ${htmlContent}
                           const allStarred = ids.every(id => starredPageIds.includes(id));
                           if (allStarred) {
                             setStarredPageIds(prev => prev.filter(id => !ids.includes(id)));
-                            message.success('Removed star from selected page(s)');
                           } else {
                             setStarredPageIds(prev => Array.from(new Set([...prev, ...ids])));
-                            message.success('Starred selected page(s) ⭐');
                           }
                         }
                       }
@@ -1920,11 +1969,9 @@ ${htmlContent}
           const activePage = getTargetActivePage();
           let pageHeight = 1000;
           let extractedAssets: string[] = [];
-          let widgetsCount = 0;
           
           if (activePage && allPagesWidgets) {
             const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
-            widgetsCount = pageWidgets.length;
             let maxH = 0;
             
             const extractUrls = (obj: any): string[] => {
@@ -1960,11 +2007,18 @@ ${htmlContent}
               
               extractedAssets = extractedAssets.concat(extractUrls(w.contentConfig));
             });
-            if (maxH > 0) pageHeight = maxH;
+            if (maxH > 0) pageHeight = Math.max(maxH, 900);
           }
           
           extractedAssets = [...new Set(extractedAssets)].filter(url => typeof url === 'string' && url.startsWith('http'));
-          const deviceWidth = canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : 1440;
+          const deviceWidth = activePage && pageDimensions[activePage.id]?.width
+            ? pageDimensions[activePage.id].width
+            : (canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : 1440);
+          if (activePage && pageDimensions[activePage.id]?.height) {
+            pageHeight = pageDimensions[activePage.id].height;
+          } else {
+            pageHeight = canvasDevice === 'mobile' ? 844 : canvasDevice === 'tablet' ? 1024 : Math.max(pageHeight, 900);
+          }
 
           return (
             <div style={{
@@ -2027,10 +2081,18 @@ ${htmlContent}
                 </div>
                 
                 <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Design Prompt</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.6, color: '#CBD5E1', background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                    {((site?.settings as any)?.prompt) || site?.description || 'No design prompt specified for this project.'}
-                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Design Prompt & System</div>
+                  <pre style={{ fontSize: 11, lineHeight: 1.5, color: '#CBD5E1', background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)', whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: '"Inter", sans-serif', maxHeight: 300, overflowY: 'auto', margin: 0 }}>
+                    {(() => {
+                      const activeThemeObj = detailThemeId === 'custom' 
+                        ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
+                        : (detailThemeId ? THEMES.find(t => t.id === detailThemeId) : THEMES[0]) || THEMES[0];
+                      const rawPrompt = activePage?.settings?.designPrompt || site?.settings?.systemPrompt || ((site?.settings as any)?.prompt) || site?.description || '';
+                      return rawPrompt.trim().startsWith('---') 
+                        ? rawPrompt 
+                        : generateDesignMd(activeThemeObj, themeColorOverrides, themeFonts, themeMode, themeRadius, rawPrompt);
+                    })()}
+                  </pre>
                 </div>
                 
                 <div style={{ marginBottom: 24 }}>
@@ -2088,6 +2150,8 @@ ${htmlContent}
             onDownloadZip={handleDownload}
             onCopyCode={handleCopyCode}
             onSummarizeProject={handleSummarizeProject}
+            pages={pages || []}
+            defaultProjectName={site?.name || site?.subdomain || 'Project'}
           />
         )}
 
@@ -2185,7 +2249,7 @@ ${htmlContent}
           
           <div style={{ padding: 20, maxHeight: '70vh', overflow: 'auto', fontFamily: 'monospace', fontSize: 13, color: '#F8FAFC', lineHeight: 1.6 }} className="custom-scrollbar">
             {getActivePageCode().split('\n').map((line, i) => {
-              let highlighted = line
+              const highlighted = line
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/(&lt;\/?)([a-zA-Z0-9\-]+)(.*?)(&gt;)/g, (_match, p1, tag, attrs, p4) => {

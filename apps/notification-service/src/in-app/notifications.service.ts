@@ -123,47 +123,7 @@ export class NotificationsService {
     });
   }
 
-  async createResumeAnalyzedNotification(
-    ownerId: string,
-    resumeId: string,
-    atsScore: number,
-  ) {
-    return this.prisma.notification.create({
-      data: {
-        userId: ownerId,
-        type: NotificationType.IN_APP,
-        title: "CV Analysis Result is Ready",
-        body: `Your CV has been analyzed. ATS Score: ${atsScore}.`,
-        metadata: {
-          resumeId,
-          atsScore,
-          event: "resume.analyzed",
-        },
-      },
-    });
-  }
 
-  async createInterviewCompletedNotification(
-    ownerId: string,
-    sessionId: string,
-    resumeId: string,
-    overallScore: number,
-  ) {
-    return this.prisma.notification.create({
-      data: {
-        userId: ownerId,
-        type: NotificationType.IN_APP,
-        title: "Mock Interview Report Completed",
-        body: `Your overall evaluation score is ${overallScore}.`,
-        metadata: {
-          sessionId,
-          resumeId,
-          overallScore,
-          event: "interview.completed",
-        },
-      },
-    });
-  }
 
   async createSiteCreatedNotification(
     ownerId: string,

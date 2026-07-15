@@ -3,8 +3,6 @@ import { KafkaConsumerService } from "@genzite/kafka";
 import { NotificationsService } from "../in-app/notifications.service.js";
 import {
   KAFKA_TOPICS,
-  ResumeAnalyzedEvent,
-  InterviewCompletedEvent,
   SiteGeneratedEvent,
   CmsGeneratedEvent,
 } from "@genzite/shared-types";
@@ -19,41 +17,6 @@ export class AiConsumer implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.kafkaConsumer.subscribe<ResumeAnalyzedEvent["payload"]>(
-      KAFKA_TOPICS.RESUME_ANALYZED,
-      async (event) => {
-        this.logger.log(`Resume analyzed → ${event.payload.ownerId}`);
-
-        await this.notificationsService.createResumeAnalyzedNotification(
-          event.payload.ownerId,
-          event.payload.resumeId,
-          event.payload.atsScore,
-        );
-
-        this.logger.log(
-          `Resume notification created for ${event.payload.ownerId}`,
-        );
-      },
-    );
-
-    this.kafkaConsumer.subscribe<InterviewCompletedEvent["payload"]>(
-      KAFKA_TOPICS.INTERVIEW_COMPLETED,
-      async (event) => {
-        this.logger.log(`Interview completed → ${event.payload.ownerId}`);
-
-        await this.notificationsService.createInterviewCompletedNotification(
-          event.payload.ownerId,
-          event.payload.sessionId,
-          event.payload.resumeId,
-          event.payload.overallScore,
-        );
-
-        this.logger.log(
-          `Interview notification created for ${event.payload.ownerId}`,
-        );
-      },
-    );
-
     this.kafkaConsumer.subscribe<SiteGeneratedEvent["payload"]>(
       KAFKA_TOPICS.SITE_GENERATED,
       async (event) => {

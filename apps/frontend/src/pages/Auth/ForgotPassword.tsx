@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
-  const [isSuccess, setIsSuccess] = useState(false);
+
 
   React.useEffect(() => {
     document.title = "Forgot Password | Genzite Identity";

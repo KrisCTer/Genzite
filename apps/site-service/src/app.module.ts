@@ -15,6 +15,7 @@ import { SiteProducer } from "./events/site.producer.js";
 import { AiConsumer } from "./events/ai.consumer.js";
 import { PagesManagementController } from "./pages/pages-management.controller.js";
 import { OutboxWorker } from "./events/outbox.worker.js";
+import { HealthController } from "./health/health.controller.js";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { OutboxWorker } from "./events/outbox.worker.js";
     PrismaModule,
   ],
   controllers: [
+    HealthController,
     SitesController,
     SitesInternalController,
     PagesController,

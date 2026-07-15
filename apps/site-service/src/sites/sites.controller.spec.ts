@@ -36,7 +36,7 @@ describe('SitesController', () => {
 
       await controller.findAll(userId);
 
-      expect(service.findAll).toHaveBeenCalledWith('user-1');
+      expect(service.findAll).toHaveBeenCalledWith('user-1', undefined);
     });
   });
 

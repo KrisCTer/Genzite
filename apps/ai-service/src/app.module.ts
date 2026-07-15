@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { KafkaModule } from '@genzite/kafka';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { GeminiModule } from './gemini/gemini.module.js';
 import { GenerationModule } from './generation/generation.module.js';
-import { RecruitmentModule } from './recruitment/recruitment.module.js';
 import { WorkersModule } from './workers/workers.module.js';
 import { AgentModule } from './agent/agent.module.js';
 import { McpModule } from './mcp/mcp.module.js';
 import { EventsModule } from './events/events.module.js';
+import { HealthController } from './health/health.controller.js';
+import { MetricsModule } from './metrics/metrics.module.js';
 
 @Module({
   imports: [
@@ -39,13 +42,18 @@ import { EventsModule } from './events/events.module.js';
         };
       },
     }),
+    BullBoardModule.forRoot({
+      route: '/ai/admin/queues',
+      adapter: ExpressAdapter,
+    }),
     GenerationModule,
-    RecruitmentModule,
     WorkersModule,
     AgentModule,
     McpModule,
     EventsModule,
+    MetricsModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

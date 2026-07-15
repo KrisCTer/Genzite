@@ -16,6 +16,7 @@
 8. [Architecture Overview](#8-architecture-overview)
 9. [Common Commands (Cheat Sheet)](#9-common-commands-cheat-sheet)
 10. [Troubleshooting](#10-troubleshooting)
+11. [Production Deployment](#11-production-deployment)
 
 ---
 
@@ -23,12 +24,12 @@
 
 Install the following tools before starting:
 
-| Tool | Version | Download | Check |
-|------|---------|----------|----------|
-| **Node.js** | ≥ 18 | [nodejs.org](https://nodejs.org/) | `node -v` |
-| **npm** | ≥ 9 | Included with Node.js | `npm -v` |
-| **Docker Desktop** | Latest | [docker.com](https://www.docker.com/products/docker-desktop/) | `docker -v` |
-| **Git** | Latest | [git-scm.com](https://git-scm.com/) | `git -v` |
+| Tool               | Version | Download                                                      | Check       |
+| ------------------ | ------- | ------------------------------------------------------------- | ----------- |
+| **Node.js**        | ≥ 18    | [nodejs.org](https://nodejs.org/)                             | `node -v`   |
+| **npm**            | ≥ 9     | Included with Node.js                                         | `npm -v`    |
+| **Docker Desktop** | Latest  | [docker.com](https://www.docker.com/products/docker-desktop/) | `docker -v` |
+| **Git**            | Latest  | [git-scm.com](https://git-scm.com/)                           | `git -v`    |
 
 > **⚠️ Windows**: Ensure Docker Desktop has **WSL 2 backend** enabled in Settings → General.
 
@@ -61,7 +62,7 @@ The project uses a **single shared `.env` file** located in `infra/`:
 cp infra/.env.example infra/.env
 ```
 
-The default content is sufficient for local development. **No changes are needed** unless you want to change the DB password or add API keys:
+The default content is sufficient for local development, but you will need to add your personal API keys and configure email systems:
 
 ```env
 # infra/.env — Default values
@@ -70,8 +71,8 @@ The default content is sufficient for local development. **No changes are needed
 POSTGRES_USER=genzite_user
 POSTGRES_PASSWORD=genzite_password
 POSTGRES_DB=genzite_dev
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5433
 
 # Redis
 REDIS_HOST=localhost
@@ -80,19 +81,29 @@ REDIS_PORT=6379
 # Kafka
 KAFKA_BROKERS=localhost:29092
 
-# Auth (AUTH_BYPASS=true → no need to run identity-service)
-AUTH_BYPASS=true
+# Auth
+AUTH_BYPASS=false
 JWT_SECRET=dev-jwt-secret-change-in-production-please
+INTERNAL_SERVICE_TOKEN=your_internal_service_token_here
 
 # AI (add key if you need to test AI features)
-GEMINI_API_KEY=your-google-gemini-api-key
+GEMINI_API_KEYS=your-google-gemini-api-key
 DEEPSEEK_API_KEY=your-deepseek-api-key
+GROQ_API_KEY=your-groq-api-key
+NVIDIA_NIM_API_KEY=your-nvidia-api-key
+AI_DEFAULT_PROVIDER=gemini
 
-# AWS S3 (add if you need to test uploads)
-AWS_S3_BUCKET=genzite-media-dev
-AWS_REGION=ap-southeast-1
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+# AWS Cognito (Authentication)
+VITE_COGNITO_AUTHORITY=https://cognito-idp.us-east-1.amazonaws.com/your_pool_id
+VITE_COGNITO_CLIENT_ID=your_client_id
+
+# Seed Admin Credentials
+ADMIN_EMAIL=admin@yourdomain.com
+ADMIN_PASSWORD=Admin@12345
+
+# Email System (MUST use Google App Password, not regular password)
+EMAIL_USERNAME=system@yourdomain.com
+EMAIL_PASSWORD=your_google_app_password
 ```
 
 ### ❓ Why only one `.env` file?
@@ -163,21 +174,20 @@ Prisma will ask for a migration name for each service → enter: `init` (or a de
 ### Migrate Individual Services
 
 ```bash
+pnpm run prisma:migrate:identity
 pnpm run prisma:migrate:site
 pnpm run prisma:migrate:data
 pnpm run prisma:migrate:media
 pnpm run prisma:migrate:notification
 pnpm run prisma:migrate:ai
-pnpm run prisma:migrate:identity
-pnpm run prisma:migrate:commerce
 ```
 
 ### When to run again?
 
-| Situation | Command |
-|------------|------|
-| Modified `schema.prisma` file | `pnpm run prisma:migrate` |
-| Pulled new code with migrations | `pnpm run prisma:migrate` |
+| Situation                                       | Command                    |
+| ----------------------------------------------- | -------------------------- |
+| Modified `schema.prisma` file                   | `pnpm run prisma:migrate`  |
+| Pulled new code with migrations                 | `pnpm run prisma:migrate`  |
 | Just need to generate client (no new migration) | `pnpm run prisma:generate` |
 
 ---
@@ -192,28 +202,26 @@ Open a **separate terminal** for each command (or use split terminals in VS Code
 # Terminal 1 — API Gateway (port 3000)
 pnpm run dev:gateway
 
-# Terminal 2 — Site Service (port 3002)
+# Terminal 2 — Identity Service (port 3001)
+pnpm run dev:identity
+
+# Terminal 3 — Site Service (port 3002)
 pnpm run dev:site
 
-# Terminal 3 — Data Service (port 3003)
+# Terminal 4 — Data Service (port 3003)
 pnpm run dev:data
 
-# Terminal 4 — Media Service (port 3004)
+# Terminal 5 — Media Service (port 3004)
 pnpm run dev:media
 
-# Terminal 5 — Notification Service (port 3005)
+# Terminal 6 — Notification Service (port 3005)
 pnpm run dev:notification
 
-# Terminal 6 — AI Service (port 3006)
+# Terminal 7 — AI Service (port 3006)
 pnpm run dev:ai
-
-# Terminal 7 — Commerce Service (port 3007)
-pnpm run dev:commerce
 ```
 
-> **💡 You don't need to run them all at once!** If you are only working on site-service, just run `dev:gateway` + `dev:site`.
-
-> **⏸️ Identity Service (port 3001)** — No need to run yet. The Gateway has `AUTH_BYPASS=true` and automatically attaches a mock user (ADMIN role) to every request.
+> **💡 You don't need to run them all at once!** If you are only working on site-service, just run `dev:gateway` + `dev:identity` + `dev:site`.
 
 ### 🔹 Method 2: Docker Compose (full stack)
 
@@ -226,11 +234,11 @@ Starts **everything**: DB + Redis + Kafka + 7 backend services + Frontend.
 
 ### When to use which method?
 
-| Situation | Method |
-|------------|------|
-| Coding/debugging your own service | **Local Dev** (fast hot-reload) |
-| Need to test cross-service APIs | **Local Dev** (run the 2-3 related services) |
-| Demo / full integration test | **Docker Compose** |
+| Situation                         | Method                                       |
+| --------------------------------- | -------------------------------------------- |
+| Coding/debugging your own service | **Local Dev** (fast hot-reload)              |
+| Need to test cross-service APIs   | **Local Dev** (run the 2-3 related services) |
+| Demo / full integration test      | **Docker Compose**                           |
 
 ---
 
@@ -251,34 +259,32 @@ The Frontend will call APIs through the Gateway at `http://localhost:3000/api/v1
 
 ### Request Flow
 
-```
+```text
 Browser (http://localhost:5173)
     ↓
 API Gateway (:3000)
-    ├── AuthMiddleware (bypass → mock ADMIN user)
+    ├── AuthMiddleware (Validates JWT from Cognito/Identity)
+    ├── /api/v1/auth/*          → Identity Service (:3001)
     ├── /api/v1/sites/*         → Site Service (:3002)
     ├── /api/v1/cms/*           → Data Service (:3003)
     ├── /api/v1/media/*         → Media Service (:3004)
     ├── /api/v1/notifications/* → Notification Service (:3005)
-    ├── /api/v1/ai/*            → AI Service (:3006)
-    ├── /api/v1/commerce/*      → Commerce Service (:3007)
-    └── /api/v1/auth/*          → Identity Service (:3001) [not running]
+    └── /api/v1/ai/*            → AI Service (:3006)
 ```
 
 ### Directory Structure
 
-```
+```text
 Genzite/
 ├── apps/                    # Applications (services + frontend)
 │   ├── gateway/             # API Gateway — proxy + auth
-│   ├── identity-service/    # Auth, JWT, RBAC
-│   ├── site-service/        # Sites, Pages, Widgets
+│   ├── identity-service/    # Auth, JWT, AWS Cognito, RBAC
+│   ├── site-service/        # Sites, Pages, Widgets, Builder
 │   ├── data-service/        # Dynamic CMS (JSONB)
-│   ├── media-service/       # File upload, S3
+│   ├── media-service/       # File upload, S3 Presigned URLs
 │   ├── notification-service/# Email, Push, In-App
-│   ├── ai-service/          # Multi-Agent, MCP, Pipeline Engine, Gemini AI
-│   ├── commerce-service/    # E-Commerce & SaaS Billing
-│   └── frontend/            # React + Vite + Tailwind
+│   ├── ai-service/          # Multi-Agent, MCP, Gemini AI, Deepseek, Groq
+│   └── frontend/            # React + Vite + Tailwind v4 + Ant Design
 │
 ├── packages/                # Shared libraries
 │   ├── shared-types/        # DTOs, Kafka events, constants
@@ -301,15 +307,14 @@ Genzite/
 
 Each service uses its own PostgreSQL schema (within the same database):
 
-| Service | Schema | Tables |
-|---------|--------|--------|
-| identity-service | `identity` | users, roles, permissions, refresh_tokens |
-| site-service | `site` | sites, pages, widgets |
-| data-service | `data` | cms_collections, cms_records |
-| media-service | `media` | media_files, media_folders, media_tags |
-| notification-service | `notification` | notifications, notification_templates |
-| ai-service | `ai` | resumes, interview_sessions, ai_task_logs |
-| commerce-service | `commerce` | carts, orders, payment_transactions |
+| Service              | Schema         | Tables                                    |
+| -------------------- | -------------- | ----------------------------------------- |
+| identity-service     | `identity`     | users, roles, permissions, refresh_tokens |
+| site-service         | `site`         | sites, pages, widgets                     |
+| data-service         | `data`         | cms_collections, cms_records              |
+| media-service        | `media`        | media_files, media_folders, media_tags    |
+| notification-service | `notification` | notifications, notification_templates     |
+| ai-service           | `ai`           | resumes, interview_sessions, ai_task_logs |
 
 ---
 
@@ -338,7 +343,7 @@ docker compose down -v                           # Stop + delete data
 
 ```bash
 pnpm run prisma:migrate              # Migrate all services
-pnpm run prisma:migrate:site         # Migrate site-service only
+pnpm run prisma:migrate:identity     # Migrate identity-service only
 pnpm run prisma:generate             # Generate all Prisma Clients
 ```
 
@@ -346,12 +351,12 @@ pnpm run prisma:generate             # Generate all Prisma Clients
 
 ```bash
 pnpm run dev:gateway                 # Gateway (:3000)
+pnpm run dev:identity                # Identity Service (:3001)
 pnpm run dev:site                    # Site Service (:3002)
 pnpm run dev:data                    # Data Service (:3003)
 pnpm run dev:media                   # Media Service (:3004)
 pnpm run dev:notification            # Notification (:3005)
 pnpm run dev:ai                      # AI Service (:3006)
-pnpm run dev:commerce                # Commerce Service (:3007)
 pnpm run dev:frontend                # Frontend (:5173)
 ```
 
@@ -368,6 +373,7 @@ node scripts/dev.mjs start:dev -s data-service             # Run 1 service
 ```bash
 pnpm run build:all                   # Build all workspaces
 pnpm run test:all                    # Test all workspaces
+pnpm dlx knip                        # Find dead code and unused files
 ```
 
 ---
@@ -431,6 +437,22 @@ taskkill /PID <pid> /F
 # Use cmd instead of PowerShell, or run:
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
+
+---
+
+## 11. Production Deployment
+
+Genzite uses GitHub Actions for automated deployment:
+- **Backend**: Deploys to AWS ECS via Amazon ECR. Uses `infra/Dockerfile.prod` (built from the root context) with `--build-arg APP_NAME=<service>`.
+- **Frontend**: Deploys to Vercel.
+
+To trigger a deployment, push your code to the `production` or `deploy/production` branch.
+
+Ensure the following GitHub Secrets are configured:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_ACCOUNT_ID`
+- `VERCEL_TOKEN`
 
 ---
 
