@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Layout, Menu, Typography, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
 import {
   DatabaseOutlined,
-  BellOutlined,
   RocketOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -14,6 +13,7 @@ import { resolveUserRoles } from '../utils/jwt';
 import UserAccountMenu from '../components/UserAccountMenu';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
 import { 
+  Bell,
   Sparkles, 
   Info, 
   Shield, 
@@ -52,7 +52,7 @@ const getNotificationIcon = (metadata?: { event?: string }) => {
     case 'payment.succeeded':
       return <span className="p-2 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex items-center justify-center shrink-0"><DollarSign size={14} /></span>;
     default:
-      return <span className="p-2 rounded-lg bg-zinc-700/30 text-zinc-400 border border-zinc-700/55 flex items-center justify-center shrink-0"><BellOutlined style={{ fontSize: 14 }} /></span>;
+      return <span className="p-2 rounded-lg bg-zinc-700/30 text-zinc-400 border border-zinc-700/55 flex items-center justify-center shrink-0"><Bell size={14} /></span>;
   }
 };
 
@@ -129,7 +129,7 @@ const AdminLayout: React.FC = () => {
             type="link"
             size="small"
             onClick={() => { setNotifOpen(false); navigate(notificationsPath); }}
-            style={{ fontSize: '11px', padding: 0 }}
+            style={{ fontSize: '11px', padding: 0, fontWeight: 'bold' }}
           >
             View all
           </Button>
@@ -139,7 +139,7 @@ const AdminLayout: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}><Spin size="small" /></div>
       ) : !displayNotifications || displayNotifications.length === 0 ? (
         <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--gz-text-muted, #71717a)' }}>
-          <BellOutlined style={{ fontSize: '24px', marginBottom: '8px', opacity: 0.5 }} />
+          <Bell size={24} style={{ marginBottom: '8px', opacity: 0.5, display: 'inline-block' }} />
           <div>No new notifications</div>
         </div>
       ) : (
@@ -385,7 +385,7 @@ const AdminLayout: React.FC = () => {
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<BellOutlined style={{ fontSize: '18px', color: 'var(--color-text-secondary)' }} />}
+                  icon={<Bell size={20} color="var(--color-text-secondary)" />}
                   style={{ width: 36, height: 36 }}
                 />
               </Badge>

@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import './CanvasLayout.css';
 
-import { FileText, Gamepad2, PenTool, Gift, MoreVertical, X, Settings } from 'lucide-react';
 import { RocketOutlined } from '@ant-design/icons';
+import NotificationBell from '../components/NotificationBell';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../store/auth';
 
@@ -65,23 +65,7 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           </div>
           
           <div className="canvas-topbar-right">
-            <button className="canvas-icon-btn with-text">
-              <FileText size={18} />
-              <span>Docs</span>
-            </button>
-            <button className="canvas-icon-btn">
-              <Gamepad2 size={20} />
-            </button>
-            <button className="canvas-icon-btn">
-              <PenTool size={20} />
-            </button>
-            <button className="canvas-icon-btn with-badge">
-              <Gift size={20} />
-              <span className="notification-dot"></span>
-            </button>
-            <button className="canvas-icon-btn">
-              <MoreVertical size={20} />
-            </button>
+            <NotificationBell />
             
             <div className="canvas-avatar-wrapper">
               <div 
