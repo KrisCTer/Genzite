@@ -4,12 +4,13 @@ import {
   AppstoreOutlined,
   TeamOutlined,
   UserOutlined,
-  PictureOutlined,
-  DatabaseOutlined,
-  GlobalOutlined,
   BellOutlined,
   RobotOutlined,
   DeleteOutlined,
+  CloudServerOutlined,
+  LineChartOutlined,
+  ControlOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import {
   ADMIN_BASE,
@@ -38,15 +39,15 @@ export const WORKSPACE_MENU: NavMenuConfig[] = [
 
 export const ADMIN_MENU: NavMenuConfig[] = [
   { label: 'Dashboard', key: ADMIN_BASE, icon: <PieChartOutlined />, roles: STAFF_ROLES },
-  { label: 'Profile', key: `${ADMIN_BASE}/profile`, icon: <UserOutlined />, roles: STAFF_ROLES },
-  { label: 'Notifications', key: `${ADMIN_BASE}/notifications`, icon: <BellOutlined />, roles: STAFF_ROLES },
-  { label: 'Trash', key: `${ADMIN_BASE}/trash`, icon: <DeleteOutlined />, roles: STAFF_ROLES },
+  { label: 'Global Settings', key: `${ADMIN_BASE}/settings`, icon: <SettingOutlined />, roles: ['ADMIN'] },
   { label: 'Identity (Users/Roles)', key: `${ADMIN_BASE}/identity`, icon: <TeamOutlined />, roles: ['ADMIN'] },
-  { label: 'Media Library', key: `${ADMIN_BASE}/media`, icon: <PictureOutlined />, roles: STAFF_ROLES },
-  { label: 'Data CMS', key: `${ADMIN_BASE}/cms`, icon: <DatabaseOutlined />, roles: STAFF_ROLES },
-  { label: 'Site Builder', key: `${ADMIN_BASE}/site`, icon: <GlobalOutlined />, roles: STAFF_ROLES },
-  { label: 'AI Canvas', key: `/project`, icon: <RobotOutlined />, roles: STAFF_ROLES },
+  { label: 'System Health', key: `${ADMIN_BASE}/observability`, icon: <CloudServerOutlined />, roles: ['ADMIN'] },
+  { label: 'AI Metrics', key: `${ADMIN_BASE}/ai/metrics`, icon: <LineChartOutlined />, roles: ['ADMIN'] },
+  { label: 'Background Jobs', key: `${ADMIN_BASE}/ai/queues`, icon: <ControlOutlined />, roles: ['ADMIN'] },
+  { label: 'Notifications', key: `${ADMIN_BASE}/notifications`, icon: <BellOutlined />, roles: STAFF_ROLES },
+  { label: 'Profile', key: `${ADMIN_BASE}/profile`, icon: <UserOutlined />, roles: STAFF_ROLES },
 ];
+
 
 export function filterNavConfig(config: NavMenuConfig[], roles: string[]): NavMenuConfig[] {
   return config

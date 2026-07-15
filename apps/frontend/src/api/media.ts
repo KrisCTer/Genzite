@@ -82,8 +82,6 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
     onUploadProgress,
   });
 
-  // Derive the permanent public URL: strip auth query-string from the presigned PUT URL
-  const publicUrl = uploadUrl.split('?')[0];
 
   // 3. Confirm upload with the backend
   const confirmRes = await apiClient.post('/media/confirm', {

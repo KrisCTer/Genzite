@@ -5,12 +5,15 @@
   "scripts": {
     "build": "nest build",
     "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start:dev": "nest start -b swc --watch --preserveWatchOutput",
     "start:prod": "node dist/main",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@bull-board/api": "^8.1.2",
+    "@bull-board/express": "^8.1.2",
+    "@bull-board/nestjs": "^8.1.2",
     "@genzite/kafka": "workspace:*",
     "@genzite/shared-types": "workspace:*",
     "@google/generative-ai": "^0.24.1",

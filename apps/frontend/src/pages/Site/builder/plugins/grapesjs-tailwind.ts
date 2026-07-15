@@ -178,7 +178,12 @@ export const injectTailwindAndStyles = (editor: Editor, htmlContent: string, css
     }
   }
 
-  // 10. Load body content into GrapesJS component model
+  // 10. Load body content into GrapesJS component model after scoping any inline <script> tags in IIFE
+  doc.body.querySelectorAll('script').forEach(script => {
+    if (script.textContent && !script.textContent.trim().startsWith('(() => {')) {
+      script.textContent = `(() => { try { ${script.textContent} } catch (err) { console.warn('Script error inside editor:', err); } })();`;
+    }
+  });
   editor.setComponents(doc.body.innerHTML);
 
   if (cssContent) editor.setStyle(cssContent);

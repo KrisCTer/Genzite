@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Badge, Popover, Button, List, Spin } from 'antd';
-import { BellOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { DatabaseOutlined } from '@ant-design/icons';
+
 import { Sparkles, Info, Shield, DollarSign, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

@@ -1,15 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { UserPopover } from '@genzite/shared-ui';
 import UserAvatar from '../components/UserAvatar';
-import { Button, Dropdown, App } from 'antd';
-import { LogoutOutlined } from '@ant-design/icons';
+import { Button, App } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import type { MenuProps } from 'antd';
 import { useAuthStore } from '../store/auth';
 import { logoutApi } from '../api/auth';
 import { getMeApi } from '../api/users';
-import { getUserNavItems, hasMemberAccess } from '../utils/userNav';
-import { resolveUserRoles } from '../utils/jwt';
 import './UserAccountMenu.css';
 
 interface UserAccountMenuProps {
@@ -30,7 +27,10 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const setAuth = useAuthStore((s) => s.setAuth);
   const logout = useAuthStore((s) => s.logout);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, right: 0 });
   const { modal } = App.useApp();
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (token && !user) {
@@ -39,6 +39,17 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
         .catch(() => logout());
     }
   }, [token, user, setAuth, refreshToken, logout]);
+
+  const handleOpen = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPopoverPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsPopoverOpen((prev) => !prev);
+  };
 
   const handleLogout = () => {
     modal.confirm({
@@ -62,7 +73,6 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
         } catch {
           // clear local session even if API fails
         }
-
         setTimeout(() => {
           logout();
           navigate('/login', { replace: true });
@@ -70,6 +80,24 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       },
     });
   };
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const popoverEl = document.querySelector('.user-popover-menu');
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        (!popoverEl || !popoverEl.contains(target))
+      ) {
+        setIsPopoverOpen(false);
+      }
+    };
+    if (isPopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isPopoverOpen]);
 
   if (!token) {
     return (
@@ -84,54 +112,13 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
     );
   }
 
-  const navItems = getUserNavItems(resolveUserRoles(user?.roles, token));
-  const memberAccess = hasMemberAccess(resolveUserRoles(user?.roles, token));
-
-  const menuItems: MenuProps['items'] = [
-    {
-      key: 'user-info',
-      className: 'user-account-menu__info-item',
-      label: (
-        <div className="user-account-menu__info">
-          <span className="user-account-menu__name">{(user?.metadata as any)?.displayName || user?.name || 'User'}</span>
-          <span className="user-account-menu__email">{user?.email}</span>
-          {user?.roles?.length ? (
-            <span className="user-account-menu__roles">{user.roles.join(' · ')}</span>
-          ) : null}
-        </div>
-      ),
-    },
-    { type: 'divider' },
-    ...(memberAccess
-      ? navItems.map((item) => ({
-        key: item.key,
-        label: item.label,
-        onClick: () => navigate(item.path),
-      }))
-      : [
-        {
-          key: 'no-access',
-          label: 'No access',
-          disabled: true,
-        },
-      ]),
-    { type: 'divider' },
-    {
-      key: 'logout',
-      label: 'Logout',
-      icon: <LogoutOutlined />,
-      danger: true,
-      onClick: handleLogout,
-    },
-  ];
-
   const triggerClass =
     variant === 'landing'
       ? 'user-account-menu__trigger user-account-menu__trigger--landing'
       : 'user-account-menu__trigger';
 
   return (
-    <>
+    <div className="user-account-menu-wrapper" style={{ position: 'relative' }}>
       {isLoggingOut && createPortal(
         <div style={{
           position: 'fixed',
@@ -153,17 +140,37 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
         </div>,
         document.body
       )}
-      <Dropdown
-        menu={{ items: menuItems }}
-        trigger={['click']}
-        placement="bottomRight"
-        overlayClassName="user-account-menu__dropdown"
+
+      <button
+        type="button"
+        className={triggerClass}
+        aria-label="Account"
+        ref={triggerRef}
+        onClick={handleOpen}
       >
-        <button type="button" className={triggerClass} aria-label="Account">
-          <UserAvatar size={avatarSize} />
-        </button>
-      </Dropdown>
-    </>
+        <UserAvatar size={avatarSize} />
+      </button>
+
+      {isPopoverOpen && createPortal(
+        <UserPopover
+          isOpen={isPopoverOpen}
+          onClose={() => setIsPopoverOpen(false)}
+          onLogout={() => { setIsPopoverOpen(false); handleLogout(); }}
+          user={{
+            name: (user?.metadata as any)?.displayName || user?.name || 'User',
+            email: user?.email,
+            avatarUrl: user?.avatarUrl
+          }}
+          style={{
+            position: 'fixed',
+            top: popoverPos.top,
+            right: popoverPos.right,
+            zIndex: 99999,
+          }}
+        />,
+        document.body
+      )}
+    </div>
   );
 };
 

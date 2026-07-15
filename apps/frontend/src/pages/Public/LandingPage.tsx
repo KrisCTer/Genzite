@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
-import { getPostLoginPath, hasStaffAccess, getHomePath } from '../../utils/userNav';
+import { getHomePath } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
 import './LandingPage.css';
 import './FeaturesPage.css';
@@ -169,7 +169,7 @@ const LandingPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const roles = resolveUserRoles(user?.roles, token);
-  const staffAccess = hasStaffAccess(roles);
+
   const goToWorkspace = () => {
     if (token) {
       navigate('/project');

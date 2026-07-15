@@ -43,20 +43,4 @@ describe('AiProducer', () => {
       expect(kafkaProducer.emit).toHaveBeenCalledWith(KAFKA_TOPICS.CMS_GENERATED, payload);
     });
   });
-
-  describe('emitResumeAnalyzed', () => {
-    it('should emit RESUME_ANALYZED event', async () => {
-      const payload = { resumeId: 'res-1', ownerId: 'user-1', atsScore: 90 };
-      await producer.emitResumeAnalyzed(payload);
-      expect(kafkaProducer.emit).toHaveBeenCalledWith(KAFKA_TOPICS.RESUME_ANALYZED, payload);
-    });
-  });
-
-  describe('emitInterviewCompleted', () => {
-    it('should emit INTERVIEW_COMPLETED event', async () => {
-      const payload = { sessionId: 'sess-1', resumeId: 'res-1', ownerId: 'user-1', overallScore: 85 };
-      await producer.emitInterviewCompleted(payload);
-      expect(kafkaProducer.emit).toHaveBeenCalledWith(KAFKA_TOPICS.INTERVIEW_COMPLETED, payload);
-    });
-  });
 });

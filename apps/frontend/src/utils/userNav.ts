@@ -23,6 +23,8 @@ export const ADMIN_NAV_ITEMS: UserNavItem[] = [
   { key: 'profile', label: 'Profile', path: `${ADMIN_BASE}/profile`, roles: STAFF_ROLES },
   { key: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/notifications`, roles: STAFF_ROLES },
   { key: 'identity', label: 'User Management', path: `${ADMIN_BASE}/identity`, roles: ['ADMIN'] },
+  { key: 'ai-metrics', label: 'AI Metrics', path: `${ADMIN_BASE}/ai/metrics`, roles: ['ADMIN'] },
+  { key: 'bullmq', label: 'Background Jobs', path: `${ADMIN_BASE}/ai/queues`, roles: ['ADMIN'] },
 
 ];
 
@@ -52,7 +54,7 @@ export function getHomePath(roles: string[] | undefined): string {
   return hasStaffAccess(roles) ? ADMIN_BASE : WORKSPACE_BASE;
 }
 
-export function getPostLoginPath(roles: string[] | undefined): string {
+export function getPostLoginPath(_roles: string[] | undefined): string {
   return '/';
 }
 

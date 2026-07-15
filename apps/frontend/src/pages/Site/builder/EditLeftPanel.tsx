@@ -53,8 +53,8 @@ const EditLeftPanel: React.FC<EditLeftPanelProps> = ({
       bottom: isOpen ? 20 : 'auto',
       width: isOpen ? 280 : 56,
       height: isOpen ? 'auto' : 56,
-      background: isOpen 
-        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)' 
+      background: isOpen
+        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)'
         : 'rgba(17, 24, 39, 0.6)',
       border: isOpen ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(56, 189, 248, 0.3)',
       borderRadius: 16,
@@ -68,10 +68,10 @@ const EditLeftPanel: React.FC<EditLeftPanelProps> = ({
       zIndex: 20,
     }}>
       {/* Header & Toggle */}
-      <div style={{ 
-        display: 'flex', alignItems: 'center', 
-        justifyContent: isOpen ? 'space-between' : 'center', 
-        padding: isOpen ? '16px 16px 12px' : '0', 
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: isOpen ? 'space-between' : 'center',
+        padding: isOpen ? '16px 16px 12px' : '0',
         height: isOpen ? 'auto' : '100%',
         width: isOpen ? 'auto' : '100%',
         background: isOpen ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
@@ -109,69 +109,69 @@ const EditLeftPanel: React.FC<EditLeftPanelProps> = ({
             )}
           </div>
         </div>
-        
+
         {/* Tab switcher */}
         {isOpen && (
-        <div style={{
-          display: 'flex',
-          background: 'rgba(0,0,0,0.2)',
-          padding: '4px',
-          borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.05)',
-          width: '100%'
-        }}>
-          <Tooltip title="Thành phần (Blocks)" placement="bottom">
-            <div 
-              onClick={() => setActiveTab('blocks')}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                padding: '6px 0',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                color: activeTab === 'blocks' ? '#fff' : '#94A3B8',
-                background: activeTab === 'blocks' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                fontSize: 11,
-                fontWeight: 600
-              }}
-            >
-              <LayoutGrid size={15} />
-              <span>Block</span>
-            </div>
-          </Tooltip>
-          <Tooltip title="Cấu trúc (Layers)" placement="bottom">
-            <div 
-              onClick={() => setActiveTab('layers')}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                padding: '6px 0',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                color: activeTab === 'layers' ? '#fff' : '#94A3B8',
-                background: activeTab === 'layers' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                fontSize: 11,
-                fontWeight: 600
-              }}
-            >
-              <Layers size={15} />
-              <span>Layer</span>
-            </div>
-          </Tooltip>
-        </div>
+          <div style={{
+            display: 'flex',
+            background: 'rgba(0,0,0,0.2)',
+            padding: '4px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.05)',
+            width: '100%'
+          }}>
+            <Tooltip title="Blocks" placement="bottom">
+              <div
+                onClick={() => setActiveTab('blocks')}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  padding: '6px 0',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: activeTab === 'blocks' ? '#fff' : '#94A3B8',
+                  background: activeTab === 'blocks' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  fontWeight: 600
+                }}
+              >
+                <LayoutGrid size={15} />
+                <span>Block</span>
+              </div>
+            </Tooltip>
+            <Tooltip title="Layers" placement="bottom">
+              <div
+                onClick={() => setActiveTab('layers')}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  padding: '6px 0',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: activeTab === 'layers' ? '#fff' : '#94A3B8',
+                  background: activeTab === 'layers' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  fontWeight: 600
+                }}
+              >
+                <Layers size={15} />
+                <span>Layer</span>
+              </div>
+            </Tooltip>
+          </div>
         )}
       </div>
-      
+
       {/* Content Area */}
       <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
         {isGrapesPage ? (
@@ -182,28 +182,28 @@ const EditLeftPanel: React.FC<EditLeftPanelProps> = ({
               <div id="gjs-layers" />
             </div>
 
-            <div 
-              style={{ 
+            <div
+              style={{
                 position: 'absolute',
                 inset: 0,
-                overflowY: 'auto', 
+                overflowY: 'auto',
                 padding: '12px 10px',
                 display: activeTab === 'blocks' ? 'flex' : 'none',
                 flexDirection: 'column'
-              }} 
+              }}
             >
               <CustomBlocksPanel editor={editor} />
             </div>
 
-            <div 
-              style={{ 
+            <div
+              style={{
                 position: 'absolute',
                 inset: 0,
                 overflowY: 'auto',
                 padding: '12px 10px',
                 display: activeTab === 'layers' ? 'flex' : 'none',
                 flexDirection: 'column'
-              }} 
+              }}
             >
               <CustomLayersTree editor={editor} />
             </div>
@@ -217,7 +217,7 @@ const EditLeftPanel: React.FC<EditLeftPanelProps> = ({
                   Available Component Blocks
                 </div>
                 {COMPONENT_BLOCKS.map(block => (
-                  <div 
+                  <div
                     key={block.type}
                     onClick={() => onAddWidget?.(block.type)}
                     style={{

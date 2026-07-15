@@ -8,8 +8,9 @@ export class SitesController {
   @Get()
   async findAll(
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail?: string,
   ) {
-    return this.sitesService.findAll(userId);
+    return this.sitesService.findAll(userId, userEmail);
   }
 
   @Get('check-subdomain')
@@ -27,6 +28,27 @@ export class SitesController {
     @Headers('x-user-email') userEmail: string,
   ) {
     return this.sitesService.findBySubdomainWithDetails(subdomain, userId, userEmail);
+  }
+
+  @Get(':id/observability/metrics')
+  async getObservabilityMetrics(
+    @Param('id') id: string,
+    @Query('range') range?: string,
+  ) {
+    return this.sitesService.getObservabilityMetrics(id, range);
+  }
+
+  @Get(':id/observability/logs')
+  async getObservabilityLogs(
+    @Param('id') id: string,
+    @Query('severity') severity?: string,
+  ) {
+    return this.sitesService.getObservabilityLogs(id, severity);
+  }
+
+  @Get([':id/health', ':id/observability/health'])
+  async checkSiteHealth(@Param('id') id: string) {
+    return this.sitesService.checkSiteHealth(id);
   }
 
   @Get(':id')

@@ -8,7 +8,8 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
-import { getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
+import { getNotificationsPath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
+
 import { resolveUserRoles } from '../utils/jwt';
 import UserAccountMenu from '../components/UserAccountMenu';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
@@ -68,6 +69,7 @@ const AdminLayout: React.FC = () => {
   const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
   const notificationsPath = getNotificationsPath(effectiveRoles);
 
+
   const isFullWidthPage = location.pathname.includes('/notifications') ||
     location.pathname.includes('/identity') ||
     location.pathname.includes('/profile') ||
@@ -75,14 +77,20 @@ const AdminLayout: React.FC = () => {
 
   let pageTitle = isAdminArea ? 'Admin Console' : 'My workspace';
   const path = location.pathname;
-  if (path.includes('/dashboard') || path === '/workspace') pageTitle = 'Dashboard';
+  
+  if (path === ADMIN_BASE || path === WORKSPACE_BASE || path.includes('/dashboard')) pageTitle = 'Dashboard';
+  else if (path.includes('/identity') || path.includes('/user-management')) pageTitle = 'Identity (Users/Roles)';
+  else if (path.includes('/observability')) pageTitle = 'System Health';
+  else if (path.includes('/settings')) pageTitle = 'Global Settings';
+  else if (path.includes('/ai/metrics')) pageTitle = 'AI Metrics';
+  else if (path.includes('/ai/queues')) pageTitle = 'Background Jobs';
   else if (path.includes('/projects') || path.includes('/sites')) pageTitle = 'Projects';
-  else if (path.includes('/profile') || path.includes('/identity') || path.includes('/user-management')) pageTitle = path.includes('/user-management') ? 'User Management' : 'Personal Profile';
+  else if (path.includes('/profile')) pageTitle = 'Profile';
   else if (path.includes('/notifications')) pageTitle = 'Notifications';
   else if (path.includes('/trash')) pageTitle = 'Trash';
-  else if (path.includes('/canvas')) pageTitle = 'AI Canvas';
+  else if (path.includes('/canvas') || path.includes('/project')) pageTitle = 'AI Canvas';
   else if (path.includes('/media')) pageTitle = 'Media Library';
-  else if (path.includes('/cms')) pageTitle = 'CMS Collections';
+  else if (path.includes('/cms')) pageTitle = 'Data CMS';
 
   const queryClient = useQueryClient();
   const { data: notifications, isLoading: notifLoading } = useQuery({

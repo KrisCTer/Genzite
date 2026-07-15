@@ -4,7 +4,8 @@ import { UploadOutlined, InboxOutlined, FileOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchMediaFilesApi, uploadMediaFileApi, type MediaFile } from '../../api/media';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
+
 const { Dragger } = Upload;
 
 const MediaLibrary: React.FC = () => {

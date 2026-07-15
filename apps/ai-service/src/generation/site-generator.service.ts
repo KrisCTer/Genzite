@@ -22,6 +22,7 @@ export interface GeneratedPage {
   id?: string;
   title: string;
   slug: string;
+  settings?: any;
   widgets?: GeneratedWidget[];
 }
 
@@ -226,30 +227,37 @@ export class SiteGeneratorService {
         prompt = prompt.replace(/\[PLATFORM:(APP|WEB)\]\s*/i, '').trim();
       }
 
-      const createMatch = prompt.match(/(?:Create|Add page|Add|Generate)\s+(?:a\s+|an\s+)?([a-zA-Z0-9_ -]+?)(?:\s+Page)?$/i);
-      if (createMatch && createMatch[1] && createMatch[1].trim().length > 0) {
-        // Explicit "create/tạo trang <name>" intent → new named page
-        pageTitle = createMatch[1].trim();
-        const slugify = (str: string) => str
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '');
-        pageSlug = slugify(pageTitle) || `page-${Date.now()}`;
-        targetPageId = undefined;
-      } else if (targetPageId) {
-        // Explicit TARGET_PAGE selected → update that page
+      const slugify = (str: string) => str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      // Check for explicit create page intent (both English and Vietnamese)
+      const explicitCreateMatch = prompt.match(/(?:create|add page|add|generate|tạo|thêm|thêm trang|tạo trang|làm trang|xây dựng trang)\s+(?:a\s+|an\s+|trang\s+|page\s+)?([a-zA-Z0-9_ -À-ỹ]{1,50}?)(?:\s+page|\s+trang)?$/i)
+        || prompt.match(/(?:page|trang|screen)\s+([a-zA-Z0-9_ -À-ỹ]{2,40})$/i);
+      const isExplicitCreatePage = /(?:create|add|generate|make|build|tạo|thêm|xây dựng|làm|thêm mới|tạo thêm)\s+(?:a\s+|an\s+|new\s+|mới\s+)?(?:page|trang|screen)|(?:page|trang|screen)\s+(?:mới|new)/i.test(prompt);
+
+      if (targetPageId) {
+        // Explicit TARGET_PAGE selected → update that exact page
         pageSlug = `page-${Date.now()}`;
         pageTitle = "Updated Page";
-      } else if (siteId && !siteId.startsWith('gen-')) {
-        // No page selected + no explicit create intent, but site already exists
-        // → create a brand-new page with a unique slug so we don't overwrite "Home"
+      } else if (isExplicitCreatePage || (explicitCreateMatch && explicitCreateMatch[1] && explicitCreateMatch[1].trim().length > 0)) {
+        // Explicit "create/tạo trang <name>" intent → new named page
+        const rawTitle = explicitCreateMatch && explicitCreateMatch[1] ? explicitCreateMatch[1].trim() : "New Page";
+        pageTitle = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
+        const derivedSlug = slugify(pageTitle);
+        pageSlug = (derivedSlug && derivedSlug !== 'home' && derivedSlug !== 'page') ? derivedSlug : `page-${Date.now()}`;
+        targetPageId = undefined;
+      } else if (siteId && !siteId.startsWith('gen-') && !siteId.startsWith('new-')) {
+        // No targetPageId selected + site already exists in DB with pages
+        // → create a brand-new page with a unique slug so we never overwrite "home"
         const ts = Date.now();
         pageSlug = `page-${ts}`;
         pageTitle = `New Page`;
       } else {
-        // Brand-new site (no siteId or temporary gen- ID) → bootstrap with Home
+        // Brand-new site (temporary gen- ID without explicit create intent) → bootstrap with Home
         pageSlug = "home";
         pageTitle = "Home";
       }
@@ -766,12 +774,13 @@ ${dedupedCss}
           ...(siteId ? { id: siteId } : {}), 
           name: resolvedSiteName, 
           subdomain: generatedSubdomain,
-          settings: { platform: platform.toLowerCase() }
+          settings: { platform: platform.toLowerCase(), prompt, systemPrompt: prompt }
         },
         pages: [{
           ...(targetPageId ? { id: targetPageId } : {}),
           title: pageTitle,
           slug: pageSlug,
+          settings: { designPrompt: prompt },
           widgets: [{
             type: 'GRAPESJS',
             sortOrder: 1,

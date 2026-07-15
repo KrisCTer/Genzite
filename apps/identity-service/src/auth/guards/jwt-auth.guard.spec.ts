@@ -33,11 +33,9 @@ describe('JwtAuthGuard', () => {
     configService = module.get<ConfigService>(ConfigService);
   });
 
-  const createMockContext = (authorizationHeader?: string): ExecutionContext => {
+  const createMockContext = (headers: Record<string, string>): ExecutionContext => {
     const mockRequest = {
-      headers: {
-        authorization: authorizationHeader,
-      },
+      headers: headers || {},
     };
     return {
       switchToHttp: () => ({
@@ -46,33 +44,27 @@ describe('JwtAuthGuard', () => {
     } as any;
   };
 
-  it('should throw UnauthorizedException if no authorization header is provided', async () => {
-    const context = createMockContext(undefined);
+  it('should throw UnauthorizedException if no user headers are provided and passport fails', async () => {
+    const context = createMockContext({});
     await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow('Authentication failed or token expired');
   });
 
-  it('should throw UnauthorizedException if authorization header does not start with Bearer', async () => {
-    const context = createMockContext('Basic xyz');
-    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-  });
-
-  it('should throw UnauthorizedException if token is invalid', async () => {
-    const context = createMockContext('Bearer invalid-token');
-    jest.spyOn(jwtService, 'verifyAsync').mockRejectedValue(new Error('Invalid token'));
-
-    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', { secret: 'mock-secret' });
-  });
-
-  it('should return true and attach user to request if token is valid', async () => {
-    const context = createMockContext('Bearer valid-token');
-    const mockPayload = { sub: 'user-id', email: 'test@test.com' };
-    jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockPayload);
+  it('should return true and attach user to request if gateway headers x-user-id and x-user-email are valid', async () => {
+    const context = createMockContext({
+      'x-user-id': 'user-123',
+      'x-user-email': 'test@example.com',
+      'x-user-roles': 'ADMIN,USER',
+    });
 
     const result = await guard.canActivate(context);
 
     expect(result).toBe(true);
     const request = context.switchToHttp().getRequest();
-    expect(request.user).toEqual(mockPayload);
+    expect(request.user).toEqual({
+      sub: 'user-123',
+      email: 'test@example.com',
+      roles: ['ADMIN', 'USER'],
+    });
   });
 });

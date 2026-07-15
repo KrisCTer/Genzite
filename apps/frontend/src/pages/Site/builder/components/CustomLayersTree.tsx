@@ -271,12 +271,13 @@ export const CustomLayersTree: React.FC<CustomLayersTreeProps> = ({ editor }) =>
     if (!comp) return;
 
     Modal.confirm({
-      title: 'Xóa phần tử',
-      content: `Bạn có chắc chắn muốn xóa "${node.name}" và tất cả phần tử con bên trong?`,
-      okText: 'Xóa phần tử',
+      title: 'Delete Element',
+      content: `Are you sure you want to delete "${node.name}" and all its child elements?`,
+      okText: 'Delete Element',
       okType: 'danger',
-      cancelText: 'Hủy',
+      cancelText: 'Cancel',
       centered: true,
+
       styles: {
         mask: { backdropFilter: 'blur(6px)', background: 'rgba(0, 0, 0, 0.75)' },
         header: { display: 'none' },

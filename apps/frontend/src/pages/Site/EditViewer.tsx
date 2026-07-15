@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { message, Spin } from 'antd';
+import { MobileOutlined, TabletOutlined, DesktopOutlined } from '@ant-design/icons';
 import { fetchPagesApi, fetchWidgetsApi, replaceWidgetsApi, fetchSiteByIdApi, type Widget } from '../../api/sites';
 import EditTopBar from './builder/EditTopBar';
 import EditLeftPanel from './builder/EditLeftPanel';
@@ -442,8 +443,10 @@ const EditViewer: React.FC = () => {
                       backdropFilter: 'blur(4px)',
                       border: '1px solid rgba(148,163,184,0.12)',
                     }}>
-                      {device === 'mobile' ? '📱 390 × 844' : device === 'tablet' ? '📟 768 × 1024' : '🖥️ 1440 × 900'}
-                      {' '}&nbsp;{'—'}&nbsp; {Math.round(zoom * 100)}%
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        {device === 'mobile' ? <><MobileOutlined /> 390 × 844</> : device === 'tablet' ? <><TabletOutlined /> 768 × 1024</> : <><DesktopOutlined /> 1440 × 900</>}
+                        {' '}&nbsp;{'—'}&nbsp; {Math.round(zoom * 100)}%
+                      </span>
                     </span>
                   </div>
 

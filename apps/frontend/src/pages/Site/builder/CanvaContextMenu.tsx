@@ -95,9 +95,6 @@ export const CanvaContextMenu: React.FC<CanvaContextMenuProps> = ({
     }
   };
 
-  const handleMouseEnterSubmenu = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-  };
 
   // Smart Positioning: Auto-flip X, clamp Y, and compute maxHeight from remaining space
   const updatePosition = useCallback(() => {

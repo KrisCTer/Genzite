@@ -8,13 +8,14 @@ import { UserConsumer } from "./consumers/user.consumer.js";
 import { EmailService } from "./email/email.service.js";
 import { AiConsumer } from "./consumers/ai.consumer.js";
 import { SiteConsumer } from "./consumers/site.consumer.js";
+import { HealthController } from "./health/health.controller.js";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     KafkaModule.forRoot({ enableConsumer: true }),
     PrismaModule,
   ],
-  controllers: [NotificationsController],
+  controllers: [HealthController, NotificationsController],
   providers: [NotificationsService, EmailService, UserConsumer, AiConsumer, SiteConsumer],
 })
 export class AppModule {}

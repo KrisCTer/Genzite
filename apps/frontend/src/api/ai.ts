@@ -16,31 +16,7 @@ export const fetchAiModelsApi = async () => {
   return response.data;
 };
 
-// ============ Recruitment API ============
-export const analyzeCvApi = async (data: { resumeId: string; jobDescription: string; model?: string }) => {
-  const response = await apiClient.post<{ message: string; jobId: string }>('/ai/analyze-cv', data);
-  return response.data;
-};
 
-export const startInterviewApi = async (data: { resumeId: string; jobDescription: string; sessionType: 'TECHNICAL' | 'BEHAVIORAL' | 'MIXED'; model?: string }) => {
-  const response = await apiClient.post<{ message: string; jobId: string }>('/ai/mock-interview/start', data);
-  return response.data;
-};
-
-export const interviewChatApi = async (sessionId: string, data: { message: string }) => {
-  const response = await apiClient.post<{ message: string; jobId: string }>(`/ai/mock-interview/${sessionId}/chat`, data);
-  return response.data;
-};
-
-export const endInterviewApi = async (sessionId: string) => {
-  const response = await apiClient.post<{ message: string; jobId: string }>(`/ai/mock-interview/${sessionId}/end`);
-  return response.data;
-};
-
-export const careerCoachingApi = async (data: { resumeId: string }) => {
-  const response = await apiClient.post<{ message: string; jobId: string }>('/ai/career-coaching', data);
-  return response.data;
-};
 
 // ============ Agent API ============
 export const agentChatApi = async (data: { message: string; conversationId?: string; model?: string }) => {
