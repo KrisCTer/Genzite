@@ -1,5 +1,6 @@
 import { Injectable, NestMiddleware, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
+import { RequestWithUser } from '@genzite/shared-types';
 import * as jwt from 'jsonwebtoken';
 
 /** Mock user injected when identity-service is not running (dev mode). */
@@ -55,7 +56,7 @@ export class AuthMiddleware implements NestMiddleware {
     }
   }
 
-  use(req: Request, _res: Response, next: NextFunction) {
+  use(req: RequestWithUser, _res: Response, next: NextFunction) {
     const url = (req.originalUrl || req.url || req.path || '').split('?')[0];
 
     // Block browser/external access to internal service-to-service routes
