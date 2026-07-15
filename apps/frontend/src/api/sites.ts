@@ -7,6 +7,7 @@ export interface Site {
   description: string | null;
   ownerId: string;
   settings: Record<string, unknown>;
+  isPublished: boolean;
   createdAt: string;
 }
 
@@ -46,7 +47,7 @@ export const createSiteApi = async (data: { name: string; subdomain: string; des
   return response.data;
 };
 
-export const updateSiteApi = async (id: string, data: { name?: string; subdomain?: string; description?: string; settings?: any }) => {
+export const updateSiteApi = async (id: string, data: { name?: string; subdomain?: string; description?: string; settings?: any; isPublished?: boolean }) => {
   const response = await apiClient.put<Site>(`/sites/${id}`, data);
   return response.data;
 };
@@ -101,6 +102,32 @@ export const fetchWidgetsPublicApi = async (pageId: string) => {
 
 export const replaceWidgetsApi = async (pageId: string, widgets: Array<{ type: string; contentConfig: Record<string, unknown>; sortOrder: number }>) => {
   const response = await apiClient.put<Widget[]>(`/sites/pages/${pageId}/widgets`, { widgets });
+  return response.data;
+};
+
+export const checkSubdomainAvailabilityApi = async (subdomain: string, excludeSiteId?: string) => {
+  const url = excludeSiteId ? `/sites/check-subdomain?subdomain=${subdomain}&excludeSiteId=${excludeSiteId}` : `/sites/check-subdomain?subdomain=${subdomain}`;
+  const response = await apiClient.get<{ available: boolean }>(url);
+  return response.data;
+};
+
+export const submitFeedbackApi = async (siteId: string, email: string, bugReportText: string) => {
+  const response = await apiClient.post(`/sites/${siteId}/feedback`, { email, bugReportText });
+  return response.data;
+};
+
+export const duplicateSiteApi = async (id: string) => {
+  const response = await apiClient.post<Site>(`/sites/${id}/duplicate`);
+  return response.data;
+};
+
+export const fetchTrashSitesApi = async () => {
+  const response = await apiClient.get<Site[]>('/sites/trash/list');
+  return response.data;
+};
+
+export const restoreSiteApi = async (id: string) => {
+  const response = await apiClient.post(`/sites/${id}/restore`);
   return response.data;
 };
 

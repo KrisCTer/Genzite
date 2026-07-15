@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Headers, Put, Delete, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Headers, Put, Delete, ForbiddenException, Query } from '@nestjs/common';
 import { SitesService } from './sites.service.js';
 
 @Controller('sites')
@@ -12,22 +12,33 @@ export class SitesController {
     return this.sitesService.findAll(userId);
   }
 
+  @Get('check-subdomain')
+  async checkSubdomainAvailability(
+    @Query('subdomain') subdomain: string,
+    @Query('excludeSiteId') excludeSiteId?: string,
+  ) {
+    return this.sitesService.checkSubdomainAvailability(subdomain, excludeSiteId);
+  }
+
   @Get('by-subdomain/:subdomain')
   async findBySubdomain(
     @Param('subdomain') subdomain: string,
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
   ) {
-    return this.sitesService.findBySubdomainWithDetails(subdomain, userId);
+    return this.sitesService.findBySubdomainWithDetails(subdomain, userId, userEmail);
   }
 
   @Get(':id')
   async findById(
     @Param('id') id: string,
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
   ) {
     return this.sitesService.findById(
       id,
       userId,
+      userEmail,
     );
   }
 
@@ -43,20 +54,32 @@ export class SitesController {
     return this.sitesService.create(body, userId);
   }
 
+  @Post(':id/duplicate')
+  async duplicate(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.duplicate(id, userId);
+  }
+
   @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() body: {
       name?: string;
       subdomain?: string;
+      description?: string;
+      isPublished?: boolean;
       settings?: any;
     },
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
   ) {
     return this.sitesService.update(
       id,
       body,
       userId,
+      userEmail,
     );
   }
 
@@ -66,6 +89,36 @@ export class SitesController {
     @Headers('x-user-id') userId: string,
   ) {
     return this.sitesService.delete(
+      id,
+      userId,
+    );
+  }
+
+  @Post('feedback')
+  async submitFeedback(
+    @Body() body: { siteId?: string; text: string },
+    @Headers('x-user-email') userEmail: string,
+  ) {
+    if (!userEmail) {
+      throw new Error("Missing user email");
+    }
+    await this.sitesService.submitFeedback(body, userEmail);
+    return { success: true };
+  }
+
+  @Get('trash/list')
+  async findTrash(
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.findTrash(userId);
+  }
+
+  @Post(':id/restore')
+  async restore(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.sitesService.restore(
       id,
       userId,
     );

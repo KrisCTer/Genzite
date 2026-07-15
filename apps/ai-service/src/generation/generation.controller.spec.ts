@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GenerationController } from './generation.controller';
+import { SiteGeneratorService } from './site-generator.service';
 import { Queue } from 'bullmq';
 import { getQueueToken } from '@nestjs/bullmq';
 import { AI_QUEUES } from '../workers/queue.constants';
@@ -23,6 +24,14 @@ describe('GenerationController', () => {
           provide: getQueueToken(AI_QUEUES.CMS_GENERATION),
           useValue: {
             add: jest.fn(),
+          },
+        },
+        {
+          provide: SiteGeneratorService,
+          useValue: {
+            generate: jest.fn(),
+            generateHybrid: jest.fn(),
+            improvePrompt: jest.fn(),
           },
         },
       ],

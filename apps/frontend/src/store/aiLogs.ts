@@ -32,6 +32,7 @@ export interface AiLogReport {
 interface AiLogState {
   isGenerating: boolean;
   currentJobId: string | null;
+  activeTargetPageId: string | null;
   activeStartTime?: number;
   activeModel?: string;
   activePrompt?: string;
@@ -50,7 +51,8 @@ interface AiLogState {
     siteId?: string,
     theme?: string,
     onSuccess?: (jobId: string, subdomain: string) => void,
-    onError?: (error: string) => void
+    onError?: (error: string) => void,
+    attachments?: { base64: string; mimeType: string }[]
   ) => Promise<void>;
   cancelGeneration: () => void;
 }
@@ -73,6 +75,7 @@ const formatModelName = (m?: string) => {
 export const useAiLogStore = create<AiLogState>((set, get) => ({
   isGenerating: false,
   currentJobId: null,
+  activeTargetPageId: null,
   activeTab: 'logs',
   steps: [],
   report: null,
@@ -137,6 +140,8 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
   },
 
   startGeneration: (jobId, prompt, model) => {
+    const targetMatch = prompt.match(/\[TARGET_PAGE:([a-zA-Z0-9-]+)\]/);
+    const targetPageId = targetMatch ? targetMatch[1] : null;
     const initialStep: AiLogStep = {
       id: `gen-${Date.now()}-0`,
       step: 'Analyzing prompt & initializing AI workflow...',
@@ -149,6 +154,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
     set({
       isGenerating: true,
       currentJobId: jobId,
+      activeTargetPageId: targetPageId,
       activeTab: 'logs',
       steps: [initialStep],
       report: {
@@ -261,6 +267,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       return {
         isGenerating: false,
         currentJobId: null,
+        activeTargetPageId: null,
         steps: updatedSteps,
         report: newReport
       };
@@ -276,6 +283,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       return {
         isGenerating: false,
         currentJobId: null,
+        activeTargetPageId: null,
         steps: updatedSteps
       };
     });
@@ -336,7 +344,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       globalSseConnection.close();
       globalSseConnection = null;
     }
-    set({ isGenerating: false });
+    set({ isGenerating: false, activeTargetPageId: null });
   }
 }));
 

@@ -20,19 +20,21 @@ const PageBuilder: React.FC = () => {
     queryKey: ['site-pages', siteId],
     queryFn: () => fetchPagesApi(siteId!),
     enabled: !!siteId,
-    retry: 1,
+    retry: 5,
+    retryDelay: 1000,
   });
 
   const { data: site, isFetching: isFetchingSite } = useQuery({
     queryKey: ['site', siteId],
     queryFn: () => fetchSiteByIdApi(siteId!),
     enabled: !!siteId,
-    retry: 1,
+    retry: 5,
+    retryDelay: 1000,
   });
 
   const isWelcomeMode = !siteId;
 
-  const handleAIGenerated = (_jobId: string, subdomain?: string) => {
+  const handleAIGenerated = (_jobId: string, subdomain?: string, _platform?: 'app' | 'web') => {
     const targetId = subdomain || siteId;
     if (targetId) {
       queryClient.invalidateQueries({ queryKey: ['site-pages', targetId] });
@@ -136,7 +138,7 @@ const PageBuilder: React.FC = () => {
             marginBottom: 40,
             lineHeight: 1.4
           }}>
-            Trang này không tồn tại hoặc không được chia sẻ với bạn.
+            This page could not be found or is not shared with you.
           </p>
           <button 
             onClick={() => navigate('/project')}
@@ -154,7 +156,7 @@ const PageBuilder: React.FC = () => {
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
           >
-            Chuyển đến Trang chủ
+            Go to Home
           </button>
         </div>
       </div>

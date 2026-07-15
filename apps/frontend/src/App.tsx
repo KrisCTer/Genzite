@@ -43,6 +43,8 @@ const PagesList = lazy(() => import('./pages/Site/PagesList'));
 const PageBuilder = lazy(() => import('./pages/Site/PageBuilder'));
 
 const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage'));
+const TrashPage = lazy(() => import('./pages/Trash/TrashPage'));
+const ObservabilityDashboard = lazy(() => import('./pages/Observability/ObservabilityDashboard'));
 
 const FullPageLoader = () => (
   <div className="min-h-screen bg-[#030712] flex items-center justify-center">
@@ -188,16 +190,16 @@ const App: React.FC = () => {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
 
-                {/* Canvas Builder (Global for all authenticated users) */}
+                {/* Canvas Builder */}
                 <Route
                   path="/project"
-                  element={
-                    <ProtectedRoute requireViewer>
-                      <CanvasLayout />
-                    </ProtectedRoute>
-                  }
+                  element={<CanvasLayout />}
                 >
-                  <Route index element={<PageBuilder />} />
+                  <Route index element={
+                    <ProtectedRoute requireViewer>
+                      <PageBuilder />
+                    </ProtectedRoute>
+                  } />
                   <Route path=":siteId" element={<PageBuilder />} />
                 </Route>
 
@@ -210,8 +212,11 @@ const App: React.FC = () => {
                   }
                 >
                   <Route index element={<MemberDashboard />} />
+                  <Route path="projects" element={<SitesList />} />
                   <Route path="profile" element={<Profile />} />
                   <Route path="notifications" element={<AdminNotificationsPage />} />
+                  <Route path="trash" element={<TrashPage />} />
+                  <Route path="observability/:siteId" element={<ObservabilityDashboard />} />
 
                   {memberAiRoutes}
                 </Route>
@@ -231,6 +236,7 @@ const App: React.FC = () => {
                   <Route index element={<StaffDashboard />} />
                   <Route path="profile" element={<Profile />} />
                   <Route path="notifications" element={<AdminNotificationsPage />} />
+                  <Route path="trash" element={<TrashPage />} />
                   <Route
                     path="identity"
                     element={

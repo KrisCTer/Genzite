@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Palette, Database, MousePointerClick, Link, Lightbulb, Repeat, Sparkles, ExternalLink } from 'lucide-react';
+import { Palette, Database, MousePointerClick, Link, Lightbulb, Repeat, Sparkles, ExternalLink, Settings, ChevronDown, ChevronRight, Layout, Box, Type, Sliders, Maximize2, Image as ImageIcon } from 'lucide-react';
 import { Tooltip } from 'antd';
+import { DynamicBindingControl } from './components/DynamicBindingControl';
 
 // ─── Color Picker ─────────────────────────────────────────────────────────────
 const hexToRgb = (hex: string) => {
@@ -173,6 +174,122 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </div>
 );
 
+// ─── Accordion Header (Instatic Style) ────────────────────────────────────────
+const AccordionHeader: React.FC<{ title: string; icon: React.ReactNode; isOpen: boolean; onToggle: () => void; badge?: string }> = ({ title, icon, isOpen, onToggle, badge }) => (
+  <div onClick={onToggle} style={{
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '10px 12px', background: isOpen ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, cursor: 'pointer',
+    userSelect: 'none', transition: 'all 0.15s', marginBottom: isOpen ? 12 : 6
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: isOpen ? '#F8FAFC' : '#CBD5E1' }}>
+      <span style={{ color: isOpen ? '#06B6D4' : '#64748B', display: 'flex' }}>{icon}</span>
+      <span>{title}</span>
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {badge && <span style={{ fontSize: 10, background: 'rgba(6,182,212,0.15)', color: '#06B6D4', padding: '1px 6px', borderRadius: 4 }}>{badge}</span>}
+      {isOpen ? <ChevronDown size={14} color="#94A3B8" /> : <ChevronRight size={14} color="#64748B" />}
+    </div>
+  </div>
+);
+
+// ─── Interactive Box Model (Webflow/Instatic Style) ───────────────────────────
+const SpacingBoxModel: React.FC<{ getNum: (k: string) => number; update: (p: Record<string, string>) => void; width: string; height: string }> = ({ getNum, update, width, height }) => {
+  const inputStyle = (isPadding = false): React.CSSProperties => ({
+    width: '100%',
+    height: 22,
+    background: isPadding ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.05)',
+    border: isPadding ? '1px solid rgba(6,182,212,0.4)' : '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 4,
+    textAlign: 'center',
+    fontSize: 11,
+    color: isPadding ? '#06B6D4' : '#F8FAFC',
+    padding: '0 2px',
+    outline: 'none',
+    fontWeight: isPadding ? 600 : 400,
+  });
+
+  return (
+    <div style={{ background: '#0B0F19', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '22px 6px 6px 6px', position: 'relative', userSelect: 'none', marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: '#64748B', letterSpacing: 1, position: 'absolute', top: 5, left: 8 }}>MARGIN</div>
+      
+      {/* Margin Top */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+        <input type="number" title="Margin Top" value={getNum('margin-top')} onChange={e => update({ 'margin-top': (parseInt(e.target.value) || 0) + 'px' })} style={{ ...inputStyle(), width: 38 }} />
+      </div>
+      
+      {/* Middle Row Grid: [Margin Left] [Padding Box (minmax 0, 1fr)] [Margin Right] */}
+      <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) 36px', alignItems: 'center', gap: 5, width: '100%' }}>
+        <input type="number" title="Margin Left" value={getNum('margin-left')} onChange={e => update({ 'margin-left': (parseInt(e.target.value) || 0) + 'px' })} style={inputStyle()} />
+        
+        {/* Padding Box */}
+        <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px dashed rgba(6,182,212,0.35)', borderRadius: 6, padding: '18px 4px 4px 4px', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ fontSize: 8.5, fontWeight: 700, color: '#06B6D4', letterSpacing: 0.8, position: 'absolute', top: 3, left: 6 }}>PADDING</div>
+          
+          {/* Padding Top */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+            <input type="number" title="Padding Top" value={getNum('padding-top')} onChange={e => update({ 'padding-top': (parseInt(e.target.value) || 0) + 'px' })} style={{ ...inputStyle(true), width: 36 }} />
+          </div>
+          
+          {/* Inner Grid: [Padding Left] [Center Size Box] [Padding Right] */}
+          <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(0, 1fr) 34px', alignItems: 'center', gap: 4, width: '100%' }}>
+            <input type="number" title="Padding Left" value={getNum('padding-left')} onChange={e => update({ 'padding-left': (parseInt(e.target.value) || 0) + 'px' })} style={inputStyle(true)} />
+            
+            {/* Center Size Box */}
+            <div
+              title={`${width || 'auto'} × ${height || 'auto'}`}
+              style={{
+                height: 24, background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 9.5, color: '#E2E8F0', fontWeight: 600, overflow: 'hidden',
+                whiteSpace: 'nowrap', textOverflow: 'ellipsis', padding: '0 2px'
+              }}
+            >
+              {width && width !== 'auto' ? Math.round(parseFloat(width)) + 'px' : 'auto'} × {height && height !== 'auto' ? Math.round(parseFloat(height)) + 'px' : 'auto'}
+            </div>
+            
+            <input type="number" title="Padding Right" value={getNum('padding-right')} onChange={e => update({ 'padding-right': (parseInt(e.target.value) || 0) + 'px' })} style={inputStyle(true)} />
+          </div>
+          
+          {/* Padding Bottom */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+            <input type="number" title="Padding Bottom" value={getNum('padding-bottom')} onChange={e => update({ 'padding-bottom': (parseInt(e.target.value) || 0) + 'px' })} style={{ ...inputStyle(true), width: 36 }} />
+          </div>
+        </div>
+        
+        <input type="number" title="Margin Right" value={getNum('margin-right')} onChange={e => update({ 'margin-right': (parseInt(e.target.value) || 0) + 'px' })} style={inputStyle()} />
+      </div>
+      
+      {/* Margin Bottom */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+        <input type="number" title="Margin Bottom" value={getNum('margin-bottom')} onChange={e => update({ 'margin-bottom': (parseInt(e.target.value) || 0) + 'px' })} style={{ ...inputStyle(), width: 38 }} />
+      </div>
+    </div>
+  );
+};
+
+// ─── Quick Color Tokens (Design Tokens Swatches) ──────────────────────────────
+const QuickColorSwatches: React.FC<{ value: string; onChange: (hex: string) => void }> = ({ value, onChange }) => {
+  const SWATCHES = ['#06B6D4', '#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#0F172A', '#FFFFFF'];
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+      {SWATCHES.map(s => (
+        <div
+          key={s}
+          onClick={() => onChange(s)}
+          title={s}
+          style={{
+            width: 18, height: 18, borderRadius: 4, background: s, cursor: 'pointer',
+            border: value.toUpperCase() === s ? '2px solid #06B6D4' : '1px solid rgba(255,255,255,0.2)',
+            boxShadow: value.toUpperCase() === s ? '0 0 8px rgba(6,182,212,0.6)' : 'none',
+            transition: 'all 0.15s'
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 // ─── Wix-Style CMS Fields ─────────────────────────────────────────────────────
 const CMS_FIELDS: Record<string, Array<{ label: string; value: string; type: 'text' | 'image' | 'link' | 'all' }>> = {
   products: [
@@ -211,15 +328,28 @@ const CMS_FIELDS: Record<string, Array<{ label: string; value: string; type: 'te
 };
 
 // ─── Props Panel ─────────────────────────────────────────────────────────────
-interface EditRightPanelProps { isOpen: boolean; }
+interface EditRightPanelProps { 
+  isOpen: boolean; 
+  selectedWidget?: any; 
+  onUpdateWidgetContent?: (cfg: any) => void; 
+  isGrapesPage?: boolean;
+  setIsOpen?: (open: boolean) => void;
+}
 
-const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
-  const [activeTab, setActiveTab] = useState<'style' | 'cms'>('style');
+const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget, onUpdateWidgetContent, isGrapesPage = false, setIsOpen }) => {
+  const [activeTab, setActiveTab] = useState<'style' | 'content'>('style');
   const [styles, setStyles] = useState<Record<string, any>>({});
   const [attrs, setAttrs] = useState<Record<string, any>>({});
   const [content, setContent] = useState('');
   const [tag, setTag] = useState('');
   const [compId, setCompId] = useState('');
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    layout: true,
+    spacing: true,
+    typography: true,
+    appearance: true,
+  });
+  const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   const statesRef = useRef<Record<string, any>>({});
 
   // Listen for GrapesJS events via custom DOM event
@@ -251,8 +381,29 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
         }
       } catch (err) {}
 
-      setStyles(s);
-      statesRef.current = s;
+      let computed: Record<string, string> = {};
+      try {
+        const el = component.getEl?.();
+        if (el) {
+          const compStyle = el.ownerDocument?.defaultView?.getComputedStyle(el);
+          if (compStyle) {
+            const keys = [
+              'width', 'height', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+              'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'color', 'background-color',
+              'font-family', 'font-size', 'line-height', 'text-align', 'font-weight', 'font-style', 'text-decoration',
+              'border-color', 'border-style', 'border-width', 'border-radius', 'display', 'flex-direction', 'justify-content', 'align-items', 'gap'
+            ];
+            keys.forEach(k => {
+              const val = compStyle.getPropertyValue(k);
+              if (val) computed[k] = val;
+            });
+          }
+        }
+      } catch (err) {}
+
+      const mergedStyles = { ...computed, ...s };
+      setStyles(mergedStyles);
+      statesRef.current = mergedStyles;
       setAttrs(a);
       setContent(cText);
       setTag(t);
@@ -296,34 +447,70 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
   );
 
   return (
-    <div style={{
-      width: isOpen ? 280 : 0,
-      minWidth: isOpen ? 280 : 0,
-      height: '100%',
-      background: '#0f172a',
-      borderLeft: '1px solid #1E293B',
-      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    <div className="canvas-sidebar-right" style={{
+      position: 'absolute',
+      right: 20,
+      top: 80,
+      bottom: isOpen ? 20 : 'auto',
+      width: isOpen ? 280 : 56,
+      height: isOpen ? 'auto' : 56,
+      background: isOpen 
+        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)' 
+        : 'rgba(17, 24, 39, 0.6)',
+      border: isOpen ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(56, 189, 248, 0.3)',
+      borderRadius: 16,
+      boxShadow: isOpen ? '0 20px 50px rgba(0,0,0,0.6)' : '0 8px 30px rgba(56, 189, 248, 0.15)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s, background 0.3s, border 0.3s, box-shadow 0.3s',
       overflow: 'clip',
       display: 'flex',
       flexDirection: 'column',
       fontFamily: 'Inter, system-ui, sans-serif',
       color: '#F8FAFC',
-      zIndex: 10,
+      zIndex: 20,
     }}>
-      {/* Header exactly matching EditLeftPanel */}
+      {/* Header & Toggle */}
       <div style={{ 
-        padding: '16px 16px 12px', 
-        borderBottom: '1px solid rgba(255,255,255,0.03)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
+        display: 'flex', alignItems: 'center', 
+        justifyContent: isOpen ? 'space-between' : 'center', 
+        padding: isOpen ? '16px 16px 12px' : '0', 
+        height: isOpen ? 'auto' : '100%',
+        width: isOpen ? 'auto' : '100%',
+        background: isOpen ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+        borderBottom: isOpen ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
         flexShrink: 0,
+        flexDirection: isOpen ? 'column' : 'row',
+        gap: isOpen ? '12px' : '0'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0, color: '#F8FAFC', fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            Properties
-          </h3>
-          {tag && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isOpen ? 'auto' : '100%', height: isOpen ? 'auto' : '100%', justifyContent: isOpen ? 'space-between' : 'center', alignSelf: 'stretch' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setIsOpen?.(!isOpen)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                width: isOpen ? 'auto' : '100%',
+                height: isOpen ? 'auto' : '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+                opacity: 0.9,
+                transition: 'opacity 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '0.9'}
+              title={isOpen ? "Thu gọn (Collapse)" : "Mở rộng (Expand)"}
+            >
+              <Settings size={isOpen ? 18 : 24} color="#38bdf8" />
+            </button>
+          {isOpen && (
+            <h3 style={{ margin: 0, color: '#F8FAFC', fontSize: 14, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              Properties
+            </h3>
+          )}
+          </div>
+          {tag && isOpen && (
             <span style={{ background: 'rgba(6,182,212,0.15)', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600, color: '#06B6D4', border: '1px solid rgba(6,182,212,0.3)', textTransform: 'lowercase' }}>
               {tag}
             </span>
@@ -331,14 +518,16 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
         </div>
 
         {/* Tab switcher */}
+        {isOpen && (
         <div style={{
           display: 'flex',
           background: 'rgba(0,0,0,0.2)',
           padding: '4px',
           borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.05)'
+          border: '1px solid rgba(255,255,255,0.05)',
+          width: '100%'
         }}>
-          <Tooltip title="Design" placement="bottom">
+          <Tooltip title="Sửa Giao Diện & Style" placement="bottom">
             <div 
               onClick={() => setActiveTab('style')}
               style={{
@@ -352,255 +541,529 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                gap: 5,
+                fontSize: 11,
+                fontWeight: 600
               }}
             >
-              <Palette size={18} />
+              <Palette size={15} />
+              <span>Giao Diện</span>
             </div>
           </Tooltip>
-          <Tooltip title="CMS" placement="bottom">
+          <Tooltip title="Sự Kiện Click & Gắn Link Chuyển Trang" placement="bottom">
             <div 
-              onClick={() => setActiveTab('cms')}
+              onClick={() => setActiveTab('content')}
               style={{
                 flex: 1,
                 textAlign: 'center',
                 padding: '6px 0',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                color: activeTab === 'cms' ? '#fff' : '#94A3B8',
-                background: activeTab === 'cms' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: activeTab === 'content' ? '#fff' : '#94A3B8',
+                background: activeTab === 'content' ? 'rgba(255,255,255,0.1)' : 'transparent',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                gap: 5,
+                fontSize: 11,
+                fontWeight: 600
               }}
             >
-              <Database size={18} />
+              <Link size={15} />
+              <span>Sự Kiện & Link</span>
             </div>
           </Tooltip>
         </div>
+      )}
       </div>
 
-      {/* Scrollable content area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', boxSizing: 'border-box' }}>
-        {!tag && (
-          <div style={{ textAlign: 'center', color: '#475569', marginTop: 50, fontSize: 13, padding: '0 12px' }}>
-            <MousePointerClick size={32} style={{ margin: '0 auto 12px', color: '#64748B' }} />
-            <div style={{ fontWeight: 600, color: '#94A3B8', marginBottom: 4 }}>No element selected</div>
-            <p style={{ fontSize: 12, margin: 0, lineHeight: 1.5 }}>Click an element on the canvas to edit {activeTab === 'style' ? 'its styles & layout' : 'CMS data & properties'}.</p>
-          </div>
-        )}
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        padding: '16px',
+        opacity: isOpen ? 1 : 0,
+        visibility: isOpen ? 'visible' : 'hidden',
+        transition: 'opacity 0.2s ease, visibility 0.2s ease'
+      }}>
+        {!isGrapesPage ? (
+          selectedWidget ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Section Type</div>
+                <div style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#06B6D4' }}>
+                  {selectedWidget.type.replace(/_/g, ' ')}
+                </div>
+              </div>
 
-        {tag && activeTab === 'style' && (
+              <div>
+                <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Section Title / Heading</div>
+                <input
+                  type="text"
+                  value={selectedWidget.contentConfig?.title || selectedWidget.contentConfig?.headline || ''}
+                  onChange={(e) => {
+                    const cfg = { ...(selectedWidget.contentConfig || {}) };
+                    if (cfg.headline !== undefined) cfg.headline = e.target.value;
+                    else cfg.title = e.target.value;
+                    onUpdateWidgetContent?.(cfg);
+                  }}
+                  placeholder="Enter section title..."
+                  style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Subtitle / Description</div>
+                <textarea
+                  rows={3}
+                  value={selectedWidget.contentConfig?.subtitle || selectedWidget.contentConfig?.description || ''}
+                  onChange={(e) => {
+                    const cfg = { ...(selectedWidget.contentConfig || {}) };
+                    if (cfg.description !== undefined) cfg.description = e.target.value;
+                    else cfg.subtitle = e.target.value;
+                    onUpdateWidgetContent?.(cfg);
+                  }}
+                  placeholder="Enter subtitle or description..."
+                  style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Raw JSON Configuration</div>
+                <textarea
+                  rows={8}
+                  value={JSON.stringify(selectedWidget.contentConfig || {}, null, 2)}
+                  onChange={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value);
+                      onUpdateWidgetContent?.(parsed);
+                    } catch (err) {
+                      // ignore parse errors while typing
+                    }
+                  }}
+                  style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 10px', color: '#A5B4FC', fontSize: 11, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: '#475569', marginTop: 50, fontSize: 13, padding: '0 12px' }}>
+              <MousePointerClick size={32} style={{ margin: '0 auto 12px', color: '#64748B' }} />
+              <div style={{ fontWeight: 600, color: '#94A3B8', marginBottom: 4 }}>No section selected</div>
+              <p style={{ fontSize: 12, margin: 0, lineHeight: 1.5 }}>Click any section on the canvas or in the Layers tab to edit its content & properties.</p>
+            </div>
+          )
+        ) : (
           <>
-            {/* SIZE */}
-            <SectionTitle>Size</SectionTitle>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              <NumInput label="Width" value={getNum('width')} onChange={v => update({ width: v + 'px' })} />
-              <NumInput label="Height" value={getNum('height')} onChange={v => update({ height: v + 'px' })} />
-            </div>
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '10px 0' }} />
-
-            {/* PADDING */}
-            <SectionTitle>Padding</SectionTitle>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 14 }}>
-              <NumInput label="Top" value={getNum('padding-top')} onChange={v => update({ 'padding-top': v + 'px' })} />
-              <NumInput label="Right" value={getNum('padding-right')} onChange={v => update({ 'padding-right': v + 'px' })} />
-              <NumInput label="Bottom" value={getNum('padding-bottom')} onChange={v => update({ 'padding-bottom': v + 'px' })} />
-              <NumInput label="Left" value={getNum('padding-left')} onChange={v => update({ 'padding-left': v + 'px' })} />
-            </div>
-
-            {/* MARGIN */}
-            <SectionTitle>Margin</SectionTitle>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 14 }}>
-              <NumInput label="Top" value={getNum('margin-top')} onChange={v => update({ 'margin-top': v + 'px' })} />
-              <NumInput label="Right" value={getNum('margin-right')} onChange={v => update({ 'margin-right': v + 'px' })} />
-              <NumInput label="Bottom" value={getNum('margin-bottom')} onChange={v => update({ 'margin-bottom': v + 'px' })} />
-              <NumInput label="Left" value={getNum('margin-left')} onChange={v => update({ 'margin-left': v + 'px' })} />
-            </div>
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '10px 0' }} />
-
-            {/* TEXT COLOR */}
-            <SectionTitle>Text Color</SectionTitle>
-            <div style={{ marginBottom: 14 }}>
-              <ColorPicker label="Color" value={get('color', '#FFFFFF')} onChange={v => update({ color: v })} />
-            </div>
-
-            {/* TEXT / TYPOGRAPHY */}
-            <SectionTitle>Text</SectionTitle>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-              {/* Font family */}
-              <div>
-                <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Font Family</div>
-                <select value={get('font-family', 'Inter')} onChange={e => update({ 'font-family': e.target.value })} style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '5px 8px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
-                  {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
+            {!tag && (
+              <div style={{ textAlign: 'center', color: '#475569', marginTop: 50, fontSize: 13, padding: '0 12px' }}>
+                <MousePointerClick size={32} style={{ margin: '0 auto 12px', color: '#64748B' }} />
+                <div style={{ fontWeight: 600, color: '#94A3B8', marginBottom: 4 }}>No element selected</div>
+                <p style={{ fontSize: 12, margin: 0, lineHeight: 1.5 }}>Click an element on the canvas to edit {activeTab === 'style' ? 'its styles & layout' : 'CMS data & properties'}.</p>
               </div>
+            )}
 
-              {/* Style buttons */}
-              <div>
-                <div style={{ fontSize: 10, color: '#64748B', marginBottom: 6, fontWeight: 500 }}>Style</div>
-                <div style={{ display: 'flex', gap: 5 }}>
-                  {pillBtn(bold, () => update({ 'font-weight': bold ? 'normal' : 'bold' }), <b>B</b>, 'Bold')}
-                  {pillBtn(italic, () => update({ 'font-style': italic ? 'normal' : 'italic' }), <i>I</i>, 'Italic')}
-                  {pillBtn(underline, () => update({ 'text-decoration': underline ? 'none' : 'underline' }), <u style={{ textDecoration: 'underline' }}>U</u>, 'Underline')}
-                  {pillBtn(strikethrough, () => update({ 'text-decoration': strikethrough ? 'none' : 'line-through' }), <s>S</s>, 'Strikethrough')}
+            {tag && activeTab === 'style' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {/* 1. LAYOUT & DIMENSIONS ACCORDION */}
+                <div>
+                  <AccordionHeader
+                    title="Layout & Dimensions"
+                    icon={<Layout size={15} />}
+                    isOpen={openSections.layout || false}
+                    onToggle={() => toggleSection('layout')}
+                    badge={get('display', 'block')}
+                  />
+                  {openSections.layout && (
+                    <div style={{ padding: '4px 6px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {/* Width & Height */}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <NumInput label="Width" value={getNum('width')} onChange={v => update({ width: v + 'px' })} />
+                        <NumInput label="Height" value={getNum('height')} onChange={v => update({ height: v + 'px' })} />
+                      </div>
+
+                      {/* Display Mode */}
+                      <div>
+                        <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Display Mode</div>
+                        <select
+                          value={get('display', 'block')}
+                          onChange={e => update({ display: e.target.value })}
+                          style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '5px 8px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
+                        >
+                          <option value="block">Block (Default)</option>
+                          <option value="flex">Flexbox Container</option>
+                          <option value="grid">Grid Container</option>
+                          <option value="inline-block">Inline Block</option>
+                          <option value="none">Hidden (None)</option>
+                        </select>
+                      </div>
+
+                      {/* Flex Controls if display === flex */}
+                      {get('display') === 'flex' && (
+                        <div style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: '#06B6D4', textTransform: 'uppercase' }}>Flexbox Properties</div>
+                          
+                          <div>
+                            <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4 }}>Direction</div>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {(['row', 'column'] as const).map(dir => (
+                                <button
+                                  key={dir}
+                                  onClick={() => update({ 'flex-direction': dir })}
+                                  style={{ flex: 1, padding: '4px 8px', borderRadius: 5, fontSize: 11, cursor: 'pointer', background: get('flex-direction', 'row') === dir ? '#06B6D4' : 'rgba(255,255,255,0.05)', border: `1px solid ${get('flex-direction', 'row') === dir ? '#06B6D4' : 'rgba(255,255,255,0.08)'}`, color: get('flex-direction', 'row') === dir ? '#fff' : '#94A3B8', textTransform: 'capitalize' }}
+                                >
+                                  {dir}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4 }}>Justify</div>
+                              <select
+                                value={get('justify-content', 'flex-start')}
+                                onChange={e => update({ 'justify-content': e.target.value })}
+                                style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '4px 6px', color: '#F8FAFC', fontSize: 11 }}
+                              >
+                                <option value="flex-start">Start</option>
+                                <option value="center">Center</option>
+                                <option value="space-between">Space Between</option>
+                                <option value="flex-end">End</option>
+                              </select>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4 }}>Align</div>
+                              <select
+                                value={get('align-items', 'stretch')}
+                                onChange={e => update({ 'align-items': e.target.value })}
+                                style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '4px 6px', color: '#F8FAFC', fontSize: 11 }}
+                              >
+                                <option value="stretch">Stretch</option>
+                                <option value="center">Center</option>
+                                <option value="flex-start">Start</option>
+                                <option value="flex-end">End</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <NumInput label="Gap (px)" value={getNum('gap')} onChange={v => update({ gap: v + 'px' })} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. SPACING BOX MODEL ACCORDION */}
+                <div>
+                  <AccordionHeader
+                    title="Spacing Box Model"
+                    icon={<Box size={15} />}
+                    isOpen={openSections.spacing || false}
+                    onToggle={() => toggleSection('spacing')}
+                    badge="Margin/Padding"
+                  />
+                  {openSections.spacing && (
+                    <div style={{ padding: '4px 4px 6px' }}>
+                      <SpacingBoxModel
+                        getNum={getNum}
+                        update={update}
+                        width={get('width', 'auto')}
+                        height={get('height', 'auto')}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. TYPOGRAPHY & TEXT ACCORDION */}
+                <div>
+                  <AccordionHeader
+                    title="Typography & Text"
+                    icon={<Type size={15} />}
+                    isOpen={openSections.typography || false}
+                    onToggle={() => toggleSection('typography')}
+                    badge={get('font-family', 'Inter')}
+                  />
+                  {openSections.typography && (
+                    <div style={{ padding: '4px 6px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {/* Font family */}
+                      <div>
+                        <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Font Family</div>
+                        <select value={get('font-family', 'Inter')} onChange={e => update({ 'font-family': e.target.value })} style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '5px 8px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                          {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Style buttons */}
+                      <div>
+                        <div style={{ fontSize: 10, color: '#64748B', marginBottom: 6, fontWeight: 500 }}>Font Style</div>
+                        <div style={{ display: 'flex', gap: 5 }}>
+                          {pillBtn(bold, () => update({ 'font-weight': bold ? 'normal' : 'bold' }), <b>B</b>, 'Bold')}
+                          {pillBtn(italic, () => update({ 'font-style': italic ? 'normal' : 'italic' }), <i>I</i>, 'Italic')}
+                          {pillBtn(underline, () => update({ 'text-decoration': underline ? 'none' : 'underline' }), <u style={{ textDecoration: 'underline' }}>U</u>, 'Underline')}
+                          {pillBtn(strikethrough, () => update({ 'text-decoration': strikethrough ? 'none' : 'line-through' }), <s>S</s>, 'Strikethrough')}
+                        </div>
+                      </div>
+
+                      {/* Align */}
+                      <div>
+                        <div style={{ fontSize: 10, color: '#64748B', marginBottom: 6, fontWeight: 500 }}>Text Alignment</div>
+                        <div style={{ display: 'flex', gap: 5 }}>
+                          {(['left', 'center', 'right', 'justify'] as const).map(a => (
+                            <button key={a} onClick={() => update({ 'text-align': a })} title={`Align ${a}`} style={{ flex: 1, height: 28, borderRadius: 6, background: align === a ? '#06B6D4' : 'rgba(255,255,255,0.05)', border: `1px solid ${align === a ? '#06B6D4' : 'rgba(255,255,255,0.08)'}`, color: align === a ? '#fff' : '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                              {a === 'left' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect y="4" width="10" height="2" rx="1"/><rect y="8" width="12" height="2" rx="1"/></svg>}
+                              {a === 'center' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect x="2" y="4" width="10" height="2" rx="1"/><rect x="1" y="8" width="12" height="2" rx="1"/></svg>}
+                              {a === 'right' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect x="4" y="4" width="10" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/></svg>}
+                              {a === 'justify' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect y="4" width="14" height="2" rx="1"/><rect y="8" width="14" height="2" rx="1"/></svg>}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Font size + Line height */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                        <NumInput label="Font size (px)" value={getNum('font-size', 14)} onChange={v => update({ 'font-size': v + 'px' })} />
+                        <NumInput label="Line height (px)" value={getNum('line-height', 20)} onChange={v => update({ 'line-height': String(v) })} />
+                      </div>
+
+                      {/* Text Color + Quick Tokens */}
+                      <div>
+                        <SectionTitle>Text Color</SectionTitle>
+                        <ColorPicker label="Color" value={get('color', '#FFFFFF')} onChange={v => update({ color: v })} />
+                        <QuickColorSwatches value={get('color', '#FFFFFF')} onChange={v => update({ color: v })} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. APPEARANCE & COLORS ACCORDION */}
+                <div>
+                  <AccordionHeader
+                    title="Appearance & Borders"
+                    icon={<Palette size={15} />}
+                    isOpen={openSections.appearance || false}
+                    onToggle={() => toggleSection('appearance')}
+                    badge="Colors/Border"
+                  />
+                  {openSections.appearance && (
+                    <div style={{ padding: '4px 6px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {/* Background Color + Quick Swatches */}
+                      <div>
+                        <SectionTitle>Background Color</SectionTitle>
+                        <ColorPicker label="Background" value={get('background-color', '#111827')} onChange={v => update({ 'background-color': v })} />
+                        <QuickColorSwatches value={get('background-color', '#111827')} onChange={v => update({ 'background-color': v })} />
+                      </div>
+
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
+                      {/* Border Color */}
+                      <div>
+                        <SectionTitle>Border Color</SectionTitle>
+                        <ColorPicker label="Border Color" value={get('border-color', '#1E293B')} onChange={v => update({ 'border-color': v })} />
+                        <QuickColorSwatches value={get('border-color', '#1E293B')} onChange={v => update({ 'border-color': v })} />
+                      </div>
+
+                      {/* Border Style / Width / Radius */}
+                      <div>
+                        <SectionTitle>Border Style</SectionTitle>
+                        <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                          {BORDER_STYLES.map(bs => {
+                            const isActive = get('border-style', 'none') === bs;
+                            return (
+                              <button
+                                key={bs}
+                                onClick={() => update({ 'border-style': bs })}
+                                title={bs.charAt(0).toUpperCase() + bs.slice(1)}
+                                style={{
+                                  flex: 1, height: 30, borderRadius: 6, cursor: 'pointer',
+                                  background: isActive ? '#06B6D4' : 'rgba(255,255,255,0.05)',
+                                  border: `1px solid ${isActive ? '#06B6D4' : 'rgba(255,255,255,0.1)'}`,
+                                  color: isActive ? '#fff' : '#94A3B8',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                {bs === 'none' && (
+                                  <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid currentColor', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: 13, height: 1.5, background: 'currentColor', transform: 'rotate(-45deg)' }} />
+                                  </div>
+                                )}
+                                {bs === 'solid' && <div style={{ width: 18, borderBottom: '2px solid currentColor' }} />}
+                                {bs === 'dashed' && <div style={{ width: 18, borderBottom: '2px dashed currentColor' }} />}
+                                {bs === 'dotted' && <div style={{ width: 18, borderBottom: '2.5px dotted currentColor' }} />}
+                                {bs === 'double' && <div style={{ width: 18, borderBottom: '3.5px double currentColor' }} />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                          <NumInput label="Border Width (px)" value={getNum('border-width')} onChange={v => update({ 'border-width': v + 'px' })} />
+                          <NumInput label="Border Radius (px)" value={getNum('border-radius')} onChange={v => update({ 'border-radius': v + 'px' })} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+            )}
 
-              {/* Align */}
-              <div>
-                <div style={{ fontSize: 10, color: '#64748B', marginBottom: 6, fontWeight: 500 }}>Align</div>
-                <div style={{ display: 'flex', gap: 5 }}>
-                  {(['left', 'center', 'right', 'justify'] as const).map(a => (
-                    <button key={a} onClick={() => update({ 'text-align': a })} title={`Align ${a}`} style={{ flex: 1, height: 28, borderRadius: 6, background: align === a ? '#06B6D4' : 'rgba(255,255,255,0.05)', border: `1px solid ${align === a ? '#06B6D4' : 'rgba(255,255,255,0.08)'}`, color: align === a ? '#fff' : '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                      {a === 'left' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect y="4" width="10" height="2" rx="1"/><rect y="8" width="12" height="2" rx="1"/></svg>}
-                      {a === 'center' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect x="2" y="4" width="10" height="2" rx="1"/><rect x="1" y="8" width="12" height="2" rx="1"/></svg>}
-                      {a === 'right' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect x="4" y="4" width="10" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/></svg>}
-                      {a === 'justify' && <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect y="0" width="14" height="2" rx="1"/><rect y="4" width="14" height="2" rx="1"/><rect y="8" width="14" height="2" rx="1"/></svg>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Font size + Line height */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-                <NumInput label="Font size (px)" value={getNum('font-size', 14)} onChange={v => update({ 'font-size': v + 'px' })} />
-                <NumInput label="Line height (px)" value={getNum('line-height', 20)} onChange={v => update({ 'line-height': String(v) })} />
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '10px 0' }} />
-
-            {/* BORDER COLOR */}
-            <SectionTitle>Border Color</SectionTitle>
-            <div style={{ marginBottom: 14 }}>
-              <ColorPicker label="Color" value={get('border-color', '#1E293B')} onChange={v => update({ 'border-color': v })} />
-            </div>
-
-            {/* BORDER */}
-            <SectionTitle>Border</SectionTitle>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 10, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Style</div>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {BORDER_STYLES.map(bs => (
-                    <button key={bs} onClick={() => update({ 'border-style': bs })} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, cursor: 'pointer', background: get('border-style', 'none') === bs ? '#06B6D4' : 'rgba(255,255,255,0.05)', border: `1px solid ${get('border-style', 'none') === bs ? '#06B6D4' : 'rgba(255,255,255,0.08)'}`, color: get('border-style', 'none') === bs ? '#fff' : '#94A3B8', transition: 'all 0.15s', textTransform: 'capitalize' }}>
-                      {bs}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-                <NumInput label="Width" value={getNum('border-width')} onChange={v => update({ 'border-width': v + 'px' })} />
-                <NumInput label="Radius" value={getNum('border-radius')} onChange={v => update({ 'border-radius': v + 'px' })} />
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '10px 0' }} />
-
-            {/* BACKGROUND COLOR */}
-            <SectionTitle>Background Color</SectionTitle>
-            <div style={{ marginBottom: 14 }}>
-              <ColorPicker label="Background" value={get('background-color', '#111827')} onChange={v => update({ 'background-color': v })} />
-            </div>
-          </>
-        )}
-
-        {tag && activeTab === 'cms' && (
+        {tag && activeTab === 'content' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Section 1: CMS Data Source */}
-            <div>
-              <SectionTitle>Data Source (CMS)</SectionTitle>
-              <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 8, lineHeight: 1.4 }}>
-                Connect this element to Genzite CMS dynamic datasets.
+            {/* Section 1: Universal Click Action / Navigation Control (Sự Kiện & Gắn Link Chuyển Trang) */}
+            <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 10, padding: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#06B6D4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <ExternalLink size={14} /> Sự Kiện Click & Chuyển Trang
+                </div>
+                <span style={{ fontSize: 9.5, background: 'rgba(6,182,212,0.2)', color: '#06B6D4', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>
+                  &lt;{tag}&gt;
+                </span>
               </div>
+              <p style={{ fontSize: 11, color: '#94A3B8', margin: '0 0 12px 0', lineHeight: 1.4 }}>
+                Gắn liên kết website hoặc thao tác chuyển trang ngay khi click vào thành phần <b>{tag.toUpperCase()}</b> này.
+              </p>
+
+              <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Loại thao tác (Action Type)</div>
               <select
-                value={attrs['data-gz-cms-source'] || 'static'}
-                onChange={e => updateAttr({ 'data-gz-cms-source': e.target.value })}
-                style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer', marginBottom: 10 }}
+                value={attrs['data-gz-action-type'] || (attrs.href ? 'url' : attrs.onclick?.includes('location.href') ? 'page' : 'none')}
+                onChange={e => {
+                  const type = e.target.value;
+                  if (type === 'none') {
+                    updateAttr({
+                      'data-gz-action-type': 'none',
+                      href: undefined,
+                      'data-gz-href': undefined,
+                      onclick: undefined,
+                    });
+                  } else if (type === 'page') {
+                    const target = attrs['data-gz-href'] || attrs.href || '/products';
+                    if (tag === 'a') {
+                      updateAttr({ 'data-gz-action-type': 'page', href: target, 'data-gz-href': target });
+                    } else {
+                      updateAttr({
+                        'data-gz-action-type': 'page',
+                        'data-gz-href': target,
+                        onclick: `window.location.href='${target}'`,
+                      });
+                    }
+                  } else if (type === 'url') {
+                    const target = attrs['data-gz-href'] || attrs.href || 'https://';
+                    if (tag === 'a') {
+                      updateAttr({ 'data-gz-action-type': 'url', href: target, 'data-gz-href': target });
+                    } else {
+                      updateAttr({
+                        'data-gz-action-type': 'url',
+                        'data-gz-href': target,
+                        onclick: `window.location.href='${target}'`,
+                      });
+                    }
+                  } else if (type === 'scroll') {
+                    const target = attrs['data-gz-href'] || attrs.href || '#section-id';
+                    updateAttr({
+                      'data-gz-action-type': 'scroll',
+                      'data-gz-href': target,
+                      onclick: `document.querySelector('${target}')?.scrollIntoView({ behavior: 'smooth' })`,
+                    });
+                  }
+                }}
+                style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer', marginBottom: 12 }}
               >
-                <option value="static">Unlinked (Static Data)</option>
-                <option value="products">Products (Products CMS)</option>
-                <option value="blogs">Articles (Blogs & News)</option>
-                <option value="store">Store Information</option>
-                <option value="custom">Custom API (Custom Variable)</option>
+                <option value="none">🚫 Không có thao tác Click (None)</option>
+                <option value="page">📄 Chuyển đến Trang khác (Internal Page Navigation)</option>
+                <option value="url">🌐 Mở liên kết Website (Link URL / Href)</option>
+                <option value="scroll">📜 Cuộn tới khu vực trên trang (Scroll to Section ID)</option>
               </select>
 
-              {attrs['data-gz-cms-source'] && attrs['data-gz-cms-source'] !== 'static' && (
-                <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 8, padding: 12, marginTop: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#06B6D4', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
-                    <Link size={13} /> Select Data Field (Wix Field Binding)
-                  </div>
-                  
-                  {attrs['data-gz-cms-source'] !== 'custom' ? (
-                    <select
-                      value={attrs['data-gz-cms-field'] || ''}
-                      onChange={e => updateAttr({ 'data-gz-cms-field': e.target.value })}
-                      style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '7px 9px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer', marginBottom: 8 }}
-                    >
-                      {(CMS_FIELDS[attrs['data-gz-cms-source']] || []).map(f => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      placeholder="e.g. {{ custom.apiField }}"
-                      value={attrs['data-gz-cms-field'] || ''}
-                      onChange={e => updateAttr({ 'data-gz-cms-field': e.target.value })}
-                      style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '7px 9px', color: '#F8FAFC', fontSize: 12, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
-                    />
-                  )}
-
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 10, color: '#94A3B8', lineHeight: 1.4 }}>
-                    <Lightbulb size={14} style={{ color: '#F59E0B', flexShrink: 0, marginTop: 1 }} />
-                    <span><strong>Wix Data Binding:</strong> Element content will be dynamically replaced by the selected field from <strong>{attrs['data-gz-cms-source']}</strong>.</span>
-                  </div>
+              {(attrs['data-gz-action-type'] === 'page' || (!attrs['data-gz-action-type'] && attrs.onclick?.includes('location.href'))) && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Chọn Trang đích chuyển tới (Target Page Path)</div>
+                  <select
+                    value={attrs['data-gz-href'] || attrs.href || (attrs.onclick?.match(/href='([^']+)'/)?.[1]) || '/products'}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (tag === 'a') {
+                        updateAttr({ 'data-gz-action-type': 'page', href: val, 'data-gz-href': val });
+                      } else {
+                        updateAttr({ 'data-gz-action-type': 'page', 'data-gz-href': val, onclick: `window.location.href='${val}'` });
+                      }
+                    }}
+                    style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="/">Trang chủ (Home Page - /)</option>
+                    <option value="/products">Trang Sản phẩm (Products - /products)</option>
+                    <option value="/about">Trang Giới thiệu (About - /about)</option>
+                    <option value="/contact">Trang Liên hệ (Contact - /contact)</option>
+                    <option value="/pricing">Trang Bảng giá (Pricing - /pricing)</option>
+                    <option value="/login">Trang Đăng nhập (Login - /login)</option>
+                  </select>
                 </div>
               )}
 
-              {/* Wix Repeater Mode Toggle */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: 10, marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: attrs['data-gz-cms-repeater'] === 'true' ? 8 : 0 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: '#F8FAFC' }}>
-                      <Repeat size={14} style={{ color: '#06B6D4' }} /> List Repeater (Wix Repeater)
-                    </div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Automatically repeat this block based on CMS items</div>
+              {(attrs['data-gz-action-type'] === 'url' || attrs['data-gz-action-type'] === 'scroll' || (!attrs['data-gz-action-type'] && attrs.href)) && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>
+                    {attrs['data-gz-action-type'] === 'scroll' ? 'ID phần tử tới cuộn (vd: #section-id)' : 'Đường dẫn liên kết (Link URL / Href)'}
                   </div>
                   <input
-                    type="checkbox"
-                    checked={attrs['data-gz-cms-repeater'] === 'true'}
-                    onChange={e => updateAttr({ 'data-gz-cms-repeater': e.target.checked ? 'true' : 'false' })}
-                    style={{ cursor: 'pointer', width: 16, height: 16, accentColor: '#06B6D4' }}
+                    placeholder={attrs['data-gz-action-type'] === 'scroll' ? '#section-id' : 'https://... hoặc /path'}
+                    value={attrs['data-gz-href'] || attrs.href || (attrs.onclick?.match(/href='([^']+)'/)?.[1]) || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (attrs['data-gz-action-type'] === 'scroll') {
+                        updateAttr({ 'data-gz-href': val, onclick: `document.querySelector('${val}')?.scrollIntoView({ behavior: 'smooth' })` });
+                      } else if (tag === 'a') {
+                        updateAttr({ 'data-gz-action-type': 'url', href: val, 'data-gz-href': val });
+                      } else {
+                        updateAttr({ 'data-gz-action-type': 'url', 'data-gz-href': val, onclick: `window.location.href='${val}'` });
+                      }
+                    }}
+                    style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
-                {attrs['data-gz-cms-repeater'] === 'true' && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 10, color: '#06B6D4', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: 8, lineHeight: 1.4 }}>
-                    <Sparkles size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span>This element (and its inner components) will automatically duplicate to match the collection item count when published!</span>
-                  </div>
-                )}
-              </div>
+              )}
+
+              {(attrs['data-gz-action-type'] === 'url' || attrs['data-gz-action-type'] === 'page' || (tag === 'a')) && attrs['data-gz-action-type'] !== 'none' && (
+                <div>
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Cửa sổ mở liên kết (Open Target)</div>
+                  <select
+                    value={attrs.target || '_self'}
+                    onChange={e => updateAttr({ target: e.target.value })}
+                    style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="_self">Mở ngay trong trang hiện tại (_self)</option>
+                    <option value="_blank">Mở ở tab / cửa sổ mới (_blank)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
 
             {/* Section 2: Content / Media */}
             <div>
-              <SectionTitle>Content & Media</SectionTitle>
+              <SectionTitle>Nội dung & Hình ảnh (Content)</SectionTitle>
               {tag === 'img' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
-                    <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Image URL</div>
-                    <input
-                      placeholder="https://..."
-                      value={attrs.src || ''}
-                      onChange={e => updateAttr({ src: e.target.value })}
-                      style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 9px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
-                    />
+                    <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Image URL (Media Service Port 3004)</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        placeholder="https://..."
+                        value={attrs.src || ''}
+                        onChange={e => updateAttr({ src: e.target.value })}
+                        style={{ flex: 1, background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 9px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                      />
+                      <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('genzite:open-media-modal', {
+                            detail: { onSelect: (url: string) => updateAttr({ src: url }) }
+                          }));
+                        }}
+                        style={{ background: '#06B6D4', border: 'none', borderRadius: 6, padding: '0 10px', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <ImageIcon size={13} /> Browse
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Alt Text</div>
@@ -612,97 +1075,9 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
                     />
                   </div>
                 </div>
-              ) : (tag === 'a' || tag === 'button') ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 8, padding: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#06B6D4', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
-                      <ExternalLink size={13} /> Click Action
-                    </div>
-                    
-                    <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Action Type</div>
-                    <select
-                      value={attrs['data-gz-action-type'] || 'url'}
-                      onChange={e => {
-                        const type = e.target.value;
-                        updateAttr({ 'data-gz-action-type': type });
-                      }}
-                      style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '6px 8px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer', marginBottom: 8 }}
-                    >
-                      <option value="url">Open Website Link (URL / Href)</option>
-                      <option value="page">Navigate to Another Page (Internal Page)</option>
-                      <option value="scroll">Scroll to Section on Page (Scroll to ID)</option>
-                    </select>
-
-                    {attrs['data-gz-action-type'] === 'page' ? (
-                      <div>
-                        <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Select Target Page</div>
-                        <select
-                          value={attrs.href || attrs['data-gz-href'] || '/products'}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (tag === 'a') {
-                              updateAttr({ href: val, 'data-gz-href': val });
-                            } else {
-                              updateAttr({ 'data-gz-href': val, onclick: `window.location.href='${val}'` });
-                            }
-                          }}
-                          style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '6px 8px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
-                        >
-                          <option value="/">Home Page (/)</option>
-                          <option value="/products">Products Page (/products)</option>
-                          <option value="/about">About Page (/about)</option>
-                          <option value="/contact">Contact Page (/contact)</option>
-                          <option value="/pricing">Pricing Page (/pricing)</option>
-                          <option value="/login">Login Page (/login)</option>
-                        </select>
-                      </div>
-                    ) : (
-                      <div>
-                        <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>
-                          {attrs['data-gz-action-type'] === 'scroll' ? 'Section ID (e.g. #section-contact)' : 'Link URL (e.g. https://... or /path)'}
-                        </div>
-                        <input
-                          placeholder={attrs['data-gz-action-type'] === 'scroll' ? '#section-id' : 'https://...'}
-                          value={attrs.href || attrs['data-gz-href'] || ''}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (tag === 'a') {
-                              updateAttr({ href: val, 'data-gz-href': val });
-                            } else {
-                              updateAttr({ 'data-gz-href': val, onclick: `window.location.href='${val}'` });
-                            }
-                          }}
-                          style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '6px 8px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Open Target</div>
-                    <select
-                      value={attrs.target || '_self'}
-                      onChange={e => updateAttr({ target: e.target.value })}
-                      style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 9px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
-                    >
-                      <option value="_self">Current Tab (_self)</option>
-                      <option value="_blank">New Tab/Window (_blank)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Button Label</div>
-                    <textarea
-                      rows={2}
-                      value={content}
-                      onChange={e => updateContent(e.target.value)}
-                      style={{ width: '100%', background: '#0d1525', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '7px 9px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
-                    />
-                  </div>
-                </div>
               ) : (
                 <div>
-                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Element Text</div>
+                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Văn bản hiển thị (Element Text)</div>
                   <textarea
                     rows={4}
                     placeholder="Enter text content for this element..."
@@ -716,7 +1091,24 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
 
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
 
-            {/* Section 3: Element ID & Class */}
+            {/* Section 3: Optional Collapsed Dynamic CMS */}
+            <details style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 10 }}>
+              <summary style={{ fontSize: 10.5, fontWeight: 600, color: '#94A3B8', cursor: 'pointer', userSelect: 'none' }}>
+                ⚙️ Dữ liệu CMS động (Nâng cao)
+              </summary>
+              <div style={{ marginTop: 12 }}>
+                <DynamicBindingControl
+                  tag={tag}
+                  attrs={attrs}
+                  updateAttr={updateAttr}
+                  updateContent={updateContent}
+                />
+              </div>
+            </details>
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
+            {/* Section 4: Element ID */}
             <div>
               <SectionTitle>Element ID & Class</SectionTitle>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -728,16 +1120,12 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen }) => {
                     style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '6px 8px', color: '#94A3B8', fontSize: 11, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div>
-                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Technical Information</div>
-                  <div style={{ fontSize: 11, color: '#64748B', lineHeight: 1.4 }}>
-                    Use the visual toolbar on the canvas to adjust positioning, layering, selection borders, and effects.
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         )}
+        </>
+      )}
       </div>
 
       {/* Hidden GrapesJS slots */}

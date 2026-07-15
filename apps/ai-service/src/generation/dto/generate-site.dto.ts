@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsArray } from 'class-validator';
 
 export class GenerateSiteDto {
   @IsString()
@@ -15,4 +15,8 @@ export class GenerateSiteDto {
   @IsOptional()
   @IsString()
   theme?: string;
+
+  @IsOptional()
+  @IsArray()
+  attachments?: { base64?: string; url?: string; mimeType: string }[];
 }

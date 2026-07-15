@@ -59,18 +59,16 @@ describe('SitesService', () => {
 
   describe('findById', () => {
     it('should return site if found', async () => {
-      jest.spyOn(prisma.site, 'findUnique').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
+      jest.spyOn(prisma.site, 'findFirst').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
 
       const result = await service.findById('site-1', 'user-1');
 
-      expect(prisma.site.findUnique).toHaveBeenCalledWith({
-        where: { id: 'site-1' },
-      });
+      expect(prisma.site.findFirst).toHaveBeenCalled();
       expect(result).toEqual({ id: 'site-1', ownerId: 'user-1' });
     });
 
     it('should throw NotFoundException if not found', async () => {
-      jest.spyOn(prisma.site, 'findUnique').mockResolvedValue(null);
+      jest.spyOn(prisma.site, 'findFirst').mockResolvedValue(null);
 
       await expect(service.findById('site-1', 'user-1')).rejects.toThrow(NotFoundException);
     });
@@ -89,6 +87,39 @@ describe('SitesService', () => {
       expect(prisma.site.create).toHaveBeenCalled();
       expect(siteProducer.emitSiteCreated).toHaveBeenCalled();
       expect(result).toEqual(createdSite);
+    });
+  });
+
+  describe('duplicate', () => {
+    it('should duplicate site and emit event', async () => {
+      const sourceSite = {
+        id: 'site-1',
+        ownerId: 'user-1',
+        name: 'My Site',
+        subdomain: 'my-site',
+        description: 'Desc',
+        settings: {},
+        pages: [
+          {
+            title: 'Home',
+            slug: 'home',
+            description: null,
+            sortOrder: 0,
+            widgets: [{ type: 'HEADER', contentConfig: {}, sortOrder: 0 }]
+          }
+        ]
+      };
+      const duplicatedSite = { id: 'site-2', ownerId: 'user-1', name: 'My Site (Copy)', subdomain: 'my-site-copy-123' };
+
+      jest.spyOn(prisma.site, 'findFirst').mockResolvedValue(sourceSite as any);
+      jest.spyOn(prisma.site, 'create').mockResolvedValue(duplicatedSite as any);
+
+      const result = await service.duplicate('site-1', 'user-1');
+
+      expect(prisma.site.findFirst).toHaveBeenCalled();
+      expect(prisma.site.create).toHaveBeenCalled();
+      expect(siteProducer.emitSiteCreated).toHaveBeenCalled();
+      expect(result).toEqual(duplicatedSite);
     });
   });
 
