@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Palette, Database, MousePointerClick, Link, Lightbulb, Repeat, Sparkles, ExternalLink, Settings, ChevronDown, ChevronRight, Layout, Box, Type, Sliders, Maximize2, Image as ImageIcon } from 'lucide-react';
+import { Palette, MousePointerClick, Link, ExternalLink, Settings, ChevronDown, ChevronRight, Layout, Box, Type, Image as ImageIcon } from 'lucide-react';
 import { Tooltip } from 'antd';
 import { DynamicBindingControl } from './components/DynamicBindingControl';
 
@@ -291,6 +291,7 @@ const QuickColorSwatches: React.FC<{ value: string; onChange: (hex: string) => v
 };
 
 // ─── Wix-Style CMS Fields ─────────────────────────────────────────────────────
+// @ts-ignore
 const CMS_FIELDS: Record<string, Array<{ label: string; value: string; type: 'text' | 'image' | 'link' | 'all' }>> = {
   products: [
     { label: '-- Select Product Field --', value: '', type: 'all' },
@@ -931,9 +932,9 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
                   if (type === 'none') {
                     updateAttr({
                       'data-gz-action-type': 'none',
-                      href: undefined,
-                      'data-gz-href': undefined,
-                      onclick: undefined,
+                      href: undefined as unknown as string,
+                      'data-gz-href': undefined as unknown as string,
+                      onclick: undefined as unknown as string,
                     });
                   } else if (type === 'page') {
                     const target = attrs['data-gz-href'] || attrs.href || '/products';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
-import { Monitor, Smartphone, Tablet, Edit2 } from 'lucide-react';
+import { Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWidgetsApi } from '../../../api/sites';
 import WidgetRenderer from './WidgetRenderer';

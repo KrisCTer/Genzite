@@ -45,7 +45,7 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, onPla
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [platform, setPlatform] = useState<'app' | 'web'>(initialPlatform || 'app');
   const [attachments, setAttachments] = useState<{ id: string; file: File; url?: string; previewUrl: string; base64: string; mimeType: string }[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (initialPlatform) {
@@ -90,14 +90,6 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, onPla
       }
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      Array.from(files).forEach(file => processFile(file));
-    }
-    if (event.target) event.target.value = '';
   };
 
   const handlePaste = (event: React.ClipboardEvent) => {

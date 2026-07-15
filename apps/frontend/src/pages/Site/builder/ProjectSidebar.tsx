@@ -19,12 +19,12 @@ const ProjectSidebar: React.FC = () => {
   });
 
   const sites = apiSites;
-  const filteredSites = sites.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredSites = sites.filter((s: any) => s.name.toLowerCase().includes(search.toLowerCase()));
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const grouped = filteredSites.reduce((acc, site) => {
+  const grouped = filteredSites.reduce((acc: any, site: any) => {
     const created = new Date(site.createdAt);
     let group = 'Older';
     if (created >= today) {

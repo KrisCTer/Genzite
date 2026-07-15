@@ -38,7 +38,7 @@ import {
   CopyOutlined,
   CloseOutlined
 } from '@ant-design/icons';
-import { Sparkles, X, Monitor, Trash2 } from 'lucide-react';
+import { Sparkles, X, Trash2 } from 'lucide-react';
 import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
@@ -1920,10 +1920,12 @@ ${htmlContent}
           const activePage = getTargetActivePage();
           let pageHeight = 1000;
           let extractedAssets: string[] = [];
+          // @ts-ignore
           let widgetsCount = 0;
 
           if (activePage && allPagesWidgets) {
             const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
+            // @ts-ignore
             widgetsCount = pageWidgets.length;
             let maxH = 0;
 

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Typography, Tabs, Card, Button, List, Popconfirm, App, Space } from 'antd';
-import { DeleteOutlined, UndoOutlined, GlobalOutlined, PictureOutlined } from '@ant-design/icons';
+import { Typography, Tabs, Card, Button, List, Popconfirm, App } from 'antd';
+import { UndoOutlined, GlobalOutlined, PictureOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchTrashSitesApi, restoreSiteApi, type Site } from '../../api/sites';
 import { fetchTrashMediaApi, restoreMediaApi, type MediaFile } from '../../api/media';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const TrashPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('sites');

@@ -201,7 +201,7 @@ const EditViewer: React.FC = () => {
     enabled: !!siteId
   });
 
-  const activePage = pageId ? pages?.find(p => p.id === pageId) : pages?.[0];
+  const activePage = pageId ? pages?.find((p: any) => p.id === pageId) : pages?.[0];
 
   // Fetch widgets for active page
   const { data: widgets, isLoading: widgetsLoading } = useQuery({
@@ -225,11 +225,11 @@ const EditViewer: React.FC = () => {
   });
 
   const getPageHtmlForGrapes = () => {
-    const grapesWidget = widgets?.find(w => w.type === 'GRAPESJS');
+    const grapesWidget = widgets?.find((w: any) => w.type === 'GRAPESJS');
     if (grapesWidget) return grapesWidget.contentConfig?.html || '';
     if (!widgets || widgets.length === 0) return '';
 
-    return widgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(widget => {
+    return widgets.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0)).map((widget: any) => {
       if (widget.type === 'CUSTOM_HTML' || widget.type === 'HTML') {
         return widget.contentConfig?.html || '';
       }
@@ -243,7 +243,7 @@ const EditViewer: React.FC = () => {
 
   const handleSave = () => {
     if (!activePage?.id) return;
-    const grapesWidget = widgets?.find(w => w.type === 'GRAPESJS');
+    const grapesWidget = widgets?.find((w: any) => w.type === 'GRAPESJS');
     
     if (editorRef.current) {
       const html = editorRef.current.getHtml();
@@ -258,7 +258,7 @@ const EditViewer: React.FC = () => {
             css
           }
         };
-        const newWidgets = widgets?.map(w => w.id === grapesWidget.id ? updatedWidget : w) || [];
+        const newWidgets = widgets?.map((w: any) => w.id === grapesWidget.id ? updatedWidget : w) || [];
         saveMutation.mutate(newWidgets);
       } else {
         // Convert the entire page into a single GRAPESJS widget
@@ -297,14 +297,14 @@ const EditViewer: React.FC = () => {
 
   const handleDeleteWidget = (id: string) => {
     if (!activePage?.id || !widgets) return;
-    const updated = widgets.filter(w => w.id !== id && (w as any)._id !== id);
+    const updated = widgets.filter((w: any) => w.id !== id && (w as any)._id !== id);
     if (selectedWidgetId === id) setSelectedWidgetId(null);
     saveMutation.mutate(updated);
   };
 
   const handleMoveWidget = (id: string, direction: 'up' | 'down') => {
     if (!activePage?.id || !widgets) return;
-    const idx = widgets.findIndex(w => w.id === id || (w as any)._id === id);
+    const idx = widgets.findIndex((w: any) => w.id === id || (w as any)._id === id);
     if (idx === -1) return;
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= widgets.length) return;
@@ -318,11 +318,11 @@ const EditViewer: React.FC = () => {
 
   const handleUpdateWidgetConfig = (id: string, newConfig: any) => {
     if (!activePage?.id || !widgets) return;
-    const updated = widgets.map(w => (w.id === id || (w as any)._id === id) ? { ...w, contentConfig: newConfig } : w);
+    const updated = widgets.map((w: any) => (w.id === id || (w as any)._id === id) ? { ...w, contentConfig: newConfig } : w);
     saveMutation.mutate(updated);
   };
 
-  const grapesWidget = widgets?.find(w => w.type === 'GRAPESJS');
+  const grapesWidget = widgets?.find((w: any) => w.type === 'GRAPESJS');
   const isLoading = pagesLoading || widgetsLoading;
 
   const getWidth = () => {
@@ -491,7 +491,7 @@ const EditViewer: React.FC = () => {
         <EditRightPanel 
           isOpen={rightPanelOpen}
           setIsOpen={setRightPanelOpen}
-          selectedWidget={(widgets || []).find(w => w.id === selectedWidgetId || (w as any)._id === selectedWidgetId)}
+          selectedWidget={(widgets || []).find((w: any) => w.id === selectedWidgetId || (w as any)._id === selectedWidgetId)}
           onUpdateWidgetContent={(cfg) => selectedWidgetId && handleUpdateWidgetConfig(selectedWidgetId, cfg)}
           isGrapesPage={true}
         />

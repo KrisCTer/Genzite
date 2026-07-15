@@ -7,7 +7,7 @@ import {
   GithubOutlined, CloudUploadOutlined, DatabaseOutlined, CreditCardOutlined, MailOutlined,
   ApiOutlined, BarChartOutlined, SafetyCertificateOutlined, DownOutlined, CloseOutlined,
   RightOutlined, SettingOutlined, QuestionCircleOutlined, InfoCircleOutlined,
-  RocketOutlined, PictureOutlined, SyncOutlined, EyeOutlined, CopyOutlined
+  RocketOutlined, PictureOutlined, SyncOutlined, CopyOutlined
 } from '@ant-design/icons';
 import { Trash2, Sparkles, Wand2, Brain, ChevronDown } from 'lucide-react';
 import { MODEL_OPTIONS } from '../prompt-bar/constants';

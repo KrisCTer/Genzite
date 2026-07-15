@@ -5,13 +5,13 @@ import {
 } from 'recharts';
 import { 
   ArrowLeftOutlined, ReloadOutlined, InfoCircleOutlined,
-  CheckCircleFilled, CodeOutlined
+  CheckCircleFilled
 } from '@ant-design/icons';
-import { Button, Tabs, Table, Select, Input, Tag, message } from 'antd';
+import { Button, Table, Select, Input, Tag, message } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSiteByIdApi } from '../../api/sites';
 
-const { TabPane } = Tabs;
+
 
 // MOCK DATA for charts removed as per request to use real data only
 // For now, metrics are empty because there's no real metrics endpoint yet

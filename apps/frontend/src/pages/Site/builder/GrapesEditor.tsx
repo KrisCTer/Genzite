@@ -401,10 +401,10 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         }
       }, 100);
 
+      const iframeDoc = editor.Canvas.getDocument();
       if (readOnly && iframeDoc) {
         // Disable selection and editing
         editor.Commands.stop('select-comp');
-        const iframeDoc = editor.Canvas.getDocument();
         if (iframeDoc && iframeDoc.head) {
           const lockStyle = iframeDoc.createElement('style');
           // Allow scroll on body, but block interaction on all elements
@@ -489,9 +489,9 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         outerMouseY = e.clientY;
       }, { passive: true });
 
-      const iframeDoc = editor.Canvas.getDocument();
-      if (iframeDoc) {
-        iframeDoc.addEventListener('mouseup', stopDragScroll, { passive: true });
+      const iframeDocForDrag = editor.Canvas.getDocument();
+      if (iframeDocForDrag) {
+        iframeDocForDrag.addEventListener('mouseup', stopDragScroll, { passive: true });
       }
 
       // ── Mount panels into sidebar containers ────────────────────────────

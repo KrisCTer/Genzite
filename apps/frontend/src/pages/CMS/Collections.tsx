@@ -143,7 +143,7 @@ const Collections: React.FC = () => {
             style={{ width: 250 }}
             placeholder="Select a site"
             loading={isLoadingSites}
-            options={sites?.map(s => ({ label: s.name, value: s.id }))}
+            options={sites?.map((s: any) => ({ label: s.name, value: s.id }))}
           />
           <Button type="primary" icon={<PlusOutlined />} size="large" style={{ fontWeight: 500 }} onClick={() => setIsModalOpen(true)} disabled={!selectedSiteId}>
             Create Collection

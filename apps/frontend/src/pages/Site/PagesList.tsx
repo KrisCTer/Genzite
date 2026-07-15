@@ -105,7 +105,7 @@ const PagesList: React.FC = () => {
         </div>
       ) : (
         <Row gutter={[24, 24]}>
-          {(pages || []).sort((a, b) => a.sortOrder - b.sortOrder).map((page) => (
+          {(pages || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder).map((page: any) => (
             <Col xs={24} sm={12} md={8} lg={6} key={page.id}>
               <Card
                 hoverable

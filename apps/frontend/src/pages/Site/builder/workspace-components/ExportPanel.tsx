@@ -15,7 +15,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   onSummarizeProject
 }) => {
   const [selectedOption, setSelectedOption] = useState<'zip' | 'copy' | 'summarize'>('zip');
-  const [description, setDescription] = useState('');
+  const [description] = useState('');
 
   const getDynamicDescription = () => {
     switch (selectedOption) {
