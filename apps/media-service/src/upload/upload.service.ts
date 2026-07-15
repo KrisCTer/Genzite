@@ -135,6 +135,4 @@ export class UploadService {
 
     return { success: true, s3Key };
   }
-
-
 }
