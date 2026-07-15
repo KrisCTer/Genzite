@@ -12,7 +12,9 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@Req() req: any) {
-    return this.usersService.findById(req.user.sub);
+    const email = req.user.email || '';
+    const name = email.split('@')[0] || 'Cognito User';
+    return this.usersService.findOrCreateUser(req.user.sub, email, name);
   }
 
   @UseGuards(JwtAuthGuard)

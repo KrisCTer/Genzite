@@ -69,6 +69,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('gz_token');
     localStorage.removeItem('gz_refresh_token');
     localStorage.removeItem('user_data');
+
+    // Call Amplify sign out if configured
+    const cognitoUserPoolId = import.meta.env.VITE_COGNITO_AUTHORITY?.split('/').pop() || '';
+    if (cognitoUserPoolId && !cognitoUserPoolId.includes('xxxxxx')) {
+      import('aws-amplify/auth').then(({ signOut }) => signOut()).catch(err => {
+        console.warn('Amplify sign out failed', err);
+      });
+    }
+
     set({ token: null, refreshToken: null, user: null });
   },
 }));

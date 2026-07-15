@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, message, Modal } from 'antd';
+import { Form, Input, message, Modal, Upload, Progress } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
 import { 
   User, 
   Mail, 
@@ -14,6 +15,7 @@ import { useAuthStore } from '../../store/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMeApi, updateMeApi } from '../../api/users';
 import { changePasswordApi } from '../../api/auth';
+import { uploadMediaFileApi } from '../../api/media';
 import '../NotificationsStyle.css';
 
 const Profile: React.FC = () => {
@@ -23,7 +25,40 @@ const Profile: React.FC = () => {
   const queryClient = useQueryClient();
   const [isModified, setIsModified] = useState(false);
   const [isAvatarModalVisible, setIsAvatarModalVisible] = useState(false);
-  const [avatarUrlInput, setAvatarUrlInput] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const avatarUploadMutation = useMutation({
+    mutationFn: (file: File) => 
+      uploadMediaFileApi(file, (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+        setUploadProgress(percentCompleted);
+      }),
+    onSuccess: (data) => {
+      updateMutation.mutate({ avatarUrl: data.url }, {
+        onSuccess: () => {
+          message.success('Avatar updated successfully!');
+          setIsAvatarModalVisible(false);
+          setUploadProgress(0);
+        }
+      });
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Failed to upload avatar');
+      setUploadProgress(0);
+    }
+  });
+
+  const customUploadRequest = (options: any) => {
+    const { file, onSuccess, onError } = options;
+    avatarUploadMutation.mutate(file as File, {
+      onSuccess: () => {
+        onSuccess('ok');
+      },
+      onError: (err) => {
+        onError(err);
+      }
+    });
+  };
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -123,16 +158,7 @@ const Profile: React.FC = () => {
     });
   };
 
-  const handleUpdateAvatar = () => {
-    if (avatarUrlInput.trim()) {
-      updateMutation.mutate({ avatarUrl: avatarUrlInput.trim() }, {
-        onSuccess: () => {
-          setIsAvatarModalVisible(false);
-          setAvatarUrlInput('');
-        }
-      });
-    }
-  };
+
 
   const displayName = profile?.metadata?.displayName || user?.metadata?.displayName || profile?.name || user?.name || 'User';
   const displayEmail = profile?.email || user?.email || '';
@@ -370,30 +396,47 @@ const Profile: React.FC = () => {
         closeIcon={<span style={{ color: '#a1a1aa' }}>✕</span>}
       >
         <div style={{ paddingTop: 16 }}>
-          <p style={{ color: '#a1a1aa', marginBottom: 16, fontSize: 14 }}>Please enter the URL of the image you want to use as your avatar.</p>
-          <Input 
-            value={avatarUrlInput}
-            onChange={(e) => setAvatarUrlInput(e.target.value)}
-            placeholder="https://example.com/avatar.jpg" 
-            style={{ ...inputStyle, marginBottom: 24 }}
-            prefix={<Link size={16} style={{ color: '#64748b', marginRight: 8 }} />}
-            onPressEnter={handleUpdateAvatar}
-            aria-label="Avatar URL"
-          />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          <p style={{ color: '#a1a1aa', marginBottom: 16, fontSize: 14 }}>
+            Please select or drag an image file from your device to update your profile picture.
+          </p>
+          <Upload.Dragger 
+            name="file" 
+            multiple={false} 
+            customRequest={customUploadRequest}
+            showUploadList={false}
+            disabled={avatarUploadMutation.isPending}
+            style={{ 
+              background: 'rgba(15,23,42,0.4)', 
+              border: '1px dashed rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined style={{ fontSize: '36px', color: '#3b82f6' }} />
+            </p>
+            <p className="ant-upload-text" style={{ color: '#fff', fontSize: '14px', marginTop: '8px' }}>
+              Click or drag image file here
+            </p>
+            <p className="ant-upload-hint" style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>
+              JPEG, PNG, WebP or SVG format.
+            </p>
+          </Upload.Dragger>
+
+          {avatarUploadMutation.isPending && (
+            <div style={{ marginTop: '20px' }}>
+              <div style={{ color: '#a1a1aa', fontSize: '13px', marginBottom: '8px' }}>Uploading to AWS S3...</div>
+              <Progress percent={uploadProgress} status="active" strokeColor="#3b82f6" />
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
             <button 
               onClick={() => setIsAvatarModalVisible(false)}
               className="hub-tab-btn"
+              disabled={avatarUploadMutation.isPending}
             >
               Cancel
-            </button>
-            <button 
-              onClick={handleUpdateAvatar}
-              disabled={!avatarUrlInput.trim() || updateMutation.isPending}
-              className="hub-card-action-btn"
-              style={{ opacity: (!avatarUrlInput.trim() || updateMutation.isPending) ? 0.5 : 1 }}
-            >
-              Apply
             </button>
           </div>
         </div>
