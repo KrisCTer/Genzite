@@ -74,6 +74,15 @@ const AdminLayout: React.FC = () => {
     location.pathname.includes('/profile') ||
     location.pathname === ADMIN_BASE;
 
+  let pageTitle = isAdminArea ? 'Admin Console' : 'My workspace';
+  const path = location.pathname;
+  if (path.includes('/dashboard') || path === '/workspace') pageTitle = 'Dashboard';
+  else if (path.includes('/projects') || path.includes('/sites')) pageTitle = 'Projects';
+  else if (path.includes('/profile') || path.includes('/identity')) pageTitle = 'Personal Profile';
+  else if (path.includes('/notifications')) pageTitle = 'Notifications';
+  else if (path.includes('/trash')) pageTitle = 'Trash';
+  else if (path.includes('/canvas')) pageTitle = 'AI Canvas';
+
   const queryClient = useQueryClient();
   const { data: notifications, isLoading: notifLoading } = useQuery({
     queryKey: ['notifications'],
@@ -181,7 +190,72 @@ const AdminLayout: React.FC = () => {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh', background: 'var(--color-bg-app)' }} hasSider>
+    <Layout 
+      className="admin-layout-wrapper"
+      style={{ 
+        minHeight: '100vh', 
+        position: 'relative',
+        backgroundColor: '#07090f',
+        backgroundImage: `
+          radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.1), transparent 25%),
+          radial-gradient(circle at 25% 25%, rgba(0, 229, 255, 0.25), transparent 40%),
+          radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.25), transparent 40%),
+          radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.2), transparent 45%)
+        `
+      }} 
+      hasSider
+      onMouseMove={(e) => {
+        const target = e.currentTarget;
+        const rect = target.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        target.style.setProperty('--mouse-x', `${x}px`);
+        target.style.setProperty('--mouse-y', `${y}px`);
+      }}
+    >
+      {/* Aurora Background Effect (matching CanvasBuilder) */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 0,
+        background: `
+          radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.15), transparent 25%),
+          radial-gradient(circle at 30% 25%, rgba(0, 229, 255, 0.35), transparent 35%),
+          radial-gradient(circle at 70% 30%, rgba(139, 92, 246, 0.3), transparent 35%)
+        `,
+        filter: 'blur(60px)',
+        opacity: 1
+      }} />
+
+      {/* Dot Grid Overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 0,
+        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)',
+        backgroundSize: '16px 16px',
+        backgroundPosition: '0 0',
+        opacity: 0.7
+      }} />
+
+      {/* Glowing Dot Grid Overlay (Mouse Hover) */}
+      <div 
+        className="admin-spotlight"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 0)',
+          backgroundSize: '16px 16px',
+          backgroundPosition: '0 0',
+          WebkitMaskImage: 'radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), black, transparent 40%)',
+          maskImage: 'radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), black, transparent 40%)',
+        }} 
+      />
+
       <Sider
         collapsible
         collapsed={collapsed}
@@ -190,15 +264,40 @@ const AdminLayout: React.FC = () => {
         width={260}
         collapsedWidth={72}
         style={{
-          borderRight: '1px solid var(--color-border)',
-          background: 'var(--gz-dark-2)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.85)',
+          backdropFilter: 'blur(24px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(140%)',
           position: 'sticky',
-          top: 0,
-          height: '100vh',
-          overflow: 'auto',
-          zIndex: 100
+          top: 16,
+          height: 'calc(100vh - 32px)',
+          margin: '16px',
+          borderRadius: '24px',
+          overflow: 'hidden',
+          zIndex: 100,
+          boxShadow: `
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -18px 36px rgba(255, 255, 255, 0.018),
+            0 24px 80px rgba(0, 0, 0, 0.42),
+            0 0 60px rgba(59, 130, 246, 0.14)
+          `
         }}
       >
+        {/* Inner Glow matching ai-prompt-bar */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          borderRadius: 'inherit',
+          background: `
+            radial-gradient(circle at 14% 0%, rgba(0, 229, 255, 0.16), transparent 34%),
+            radial-gradient(circle at 86% 100%, rgba(139, 92, 246, 0.13), transparent 36%)
+          `,
+          opacity: 0.84,
+          zIndex: 0
+        }} />
+        
+        <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{
           height: 64,
           margin: '0 20px',
@@ -238,26 +337,45 @@ const AdminLayout: React.FC = () => {
           onClick={(e) => navigate(e.key)}
           style={{ borderRight: 'none', padding: '8px 10px', background: 'transparent' }}
         />
+        </div>
       </Sider>
       <Layout style={{ background: 'transparent', minWidth: 0 }}>
         <Header
           style={{
-            padding: '0 32px',
-            background: 'var(--gz-dark-2)',
-            borderBottom: '1px solid var(--color-border)',
+            padding: '0 24px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.85)',
+            backdropFilter: 'blur(24px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+            borderRadius: '24px',
+            margin: '16px 16px 0 0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             position: 'sticky',
-            top: 0,
+            top: 16,
             zIndex: 90,
-            height: 56,
-            lineHeight: '56px'
+            height: 64,
+            lineHeight: '64px',
+            boxShadow: `
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              inset 0 -18px 36px rgba(255, 255, 255, 0.018),
+              0 24px 80px rgba(0, 0, 0, 0.42),
+              0 0 60px rgba(59, 130, 246, 0.14)
+            `
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Title level={5} style={{ margin: 0, color: 'var(--color-text-primary)', fontWeight: 600 }}>
-              {isAdminArea ? 'Admin Console' : 'My workspace'}
+            <Title level={4} style={{ 
+              margin: 0, 
+              fontWeight: 800,
+              background: 'linear-gradient(92deg, rgba(255,255,255,.99) 0%, rgba(184,247,255,.96) 46%, rgba(193,173,255,.94) 100%)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+              letterSpacing: '-0.02em'
+            }}>
+              {pageTitle}
             </Title>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -274,13 +392,11 @@ const AdminLayout: React.FC = () => {
             <UserAccountMenu avatarSize={34} />
           </div>
         </Header>
-        <Content id="admin-content-scroll" style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto' }}>
+        <Content id="admin-content-scroll" style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto', position: 'relative', zIndex: 1 }}>
           <div
             style={{
               padding: 0,
               minHeight: 360,
-              maxWidth: isFullWidthPage ? '100%' : 1280,
-              margin: '0 auto',
               width: '100%',
               background: 'transparent',
               height: isFullWidthPage ? '100%' : 'auto',

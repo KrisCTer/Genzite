@@ -97,12 +97,6 @@ const MemberDashboard: React.FC = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="hub-header-title truncate" title={`${welcomeGreeting}, ${displayName}!`}>
-              {welcomeGreeting}, {displayName}!
-            </h1>
-            <p className="hub-header-desc">
-              Welcome back to your workspace. This is your personal control center.
-            </p>
           </div>
 
           {/* Date & Time Display without background/icon */}

@@ -1,6 +1,6 @@
 export const STAFF_ROLES = ['ADMIN', 'EDITOR'] as const;
-export const MEMBER_ROLES = ['ADMIN', 'EDITOR', 'VIEWER'] as const;
-export const VIEWER_ROLES = ['VIEWER'] as const;
+export const MEMBER_ROLES = ['ADMIN', 'EDITOR', 'VIEWER', 'USER'] as const;
+export const VIEWER_ROLES = ['VIEWER', 'USER'] as const;
 
 export const WORKSPACE_BASE = '/workspace';
 export const ADMIN_BASE = '/admin';

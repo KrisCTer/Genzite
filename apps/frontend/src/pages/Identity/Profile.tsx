@@ -187,11 +187,6 @@ const Profile: React.FC = () => {
     <div className="hub-root">
       <div className="hub-wrapper" style={{ maxWidth: '100%' }}>
         
-        {/* Header */}
-        <div className="hub-header">
-          <h1 className="hub-header-title">Personal Profile</h1>
-          <p className="hub-header-desc">Manage your identity and account security in the Genzite workspace.</p>
-        </div>
 
         {/* Main Content Layout */}
         <div className="hub-main">

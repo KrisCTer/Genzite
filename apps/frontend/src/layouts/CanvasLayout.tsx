@@ -57,7 +57,7 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
       {!isProjectWorkspace && (
         <div className="canvas-topbar">
           <div className="canvas-topbar-left">
-            <div className="canvas-brand" onClick={() => navigate('/')} title="Back to workspace" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <div className="canvas-brand" onClick={() => navigate('/workspace')} title="Back to workspace" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <RocketOutlined style={{ color: '#60A5FA', fontSize: '20px' }} />
               <span className="canvas-brand-name">Genzite</span>
               <span className="canvas-brand-beta">BETA</span>

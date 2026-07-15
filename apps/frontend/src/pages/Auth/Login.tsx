@@ -132,7 +132,7 @@ const Login: React.FC = () => {
               refreshToken: undefined,
             };
           }
-<<<<<<< HEAD
+
         } catch (authErr: any) {
           if (authErr.name === 'UserNotConfirmedException') {
             throw new Error('Account is not verified. Please check your email and click the activation link.');
@@ -210,12 +210,8 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       setRegisterError(null);
       if (data.isCognito) {
-        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
-          setPendingVerificationEmail(data.email);
-          setIsVerificationModalOpen(true);
-          message.info('A verification code has been sent to your email.');
-        } else if (data.nextStep?.signUpStep === 'DONE') {
-          message.success('Registration successful! Please check your email and click the link to verify your account.');
+        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP' || data.nextStep?.signUpStep === 'DONE') {
+          message.success('Registration successful! A verification link has been sent to your email. Please click it to verify.');
           setIsSignUp(false);
         } else {
           message.success('Registration successful! Please sign in.');
@@ -248,7 +244,6 @@ const Login: React.FC = () => {
     onError: (err: any) => {
       console.error('Verification error', err);
       message.error(err.message || 'Invalid verification code.');
->>>>>>> main
     },
   });
 

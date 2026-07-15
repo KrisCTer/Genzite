@@ -49,9 +49,11 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       cancelText: 'Cancel',
       okButtonProps: { danger: true },
       zIndex: 9999999,
-      maskStyle: {
-        backgroundColor: 'rgba(3, 7, 18, 0.6)',
-        backdropFilter: 'blur(8px)'
+      styles: {
+        mask: {
+          backgroundColor: 'rgba(3, 7, 18, 0.6)',
+          backdropFilter: 'blur(8px)'
+        }
       },
       onOk: async () => {
         setIsLoggingOut(true);

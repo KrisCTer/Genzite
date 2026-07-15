@@ -91,11 +91,6 @@ export const AdminNotificationsPage: React.FC = () => {
     <div className="hub-root">
       <div className="hub-wrapper">
 
-        {/* Header */}
-        <div className="hub-header">
-          <h1 className="hub-header-title">Notification Center</h1>
-          <p className="hub-header-desc">Manage real-time events from your network.</p>
-        </div>
 
         {/* KPI Stats */}
         <div className="hub-stats">

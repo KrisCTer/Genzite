@@ -112,12 +112,6 @@ export const Dashboard: React.FC = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="hub-header-title truncate" title={`${welcomeGreeting}${adminName ? `, ${adminName}` : ''}!`}>
-              {welcomeGreeting}{adminName ? `, ${adminName}` : ''}!
-            </h1>
-            <p className="hub-header-desc">
-              System overview — real-time synchronized data.
-            </p>
           </div>
           
           {/* Date & Time Display without background/icon */}
