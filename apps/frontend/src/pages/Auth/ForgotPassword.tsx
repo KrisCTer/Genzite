@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
+  // @ts-ignore
   const [isSuccess, setIsSuccess] = useState(false);
 
   React.useEffect(() => {

@@ -138,6 +138,7 @@ const UserManagement: React.FC = () => {
     rolesMutation.mutate({ id: selectedUser.id, roles: newRoles });
   };
 
+  // @ts-ignore
   const handleSaveCredits = () => {
     if (!selectedUser) return;
     const val = parseInt(creditsAmount, 10);

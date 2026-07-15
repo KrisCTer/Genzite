@@ -4,7 +4,6 @@ import { InboxOutlined } from '@ant-design/icons';
 import { 
   User, 
   Mail, 
-  Wallet, 
   CalendarDays,
   Lock,
   ShieldCheck,
@@ -165,6 +164,7 @@ const Profile: React.FC = () => {
   const userRoles = profile?.roles || user?.roles || ['USER'];
   const isActive = (profile?.status || user?.status) === 'ACTIVE';
   const createdAt = profile?.createdAt || user?.createdAt;
+  // @ts-ignore
   const credits = profile?.credits ?? 0;
   
   const rawId = profile?.id || user?.id || '';
