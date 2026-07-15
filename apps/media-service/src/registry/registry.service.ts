@@ -24,13 +24,28 @@ export class RegistryService {
     region: process.env.AWS_REGION,
   });
 
+  private getPublicUrl(s3Key: string): string {
+    if (!s3Key) return "";
+    if (s3Key.startsWith("http://") || s3Key.startsWith("https://")) {
+      return s3Key;
+    }
+    const bucket = process.env.AWS_S3_BUCKET || "genzite-media-dev";
+    const endpoint = process.env.AWS_ENDPOINT;
+    if (endpoint) {
+      return `${endpoint.replace(/\/$/, "")}/${bucket}/${s3Key}`;
+    }
+    const region = process.env.AWS_REGION || "ap-southeast-1";
+    return `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
+  }
+
   async findByOwnerId(ownerId: string, page: number, limit: number) {
     // Calculate offset for pagination.
     const skip = (page - 1) * limit;
 
-    return this.prisma.mediaFile.findMany({
+    const records = await this.prisma.mediaFile.findMany({
       where: {
         ownerId,
+        isDeleted: false, // Filter out soft-deleted files
       },
 
       orderBy: {
@@ -40,6 +55,11 @@ export class RegistryService {
       skip,
       take: limit,
     });
+
+    return records.map((record) => ({
+      ...record,
+      url: this.getPublicUrl(record.s3Key),
+    }));
   }
 
   async deleteMedia(mediaId: string, ownerId: string) {
@@ -60,23 +80,21 @@ export class RegistryService {
       throw new ForbiddenException("Access denied");
     }
 
-    // Delete file from S3.
-    // This requires valid AWS credentials and a real bucket.
-    await this.s3.send(
-      new DeleteObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET,
-        Key: media.s3Key,
-      }),
-    );
+    // Soft delete: Do NOT delete from S3 yet.
+    // The cron job will handle actual deletion later if not used.
 
-    // Delete metadata record from PostgreSQL.
-    await this.prisma.mediaFile.delete({
+    // Update metadata record in PostgreSQL to soft-deleted.
+    await this.prisma.mediaFile.update({
       where: {
         id: mediaId,
       },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
     });
 
-    // Notify other services that this media has been deleted.
+    // Notify other services that this media has been soft-deleted (optional).
     await this.mediaProducer.emitMediaDeleted({
       mediaId: media.id,
       s3Key: media.s3Key,
@@ -84,6 +102,58 @@ export class RegistryService {
     });
     return {
       message: "Media deleted successfully",
+      mediaId,
+    };
+  }
+
+  async findTrash(ownerId: string, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const records = await this.prisma.mediaFile.findMany({
+      where: {
+        ownerId,
+        isDeleted: true,
+      },
+      orderBy: {
+        deletedAt: "desc",
+      },
+      skip,
+      take: limit,
+    });
+
+    return records.map((record) => ({
+      ...record,
+      url: this.getPublicUrl(record.s3Key),
+    }));
+  }
+
+  async restoreMedia(mediaId: string, ownerId: string) {
+    const media = await this.prisma.mediaFile.findUnique({
+      where: {
+        id: mediaId,
+      },
+    });
+
+    if (!media) {
+      throw new NotFoundException("Media not found in trash");
+    }
+
+    if (media.ownerId !== ownerId) {
+      throw new ForbiddenException("Access denied");
+    }
+
+    await this.prisma.mediaFile.update({
+      where: {
+        id: mediaId,
+      },
+      data: {
+        isDeleted: false,
+        deletedAt: null,
+      },
+    });
+
+    return {
+      message: "Media restored successfully",
       mediaId,
     };
   }

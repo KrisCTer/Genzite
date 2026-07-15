@@ -7,6 +7,7 @@ import { NotificationsService } from "./in-app/notifications.service.js";
 import { UserConsumer } from "./consumers/user.consumer.js";
 import { EmailService } from "./email/email.service.js";
 import { AiConsumer } from "./consumers/ai.consumer.js";
+import { SiteConsumer } from "./consumers/site.consumer.js";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -14,6 +15,6 @@ import { AiConsumer } from "./consumers/ai.consumer.js";
     PrismaModule,
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, EmailService, UserConsumer, AiConsumer],
+  providers: [NotificationsService, EmailService, UserConsumer, AiConsumer, SiteConsumer],
 })
 export class AppModule {}

@@ -14,11 +14,14 @@ export interface GrapesEditorRef {
   getCss: () => string;
   setDragMode: (mode: 'absolute' | '') => void;
   getDragMode: () => 'absolute' | '';
+  getEditor?: () => any;
 }
 
 import { CUSTOM_SECTORS } from './GrapesSectors';
 import { registerGenziteBlocks } from './GrapesBlocks';
-import { triggerCanvasFeedback, handleGrapesAction } from './GrapesActions';
+import { handleGrapesAction } from './GrapesActions';
+import layerIconsPlugin from './plugins/grapesjs-layer-icons';
+import { injectTailwindAndStyles } from './plugins/grapesjs-tailwind';
 
 interface GrapesEditorProps {
   htmlContent: string;
@@ -26,15 +29,27 @@ interface GrapesEditorProps {
   readOnly?: boolean;
   onSave?: (html: string, css: string) => void;
   initialDragMode?: 'absolute' | '';
+  canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
 }
 
-const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htmlContent, cssContent = '', readOnly = false, onSave, initialDragMode = 'absolute' }, ref) => {
+const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htmlContent, cssContent = '', readOnly = false, onSave, initialDragMode = 'absolute', canvasDevice }, ref) => {
   const editorRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
   const onSaveRef = useRef(onSave);
+  
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
+
+  useEffect(() => {
+    if (editorRef.current && canvasDevice) {
+      const editor = editorRef.current;
+      if (canvasDevice === 'mobile') editor.setDevice('Mobile');
+      else if (canvasDevice === 'tablet') editor.setDevice('Tablet');
+      else editor.setDevice('Desktop');
+    }
+  }, [canvasDevice]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [contextMenuState, setContextMenuState] = React.useState<{
@@ -61,6 +76,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
   React.useImperativeHandle(ref, () => ({
     getHtml: () => editorRef.current?.getHtml() || '',
     getCss: () => editorRef.current?.getCss() || '',
+    getEditor: () => editorRef.current,
     setDragMode: (mode: 'absolute' | '') => {
       if (!editorRef.current) return;
       try {
@@ -97,21 +113,29 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       height: '100%',
       width: '100%',
       dragMode: initialDragMode as any, // Enable absolute positioning drag-and-drop
-      plugins: [webpagePlugin],
+      plugins: [webpagePlugin, layerIconsPlugin],
       pluginsOpts: {
         [webpagePlugin as any]: {
           blocks: [] // Disable default preset blocks
         }
       },
-      // Tailwind will be loaded via script tag here
       canvas: {
+        // Tailwind CDN loaded here so it's available when GrapesJS canvas iframe initializes.
+        // The tailwind config (custom theme) is applied AFTER via tailwind.config + tailwind.refresh()
         scripts: ['https://cdn.tailwindcss.com?plugins=forms,container-queries'],
+        styles: [
+          'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap',
+          'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+        ],
+        autoscrollLimit: 0, // Disabled: custom smooth scroll loop injected below
       },
       // @ts-ignore
       allowScripts: 1,
       storageManager: { type: 'none' }, // We'll handle saving manually
       panels: { defaults: [] }, // We hide default panels and build our own
-      selectorManager: { appendTo: '#gjs-selectors' },
+      selectorManager: { 
+        appendTo: '#gjs-selectors',
+      },
       styleManager: {
         appendTo: '#gjs-styles',
         sectors: CUSTOM_SECTORS
@@ -133,9 +157,9 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       blockManager: { appendTo: '#gjs-blocks' },
       deviceManager: {
         devices: [
-          { name: 'Desktop', width: '1440px' },
-          { name: 'Tablet', width: '768px', widthMedia: '992px' },
-          { name: 'Mobile portrait', width: '320px', widthMedia: '480px' },
+          { name: 'Desktop', width: '' },
+          { name: 'Tablet', width: '768px', widthMedia: '1024px' },
+          { name: 'Mobile', width: '390px', widthMedia: '480px' },
         ]
       },
       rte: {
@@ -144,12 +168,38 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     });
 
     editorRef.current = editor;
+    window.dispatchEvent(new CustomEvent('genzite:grapes:init', { detail: { editor } }));
 
     // ── Register all Genzite Blocks immediately after init ────────────────
     // IMPORTANT: Blocks must be registered HERE (not in editor.on('load')) so that
     // GrapesJS has them available when it renders the block panel during init.
 
     registerGenziteBlocks(editor);
+
+    // ── Override GrapesJS Default Asset Manager / Image Picker Command ────
+    // Completely replace default asset picker with Genzite Media Service Modal (Port 3004)
+    editor.Commands.add('open-assets', {
+      run(editor: any, _sender: any, opts: any = {}) {
+        window.dispatchEvent(new CustomEvent('genzite:open-media-modal', {
+          detail: {
+            onSelect: (url: string) => {
+              if (typeof opts.onSelect === 'function') {
+                opts.onSelect(url);
+              } else if (opts.target && typeof opts.target.set === 'function') {
+                opts.target.set('src', url);
+              } else {
+                const selected = editor.getSelected();
+                if (selected && (selected.is('image') || selected.get('tagName') === 'img')) {
+                  selected.setAttributes({ ...selected.getAttributes(), src: url });
+                }
+              }
+              editor.AssetManager.add(url);
+            }
+          }
+        }));
+      }
+    });
+
     editor.on('component:selected', (component: any) => {
       window.dispatchEvent(new CustomEvent('genzite:grapes:select', { detail: { component } }));
     });
@@ -201,35 +251,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     };
     window.addEventListener('genzite:grapes:redo', redoHandler);
 
-    const updateZoomState = () => {
-      const zoom = editor.Canvas.getZoom();
-      window.dispatchEvent(new CustomEvent('genzite:grapes:zoom:update', { detail: { zoom } }));
-    };
 
-    const zoomInHandler = () => {
-      const current = editor.Canvas.getZoom();
-      editor.Canvas.setZoom(current + 10);
-      updateZoomState();
-    };
-    window.addEventListener('genzite:grapes:zoom-in', zoomInHandler);
-
-    const zoomOutHandler = () => {
-      const current = editor.Canvas.getZoom();
-      editor.Canvas.setZoom(Math.max(10, current - 10));
-      updateZoomState();
-    };
-    window.addEventListener('genzite:grapes:zoom-out', zoomOutHandler);
-
-    const zoomFitHandler = () => {
-      editor.Canvas.setZoom(100);
-      // Center the canvas
-      const wrapper = (editor.Canvas as any).getWrapperEl();
-      if (wrapper) {
-        wrapper.style.transform = 'translate(0, 0)';
-      }
-      updateZoomState();
-    };
-    window.addEventListener('genzite:grapes:zoom-fit', zoomFitHandler);
 
     let isPanActive = false;
     const panToggleHandler = () => {
@@ -247,8 +269,8 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     editor.on('load', () => {
       // ── "Real Page" Infinite Canvas Setup ────────────────────────────
       const canvasModule = editor.Canvas as any;
-      const frameWrapper = canvasModule.getWrapperEl();
       const frame = canvasModule.getFrameEl();
+      const frameWrapper = typeof canvasModule.getWrapperEl === 'function' ? canvasModule.getWrapperEl() : (frame ? frame.parentElement : null);
 
       // Make the main GrapesJS editor wrapper transparent so our outer radial gradient shows through
       const editorEl = editor.getEl();
@@ -261,17 +283,29 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       }
 
       if (frameWrapper && frame) {
-        // Style the wrapper to look like a real page floating in the void
-        frameWrapper.style.margin = '40px auto';
-        frameWrapper.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.5)';
-        frameWrapper.style.borderRadius = '16px';
+        // Frame wrapper must be flush with container — no margin, no extra shadow
+        // (EditViewer outer wrapper already provides border, shadow and border-radius)
+        frameWrapper.style.margin = '0';
+        frameWrapper.style.boxShadow = 'none';
+        frameWrapper.style.borderRadius = '0';
         frameWrapper.style.overflow = 'hidden';
         frameWrapper.style.backgroundColor = 'transparent';
+        
+        // Force width to 100% so it fits our custom EditViewer container sizes
+        frameWrapper.style.setProperty('width', '100%', 'important');
+        frame.style.setProperty('width', '100%', 'important');
 
-        // Auto-expand the iframe height to fit content, so there's NO internal scrollbar
+        // We will manage height and overflow dynamically based on canvasDevice prop
         const updateHeight = () => {
+          if (!editor.Canvas) return;
+          const frame = editor.Canvas.getFrameEl();
+          const frameWrapper = typeof (editor.Canvas as any).getWrapperEl === 'function' ? (editor.Canvas as any).getWrapperEl() : (frame ? frame.parentElement : null);
           const body = editor.Canvas.getBody();
-          if (body) {
+          if (!body || !frame || !frameWrapper) return;
+
+          const isFullHeight = (window as any).__currentCanvasDevice === 'full';
+
+          if (isFullHeight) {
             // Find the maximum bottom coordinate of all direct children
             let maxBottom = window.innerHeight - 80; // Minimum height
             Array.from(body.children).forEach((child: any) => {
@@ -280,43 +314,49 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
                 if (bottom > maxBottom) maxBottom = bottom;
               }
             });
-            // Also consider scrollHeight
             const height = Math.max(maxBottom, body.scrollHeight, window.innerHeight - 80);
             frame.style.height = `${height}px`;
             frameWrapper.style.height = `${height}px`;
+            if (containerRef.current) {
+              containerRef.current.style.height = `${height}px`;
+            }
+            
+            const doc = editor.Canvas.getDocument();
+            if (doc?.documentElement) doc.documentElement.style.overflow = 'hidden';
+            if (doc?.body) doc.body.style.overflow = 'hidden';
+          } else {
+            // Revert to 100% height and allow internal scrolling
+            frame.style.height = '100%';
+            frameWrapper.style.height = '100%';
+            if (containerRef.current) {
+              containerRef.current.style.height = '100%';
+            }
+            
+            const doc = editor.Canvas.getDocument();
+            if (doc?.documentElement) doc.documentElement.style.overflow = 'auto';
+            if (doc?.body) doc.body.style.overflow = 'auto';
           }
         };
 
-        // Hide the native scrollbars inside the iframe AND force dark background
+        // Attach updateHeight to window so it can be called when canvasDevice changes
+        (window as any).__updateGrapesIframeHeight = updateHeight;
+
         try {
           const doc = editor.Canvas.getDocument();
-          if (doc) {
-            if (doc.documentElement) {
-              doc.documentElement.style.overflow = 'hidden';
-              doc.documentElement.style.backgroundColor = '#0B0F19';
-            }
-            if (doc.body) {
-              doc.body.style.overflow = 'hidden';
-              doc.body.style.minHeight = '100%';
-              doc.body.style.backgroundColor = '#0B0F19';
-              doc.body.style.color = '#ffffff';
-              doc.body.style.margin = '0';
-              doc.body.style.padding = '0';
-            }
-            if (doc.head) {
-              // Inject a high-priority style to always win over GrapesJS defaults
-              const forceDarkStyle = doc.createElement('style');
-              forceDarkStyle.id = 'gz-force-dark';
-              forceDarkStyle.innerHTML = 'html,body{background-color:#0B0F19!important;color:#fff!important;margin:0!important;padding:0!important;}';
-              doc.head.appendChild(forceDarkStyle);
-            }
+          if (doc?.body) {
+            doc.body.style.margin = '0';
+            doc.body.style.padding = '0';
           }
         } catch (e) {
           console.error('GrapesEditor DOM Setup Error:', e);
         }
 
         // Setup observer to keep height in sync
-        const observer = new MutationObserver(updateHeight);
+        const observer = new MutationObserver(() => {
+          if ((window as any).__currentCanvasDevice === 'full') {
+            updateHeight();
+          }
+        });
         const body = editor.Canvas.getBody();
         if (body) {
           observer.observe(body, { childList: true, subtree: true, attributes: true });
@@ -325,11 +365,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         // Initial height sync
         setTimeout(updateHeight, 100);
 
-        // Listen to canvas zoom and update EditTopBar state
-        editor.on('canvas:zoom', () => {
-          const zoom = editor.Canvas.getZoom();
-          window.dispatchEvent(new CustomEvent('genzite:grapes:zoom:update', { detail: { zoom } }));
-        });
+
       }
 
       try {
@@ -340,72 +376,41 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         }
       } catch (e) { }
 
-      // 1. Parse the full HTML document
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlContent || '<div></div>', 'text/html');
+      // Use our extracted Tailwind injection module to load HTML and apply Tailwind CSS config
+      injectTailwindAndStyles(editor, htmlContent, cssContent);
 
-      // Fix placeholder images that fail to load
-      doc.body.querySelectorAll('img').forEach(img => {
-        if (img.src.includes('via.placeholder.com') || img.src.includes('placeholder')) {
-          img.src = 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?q=80&w=2000&auto=format&fit=crop';
+      // 8. Lock top-level sections to act as background layers
+      setTimeout(() => {
+        const wrapper = editor.getWrapper();
+        if (wrapper) {
+          wrapper.components().forEach((child: any) => {
+            child.set({
+              draggable: false, // Lock section dragging
+              droppable: true,  // Allow dropping elements inside
+            });
+          });
         }
-      });
+      }, 50);
 
-      // 2. Inject global Genzite theme styles directly into iframe head
-      const iframeDoc = editor.Canvas.getDocument();
-      if (iframeDoc && iframeDoc.head) {
-        const styleEl = iframeDoc.createElement('style');
-        styleEl.innerHTML = `
-          :root { --color-bg-app: #0B0F19; --color-text-primary: #FFFFFF; --color-text-secondary: #94A3B8; --color-text-muted: #475569; --color-accent: #06B6D4; --color-accent-hover: #0891b2; --color-accent-muted: rgba(6, 182, 212, 0.2); --color-accent-glow: rgba(6, 182, 212, 0.4); --gradient-accent: linear-gradient(135deg, #06B6D4 0%, #10B981 100%); --color-border: #1E293B; --color-border-subtle: rgba(30, 41, 59, 0.5); --gz-dark-1: #0B0F19; --gz-dark-2: #0f172a; --gz-dark-3: #111827; --gz-dark-4: #1E293B; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px; }
-          body { margin: 0; padding: 0; background: var(--color-bg-app) !important; color: var(--color-text-primary) !important; font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
-          * { box-sizing: border-box; }
-        `;
-        iframeDoc.head.appendChild(styleEl);
-
-        // 3. Extract and inject styles & links from head
-        doc.head.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-          iframeDoc.head.appendChild(el.cloneNode(true));
-        });
-
-        // 4. Safely evaluate the tailwind config FIRST
-        const configScript = doc.head.querySelector('script#tailwind-config');
-        if (configScript && configScript.innerHTML) {
-          const scriptEl = iframeDoc.createElement('script');
-          scriptEl.innerHTML = configScript.innerHTML;
-          iframeDoc.head.appendChild(scriptEl);
+      // Clear undo history so the user can't undo past the initial state
+      setTimeout(() => {
+        try {
+          editor.UndoManager.clear();
+        } catch (e) {
+          console.error('Error clearing UndoManager:', e);
         }
-
-        // 5. Now inject the Tailwind CDN script so it picks up the config
-        const tailwindCdn = iframeDoc.createElement('script');
-        tailwindCdn.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
-        iframeDoc.head.appendChild(tailwindCdn);
-
-        // 6. Inject any other custom scripts
-        const otherScripts = Array.from(doc.head.querySelectorAll('script:not(#tailwind-config):not([src*="tailwindcss.com"])'));
-        otherScripts.forEach(oldScript => {
-          const newScript = iframeDoc.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          if (oldScript.innerHTML) {
-            newScript.innerHTML = oldScript.innerHTML;
-          }
-          iframeDoc.head.appendChild(newScript);
-        });
-      }
-
-      // 7. Load ONLY the body content into GrapesJS components
-      editor.setComponents(doc.body.innerHTML);
-
-      if (cssContent) {
-        editor.setStyle(cssContent);
-      }
+      }, 100);
 
       if (readOnly) {
         // Disable selection and editing
         editor.Commands.stop('select-comp');
-        const lockStyle = iframeDoc.createElement('style');
-        // Allow scroll on body, but block interaction on all elements
-        lockStyle.innerHTML = `body * { pointer-events: none !important; }`;
-        iframeDoc.head.appendChild(lockStyle);
+        const iframeDoc = editor.Canvas.getDocument();
+        if (iframeDoc && iframeDoc.head) {
+          const lockStyle = iframeDoc.createElement('style');
+          // Allow scroll on body, but block interaction on all elements
+          lockStyle.innerHTML = `body * { pointer-events: none !important; }`;
+          iframeDoc.head.appendChild(lockStyle);
+        }
 
         // Hide GrapesJS UI elements inside the canvas if any
         const noUiStyle = document.createElement('style');
@@ -413,6 +418,81 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         document.head.appendChild(noUiStyle);
       }
 
+      // ── Canvas-viewport Border Drag-to-Scroll ─────────────────────────────
+      // Trigger: cursor exits the visible canvas-viewport boundary during drag.
+      // - outerMouseY < canvasViewport.top    → scroll page up
+      // - outerMouseY > canvasViewport.bottom → scroll page down
+      // - Anywhere inside canvas-viewport     → NO scroll (page locked in place)
+      //
+      // NOTE: Do NOT patch iframeWin.scrollBy — GrapesJS uses it internally to
+      // track the dragged component position relative to the cursor. Patching it
+      // causes the component to lag and not follow the mouse.
+      // autoscrollLimit:0 + disableNativeAutoScroll() already prevent jump-scroll.
+
+      const disableNativeAutoScroll = () => {
+        try {
+          const cv = (editor.Canvas as any).getCanvasView?.() || (editor.Canvas as any)._cv;
+          if (cv) { cv.checkAutoScroll = () => {}; cv.autoscroll = () => {}; }
+          const sorter = (editor as any).Sorter || (editor as any).sorter;
+          if (sorter) { sorter.checkAutoScroll = () => {}; sorter.autoscroll = () => {}; }
+        } catch (_) {}
+      };
+      disableNativeAutoScroll();
+
+      let isDraggingComponent = false;
+      let outerMouseY = -1;
+      let autoScrollRafId: number | null = null;
+
+      const startAutoScrollLoop = () => {
+        if (autoScrollRafId) return;
+        const loop = () => {
+          if (!isDraggingComponent) { autoScrollRafId = null; return; }
+          const iframeWin = editor.Canvas.getFrameEl()?.contentWindow;
+          // Use the PARENT of canvas-viewport (the overflow:hidden canvas container).
+          // canvas-viewport has CSS transform:scale(zoom) → its getBoundingClientRect()
+          // returns a SHRUNK rect at zoom < 1, causing false scroll triggers inside the artboard.
+          // The parent element has NO transform and correctly covers the full visible canvas area.
+          const canvasContainer = (document.querySelector('.canvas-viewport') as HTMLElement | null)?.parentElement;
+          if (iframeWin && canvasContainer && outerMouseY >= 0) {
+            const rect = canvasContainer.getBoundingClientRect();
+            const scrollSpeed = 5;
+            let scrollYDelta = 0;
+            if (outerMouseY < rect.top) {
+              scrollYDelta = -scrollSpeed; // above canvas-viewport top → scroll up
+            } else if (outerMouseY > rect.bottom) {
+              scrollYDelta = scrollSpeed;  // below canvas-viewport bottom → scroll down
+            }
+            if (scrollYDelta !== 0) {
+              iframeWin.scrollBy(0, scrollYDelta);
+            }
+          }
+          autoScrollRafId = requestAnimationFrame(loop);
+        };
+        autoScrollRafId = requestAnimationFrame(loop);
+      };
+
+      const stopDragScroll = () => {
+        isDraggingComponent = false;
+        if (autoScrollRafId) { cancelAnimationFrame(autoScrollRafId); autoScrollRafId = null; }
+      };
+
+      editor.on('component:drag:start sorter:drag:start block:drag:start', () => {
+        disableNativeAutoScroll();
+        isDraggingComponent = true;
+        startAutoScrollLoop();
+      });
+      editor.on('component:drag:end sorter:drag:end block:drag:stop', stopDragScroll);
+      window.addEventListener('mouseup', stopDragScroll, { passive: true });
+
+      // Track cursor in OUTER document (always fires even during GrapesJS drag)
+      document.addEventListener('mousemove', (e: MouseEvent) => {
+        outerMouseY = e.clientY;
+      }, { passive: true });
+
+      const iframeDoc = editor.Canvas.getDocument();
+      if (iframeDoc) {
+        iframeDoc.addEventListener('mouseup', stopDragScroll, { passive: true });
+      }
 
       // ── Mount panels into sidebar containers ────────────────────────────
       // GrapesJS `appendTo` config only works if the DOM element exists at init time.
@@ -423,19 +503,23 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         try {
           const layersEl = document.getElementById('gjs-layers');
           if (layersEl && editor.LayerManager && layersEl.children.length === 0) {
-            layersEl.appendChild(editor.LayerManager.render());
+            const el = editor.LayerManager.render();
+            if (el) layersEl.appendChild(el as Node);
           }
           const stylesEl = document.getElementById('gjs-styles');
           if (stylesEl && editor.StyleManager && stylesEl.children.length === 0) {
-            stylesEl.appendChild(editor.StyleManager.render());
+            const el = editor.StyleManager.render();
+            if (el) stylesEl.appendChild(el as Node);
           }
           const traitsEl = document.getElementById('gjs-traits');
           if (traitsEl && editor.TraitManager && traitsEl.children.length === 0) {
-            traitsEl.appendChild(editor.TraitManager.render());
+            const el = editor.TraitManager.render();
+            if (el) traitsEl.appendChild(el as Node);
           }
           const blocksEl = document.getElementById('gjs-blocks');
           if (blocksEl && editor.BlockManager && blocksEl.children.length === 0) {
-            blocksEl.appendChild(editor.BlockManager.render());
+            const el = editor.BlockManager.render();
+            if (el) blocksEl.appendChild(el as Node);
           }
         } catch (e) {
           console.error('GrapesEditor: Panel mount error:', e);
@@ -445,35 +529,6 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       setTimeout(mountPanels, 150);
       setTimeout(mountPanels, 500);
 
-      // Auto-expand layers and set custom names
-      setTimeout(() => {
-        try {
-          const rootLayer = editor.Layers?.getRoot?.();
-          if (rootLayer) {
-            rootLayer.set('open', true);
-          }
-
-          // Format layer names
-          const wrapper = editor.getWrapper();
-          if (wrapper) {
-            wrapper.onAll((comp: any) => {
-              const classes = comp.getClasses();
-              const typeName = comp.get('type') === 'default' ? comp.get('tagName') : comp.get('type');
-              let name = (typeName || 'div').toString();
-              name = name.charAt(0).toUpperCase() + name.slice(1);
-              if (classes && classes.length > 0) {
-                name += ` .${classes[0]}`;
-              } else if (comp.getId()) {
-                name += ` #${comp.getId()}`;
-              }
-              comp.set('name', name);
-              comp.set('custom-name', name);
-            });
-          }
-        } catch (e) {
-          console.error('GrapesEditor: Layer setup error:', e);
-        }
-      }, 500);
     });
 
     // Handle selection for Global Theme toggle
@@ -594,7 +649,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     });
 
     const FRIENDLY_NAMES: Record<string, string> = {
-      wrapper: 'Page Body', text: 'Text', textnode: 'Text',
+      wrapper: 'Body', text: 'Text', textnode: 'Text',
       image: 'Image', link: 'Link', video: 'Video',
     };
       const TAG_NAMES: Record<string, string> = {
@@ -617,31 +672,51 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       const tagName = (model.get('tagName') || 'div').toLowerCase();
       const name = (model.getName() || '').toLowerCase();
       
-      const ICONS = {
-         image: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #38BDF8; margin-right: 6px; display: inline-block; vertical-align: middle;"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
-         text: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #FCD34D; margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>',
-         link: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #A3E635; margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
-         navbar: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #F97316; margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>',
-         section: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #A78BFA; margin-right: 6px; display: inline-block; vertical-align: middle;"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',
-         button: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #60A5FA; margin-right: 6px; display: inline-block; vertical-align: middle;"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 9h6v6H9z"/></svg>',
-         div: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #64748B; margin-right: 6px; display: inline-block; vertical-align: middle;"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>',
-         wrapper: '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #38BDF8; margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>'
+      const ICONS: Record<string, string> = {
+        image: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#38BDF8;flex-shrink:0"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+        text: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#FCD34D;flex-shrink:0"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>',
+        heading: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#FBBF24;flex-shrink:0"><path d="M6 12h12"/><path d="M6 20V4"/><path d="M18 20V4"/></svg>',
+        link: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#A3E635;flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+        navbar: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#F97316;flex-shrink:0"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>',
+        section: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#A78BFA;flex-shrink:0"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',
+        footer: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#94A3B8;flex-shrink:0"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 15h18"/></svg>',
+        button: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#60A5FA;flex-shrink:0"><rect width="14" height="8" x="5" y="8" rx="2"/></svg>',
+        form: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#34D399;flex-shrink:0"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>',
+        input: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#34D399;flex-shrink:0"><rect width="20" height="8" x="2" y="8" rx="2"/><path d="M6 12h.01"/></svg>',
+        video: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#F472B6;flex-shrink:0"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2" ry="2"/></svg>',
+        list: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#94A3B8;flex-shrink:0"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>',
+        table: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#94A3B8;flex-shrink:0"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>',
+        div: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#475569;flex-shrink:0"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>',
+        wrapper: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#38BDF8;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
       };
 
       if (name.includes('page body') || name.includes('wrapper') || name.includes('thân trang')) return ICONS.wrapper;
       if (type === 'image' || tagName === 'img') return ICONS.image;
-      if (type === 'text' || ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span'].includes(tagName)) return ICONS.text;
+      if (type === 'video' || tagName === 'video' || tagName === 'iframe') return ICONS.video;
+      if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) return ICONS.heading;
+      if (type === 'text' || ['p', 'span'].includes(tagName)) return ICONS.text;
       if (type === 'link' || tagName === 'a') return ICONS.link;
-      if (type === 'navbar' || tagName === 'nav' || tagName === 'header' || name.includes('nav')) return ICONS.navbar;
+      if (type === 'navbar' || tagName === 'nav' || name.includes('nav') || name.includes('menu')) return ICONS.navbar;
+      if (tagName === 'header' || name.includes('header')) return ICONS.navbar;
+      if (tagName === 'footer' || name.includes('footer')) return ICONS.footer;
       if (type === 'button' || tagName === 'button') return ICONS.button;
-      if (type === 'section' || name.includes('section')) return ICONS.section;
+      if (type === 'form' || tagName === 'form') return ICONS.form;
+      if (['input', 'select', 'textarea'].includes(tagName)) return ICONS.input;
+      if (tagName === 'ul' || tagName === 'ol' || tagName === 'li') return ICONS.list;
+      if (tagName === 'table' || tagName === 'tr' || tagName === 'td' || tagName === 'th') return ICONS.table;
+      if (type === 'section' || tagName === 'section' || name.includes('section')) return ICONS.section;
       
       return ICONS.div;
     };
 
     const patchComponentName = (model: any) => {
-      model.getName = () => getFriendlyName(model);
-      model.set('icon', getLucideIcon(model));
+      const friendlyName = getFriendlyName(model);
+      const icon = getLucideIcon(model);
+      // Use model.set() so Backbone triggers change events and GrapesJS layer re-renders
+      model.set('name', friendlyName);
+      model.set('icon', icon);
+      // Also override getName so it consistently returns the friendly name
+      model.getName = () => friendlyName;
       const components = model.components();
       if (components) components.each(patchComponentName);
     };
@@ -655,7 +730,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       }
     };
 
-    let layerObserver: MutationObserver | undefined;
+
 
     const enableFreeResizing = (model: any) => {
       if (!model) return;
@@ -935,9 +1010,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       window.removeEventListener('genzite:grapes:setcontent', contentHandler);
       window.removeEventListener('genzite:grapes:undo', undoHandler);
       window.removeEventListener('genzite:grapes:redo', redoHandler);
-      window.removeEventListener('genzite:grapes:zoom-in', zoomInHandler);
-      window.removeEventListener('genzite:grapes:zoom-out', zoomOutHandler);
-      window.removeEventListener('genzite:grapes:zoom-fit', zoomFitHandler);
+
       window.removeEventListener('genzite:grapes:pan:toggle', panToggleHandler);
       window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointerup', handlePointerUp);
@@ -994,10 +1067,14 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
           /* Hide all built-in GrapesJS panels (top bar, right sidebar, devices, commands) */
           .gjs-pn-panels, .gjs-pn-panel, .gjs-pn-devices-c, .gjs-pn-devices, .gjs-pn-commands, .gjs-pn-views, .gjs-pn-buttons { display: none !important; }
           /* Fix Canvas background to fill the Rnd container perfectly & Canva Artboard style */
-          .gjs-cv-canvas { background: transparent !important; height: 100% !important; width: 100% !important; }
-          .gjs-frame { margin: 0 !important; display: block; border-radius: 4px !important; border: none !important; width: 100% !important; height: 100% !important; box-shadow: 0 16px 40px -8px rgba(0,0,0,0.5) !important; }
-          .gjs-frame-wrapper { display: block !important; padding: 0 !important; overflow: hidden !important; }
-          .gjs-editor { background: transparent !important; }
+          /* GrapesJS offsets .gjs-cv-canvas by the panel height — force to 0 since we hide all panels */
+          .gjs-cv-canvas { background: transparent !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; }
+          .gjs-frame { margin: 0 !important; display: block; border: none !important; width: 100% !important; height: 100% !important; }
+          .gjs-frame-wrapper { display: block !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; width: 100% !important; height: 100% !important; }
+          .gjs-editor { background: transparent !important; position: relative !important; width: 100% !important; height: 100% !important; }
+          /* Hide GrapesJS native layer icons (SVG/i elements injected by preset plugins) — we inject our own */
+          .gjs-layer-title-inn > svg,
+          .gjs-layer-title-inn > i.gjs-layer-icon { display: none !important; }
 
           /* ========================================================
              CANVA-STYLE ON-PAGE DIRECT MANIPULATION & SELECTION SUITE
@@ -1164,8 +1241,9 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
             background: rgba(14,165,233,0.14) !important; color: #38BDF8 !important;
           }
           #gjs-layers .gjs-layer-active > .gjs-layer-title .gjs-layer-name { color: #38BDF8 !important; font-weight: 500; }
-          .gjs-layer-title-inn { display: flex; align-items: center; gap: 5px; flex: 1; overflow: hidden; }
-          .gjs-layer-name { font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .gjs-layer-title-inn { display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; min-width: 0; }
+          .gjs-layer-title-inn > svg { flex-shrink: 0; }
+          .gjs-layer-name { font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: inherit; }
           /* 3. Caret — keep clickable */
           .gjs-layer-caret { opacity: 0.3; cursor: pointer !important; transition: opacity 0.15s; margin-right: 2px !important; flex-shrink: 0; }
           .gjs-layer-title:hover .gjs-layer-caret { opacity: 1; }

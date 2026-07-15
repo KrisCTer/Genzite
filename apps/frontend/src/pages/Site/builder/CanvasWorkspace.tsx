@@ -1,12 +1,20 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { message, Modal, Spin, ColorPicker, Popover } from 'antd';
+import { message, Modal, Spin, Form, Input } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { fetchWidgetsApi, deletePageApi } from '../../../api/sites';
+import { fetchWidgetsApi, deletePageApi, duplicateSiteApi, updateSiteApi, updatePageApi } from '../../../api/sites';
 import { uploadMediaFileApi } from '../../../api/media';
+
+export interface CanvasStroke {
+  id: string;
+  points: { x: number; y: number }[];
+  color: string;
+  width: number;
+}
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import html2canvas from 'html2canvas';
+import ReactMarkdown from 'react-markdown';
 import { 
   ZoomInOutlined, 
   ZoomOutOutlined, 
@@ -27,99 +35,39 @@ import {
   BookOutlined,
   UndoOutlined,
   RedoOutlined,
-  PlusOutlined,
   CopyOutlined,
   CloseOutlined
 } from '@ant-design/icons';
-import { Sparkles, X, Monitor, Palette, Plus, MoreVertical, ChevronRight, Trash2 } from 'lucide-react';
+import { Sparkles, X, Monitor, Trash2 } from 'lucide-react';
 import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
-import AgentLogSidebar from './AgentLogSidebar';
 import { useAiLogStore } from '../../../store/aiLogs';
 import { ThemeEditorPanel } from './workspace-components/ThemeEditorPanel';
+import { ExportPanel } from './workspace-components/ExportPanel';
 import { LeftSidebar } from './workspace-components/LeftSidebar';
-
+import { useAuthStore } from '../../../store/auth';
+import WidgetRenderer from './WidgetRenderer';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { DraggableBoard } from './components/DraggableBoard';
+import { MediaLibraryModal } from './components/MediaLibraryModal';
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.1;
 const PAGE_SPACING = 1640;
 
-const DraggableBoard = ({ initialX, initialY, zoom, activeTool, children, style, requestTopZ }: any) => {
-  const [pos, setPos] = useState({ x: initialX, y: initialY });
-  const [isDragging, setIsDragging] = useState(false);
-  const [localZ, setLocalZ] = useState(1);
-  const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (activeTool && activeTool !== 'select') return;
-    if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('button, input, textarea, select, [data-nodrag]')) return;
-    
-    e.stopPropagation();
-    setIsDragging(true);
-    
-    if (requestTopZ) {
-      setLocalZ(requestTopZ());
-    }
-
-    dragStart.current = { x: e.clientX, y: e.clientY, startX: pos.x, startY: pos.y };
-  }, [pos.x, pos.y, requestTopZ, activeTool]);
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
-    e.stopPropagation();
-    const dx = (e.clientX - dragStart.current.x) / zoom;
-    const dy = (e.clientY - dragStart.current.y) / zoom;
-    setPos({ x: dragStart.current.startX + dx, y: dragStart.current.startY + dy });
-  }, [isDragging, zoom]);
-
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
-    e.stopPropagation();
-    setIsDragging(false);
-  }, [isDragging]);
-
-  return (
-    <>
-      <div
-        style={{
-          position: 'absolute',
-          left: pos.x,
-          top: pos.y,
-          zIndex: localZ,
-          cursor: (activeTool && activeTool !== 'select') ? 'inherit' : (isDragging ? 'grabbing' : 'grab'),
-          ...style
-        }}
-        onPointerDown={onPointerDown}
-      >
-        <div style={{ pointerEvents: isDragging ? 'none' : 'auto', width: '100%', height: '100%' }}>
-          {children}
-        </div>
-      </div>
-      {isDragging && (
-        <div 
-          style={{ position: 'fixed', inset: 0, zIndex: 9999999, cursor: 'grabbing' }}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        />
-      )}
-    </>
-  );
-};
 
 interface CanvasWorkspaceProps {
   pages: any[];
   siteId: string;
   site?: any;
-  onAIGenerated?: (jobId: string) => void;
+  onAIGenerated?: (jobId: string, subdomain?: string, platform?: 'app' | 'web') => void;
   onViewDetails?: () => void;
   onViewCode?: () => void;
   onDownload?: () => void;
   onReloadPage?: () => void;
   onDeletePage?: () => void;
+  onDuplicateProject?: () => void;
 }
 
 const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ 
@@ -132,11 +80,90 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   onDownload,
   onReloadPage,
   onDeletePage,
+  onDuplicateProject,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<any>(null);
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const isOwner = !!(user?.id && site?.ownerId && site.ownerId === user.id);
+
+  const CANVAS_IMAGES_KEY = `genzite-canvas-images-${siteId}`;
+  const [floatingImages, setFloatingImages] = useState<{ id: string; url: string; name: string; previewUrl?: string; uploading?: boolean }[]>(() => {
+    try {
+      const saved = localStorage.getItem(CANVAS_IMAGES_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { id: string; url: string; name: string }[];
+        return parsed.map(p => ({ ...p, uploading: false }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+  const [floatingNotes, setFloatingNotes] = useState<{ id: string; title: string; content: string }[]>([]);
+
+  const DRAWINGS_KEY = `genzite-canvas-drawings-${siteId}`;
+  const [drawings, setDrawings] = useState<CanvasStroke[]>(() => {
+    try {
+      const saved = localStorage.getItem(`genzite-canvas-drawings-${siteId}`);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch { /* ignore */ }
+    if (site?.settings?.canvasDrawings && Array.isArray(site.settings.canvasDrawings)) {
+      return site.settings.canvasDrawings;
+    }
+    return [];
+  });
+
+  const [drawColor, setDrawColor] = useState<string>('#6366F1'); // Indigo default
+  const [drawWidth, setDrawWidth] = useState<number>(4);
+  const [isEraserMode, setIsEraserMode] = useState<boolean>(false);
+  const [currentStroke, setCurrentStroke] = useState<CanvasStroke | null>(null);
+  const [frameSelectBox, setFrameSelectBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const [starredPageIds, setStarredPageIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`genzite-canvas-starred-pages-${siteId}`);
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    if (site?.settings?.starredPageIds && Array.isArray(site.settings.starredPageIds)) {
+      return site.settings.starredPageIds;
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (siteId && starredPageIds) {
+      try {
+        localStorage.setItem(`genzite-canvas-starred-pages-${siteId}`, JSON.stringify(starredPageIds));
+      } catch { /* ignore */ }
+    }
+  }, [starredPageIds, siteId]);
+
+  useEffect(() => {
+    if (site?.settings?.canvasDrawings && Array.isArray(site.settings.canvasDrawings)) {
+      setDrawings(prev => prev.length === 0 ? site.settings.canvasDrawings : prev);
+    }
+  }, [site?.settings?.canvasDrawings]);
+
+  const saveDrawingsToBackend = useCallback(async (newDrawings: CanvasStroke[]) => {
+    try {
+      localStorage.setItem(DRAWINGS_KEY, JSON.stringify(newDrawings));
+      if (siteId && !siteId.startsWith('gen-')) {
+        await updateSiteApi(siteId, {
+          settings: {
+            ...(typeof site?.settings === 'object' && site?.settings ? site.settings : {}),
+            canvasDrawings: newDrawings
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save drawings to backend', err);
+    }
+  }, [siteId, site?.settings, DRAWINGS_KEY]);
 
   const submitSiteGeneration = useAiLogStore(state => state.submitSiteGeneration);
   const [isApplyingTheme, setIsApplyingTheme] = useState(false);
@@ -163,7 +190,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       'gemini-2.5-flash',
       siteId || `gen-${Date.now()}`,
       JSON.stringify(themeOverrides),
-      (jobId, subdomain) => {
+      (jobId, _subdomain) => {
         setIsApplyingTheme(false);
         message.success('Design applied successfully! Loading...');
         if (onAIGenerated) {
@@ -180,11 +207,12 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasCenterRef = useRef<HTMLDivElement>(null);
   const workspaceRootRef = useRef<HTMLDivElement>(null);
+  const pendingUploadRef = useRef<{ id: string; previewUrl: string } | null>(null);
 
   const [zoom, setZoom] = useState(0.4);
   const [pan, setPan] = useState({ x: 100, y: 100 });
   const [isPanning, setIsPanning] = useState(false);
-  const [activeTool, setActiveTool] = useState<'select' | 'frame' | 'draw' | 'pan' | 'image' | 'palette' | 'star'>('pan');
+  const [activeTool, setActiveTool] = useState<'select' | 'frame' | 'draw' | 'pan' | 'image' | 'palette' | 'star' | 'tag'>('pan');
 
   useEffect(() => {
     const handleHistoryState = (e: any) => {
@@ -201,8 +229,19 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isStylesOpen, setIsStylesOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [detailThemeId, setDetailThemeId] = useState<string | null>(null);
   const [detailThemeTab, setDetailThemeTab] = useState<'Theme' | 'DESIGN.md'>('Theme');
+  const [isClearDrawingsModalOpen, setIsClearDrawingsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeTool !== 'palette') {
+      setIsStylesOpen(false);
+    }
+    if (activeTool !== 'tag') {
+      setPageToEdit(null);
+    }
+  }, [activeTool]);
   const [themeColorOverrides, setThemeColorOverrides] = useState<Record<string, string>>({});
   const [themeFonts, setThemeFonts] = useState<Record<string, string>>({});
   const [expandedFontRole, setExpandedFontRole] = useState<string | null>(null);
@@ -213,7 +252,60 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [isThemeSchemeOpen, setIsThemeSchemeOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('full');
+  const isSidebarExpandedRef = useRef(true);
+
+  // Keep a ref in sync so panToCenterDevice can read it without being re-created
+  useEffect(() => {
+    isSidebarExpandedRef.current = isSidebarExpanded;
+  }, [isSidebarExpanded]);
+
+  const panToCenterDevice = useCallback((device: 'mobile' | 'tablet' | 'desktop' | 'full') => {
+    setCanvasDevice(device);
+    const targetZoom = device === 'mobile' ? 0.85 : device === 'tablet' ? 0.75 : device === 'desktop' ? 0.55 : 0.45;
+    setZoom(targetZoom);
+
+    // Measure the actual visible canvas area via DOM ref (accounts for sidebar, toolbar, AIPromptBar automatically)
+    const rect = canvasCenterRef.current?.getBoundingClientRect();
+    const viewW = rect ? rect.width : Math.max(400, window.innerWidth - (isSidebarExpandedRef.current ? 280 : 0));
+    const viewH = rect ? rect.height : Math.max(400, window.innerHeight - 144);
+
+    const w = device === 'mobile' ? 390 : device === 'tablet' ? 768 : 1440;
+    const h = device === 'mobile' ? 844 : device === 'tablet' ? 1024 : 900;
+
+    // canvas-center uses transform: translate(panX, panY) scale(zoom), transformOrigin: '0 0'
+    // screenX_in_canvas = panX + pos.x * zoom
+    // To center the device frame horizontally: panX + PAGE_SPACING*zoom + (w*zoom)/2 = viewW/2
+    const initialX = PAGE_SPACING;
+    const panX = (viewW - w * targetZoom) / 2 - initialX * targetZoom;
+
+    // To center the device frame vertically with a small top gap (48px)
+    const initialY = 160;
+    const topGap = 48;
+    const panY = topGap + Math.max(0, (viewH - h * targetZoom - topGap) / 2) - initialY * targetZoom;
+
+    setPan({ x: panX, y: panY });
+  }, []); // stable — reads canvasCenterRef and sidebar via ref, no stale closure
+
+  // Auto-center on initial load once the canvas DOM is ready
+  useEffect(() => {
+    const initialDevice = site?.settings?.platform === 'app' ? 'mobile' : 'full';
+    const timer = setTimeout(() => panToCenterDevice(initialDevice), 50);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run only once on mount
+
+  useEffect(() => {
+    if (site?.settings?.platform === 'app') {
+      setCanvasDevice('mobile');
+    } else if (site?.settings?.platform === 'web') {
+      setCanvasDevice('full');
+    }
+  }, [site?.settings?.platform]);
+
   const isGenerating = useAiLogStore(state => state.isGenerating);
+  const activeTargetPageId = useAiLogStore(state => state.activeTargetPageId);
+  const activePrompt = useAiLogStore(state => state.activePrompt);
+  const aiSteps = useAiLogStore(state => state.steps);
   
   useEffect(() => {
     if (isGenerating) {
@@ -223,13 +315,39 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
 
   const queryClient = useQueryClient();
 
+  // Persist completed floating images to localStorage
+  useEffect(() => {
+    const completed = floatingImages.filter(img => !img.uploading && !!img.url && !img.url.startsWith('blob:'));
+    try {
+      localStorage.setItem(CANVAS_IMAGES_KEY, JSON.stringify(completed));
+    } catch { /* ignore storage quota */ }
+  }, [floatingImages, CANVAS_IMAGES_KEY]);
+
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadMediaFileApi(file),
-    onSuccess: () => {
-      message.success('Image uploaded successfully!');
+    onSuccess: (mediaFile) => {
+      const pending = pendingUploadRef.current;
+      if (pending) {
+        // Swap local blob preview for the real server URL
+        setFloatingImages(prev => prev.map(img =>
+          img.id === pending.id
+            ? { ...img, url: mediaFile.url, name: mediaFile.filename, uploading: false }
+            : img
+        ));
+        URL.revokeObjectURL(pending.previewUrl);
+        pendingUploadRef.current = null;
+      }
       queryClient.invalidateQueries({ queryKey: ['site-media'] });
+      message.success('Image added to canvas!');
     },
     onError: () => {
+      // Remove the pending board on error
+      const pending = pendingUploadRef.current;
+      if (pending) {
+        setFloatingImages(prev => prev.filter(img => img.id !== pending.id));
+        URL.revokeObjectURL(pending.previewUrl);
+        pendingUploadRef.current = null;
+      }
       message.error('Failed to upload image!');
     }
   });
@@ -237,10 +355,20 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Show instantly with local blob preview before upload finishes
+      const localPreviewUrl = URL.createObjectURL(file);
+      const tempId = `img-${Date.now()}`;
+      pendingUploadRef.current = { id: tempId, previewUrl: localPreviewUrl };
+
+      setFloatingImages(prev => [
+        ...prev,
+        { id: tempId, url: localPreviewUrl, name: file.name, uploading: true }
+      ]);
+
       uploadMutation.mutate(file);
     }
     if (e.target) {
-      e.target.value = ''; // Reset input to allow uploading same file again
+      e.target.value = '';
     }
   };
   
@@ -262,19 +390,107 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   });
 
+  const [pageToEdit, setPageToEdit] = useState<any>(null);
+  const updatePageMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: { title: string; slug: string } }) => updatePageApi(id, data),
+    onSuccess: () => {
+      message.success('Page updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['site-pages', siteId] });
+      setPageToEdit(null);
+    },
+    onError: () => {
+      message.error('Failed to update page!');
+    }
+  });
+
+  const { data: allPagesWidgets, isFetching: isFetchingWidgets } = useQuery({
+    queryKey: ['site-all-widgets', siteId, pages],
+    queryFn: async () => {
+      if (!pages || pages.length === 0) return [];
+      const results = await Promise.all(
+        pages.map((page: any) => fetchWidgetsApi(page.id).catch(() => []))
+      );
+      return results.flat();
+    },
+    enabled: !!pages && pages.length > 0 && !!siteId,
+  });
+
+  const getTargetActivePage = useCallback(() => {
+    if (!pages || pages.length === 0) return undefined;
+    if (selectedId) {
+      const idList = selectedId.split(',').map((id: string) => id.trim()).filter(Boolean);
+      for (const id of idList) {
+        const directPage = pages.find((p: any) => p.id === id || id.includes(p.id));
+        if (directPage) return directPage;
+        if (allPagesWidgets && Array.isArray(allPagesWidgets)) {
+          const widget = allPagesWidgets.find((w: any) => w._id === id || id.includes(w._id));
+          if (widget && widget.pageId) {
+            const widgetPage = pages.find((p: any) => p.id === widget.pageId);
+            if (widgetPage) return widgetPage;
+          }
+        }
+      }
+    }
+    return pages[0];
+  }, [pages, selectedId, allPagesWidgets]);
+
   const handleDeletePage = () => {
-    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    const activePage = getTargetActivePage();
     if (!activePage) return;
     setPageToDelete(activePage);
   };
 
+  const handleDuplicateProject = async () => {
+    if (!siteId) {
+      message.error('Project not saved yet');
+      return;
+    }
+    const hideLoading = message.loading({ content: 'Duplicating project...', key: 'duplicate-project', duration: 0 });
+    try {
+      await duplicateSiteApi(siteId);
+      hideLoading();
+      message.success({ content: 'Project duplicated successfully!', key: 'duplicate-project' });
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+      navigate('/project');
+    } catch (error: any) {
+      hideLoading();
+      message.error({ 
+        content: error?.response?.data?.message || 'Failed to duplicate project', 
+        key: 'duplicate-project' 
+      });
+    }
+  };
+
   const handleReloadPage = () => {
     queryClient.invalidateQueries({ queryKey: ['site-all-widgets', siteId] });
-    message.success('Page reloaded successfully!');
+    
+    // Create a visual feedback effect on the active page
+    const activePage = getTargetActivePage();
+    if (activePage) {
+      const pageEl = document.getElementById(`page-card-${activePage.id}`);
+      if (pageEl) {
+        pageEl.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        pageEl.style.transform = 'scale(0.98)';
+        pageEl.style.opacity = '0.7';
+        pageEl.style.filter = 'brightness(1.1)';
+        
+        setTimeout(() => {
+          pageEl.style.transform = 'scale(1)';
+          pageEl.style.opacity = '1';
+          pageEl.style.filter = 'brightness(1)';
+          
+          setTimeout(() => {
+            pageEl.style.transition = '';
+            pageEl.style.transform = '';
+            pageEl.style.filter = '';
+          }, 300);
+        }, 200);
+      }
+    }
   };
 
   const handleDownload = async () => {
-    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    const activePage = getTargetActivePage();
     if (!activePage) return;
     
     const hideMessage = message.loading('Preparing download data...', 0);
@@ -291,6 +507,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       saveAs(zipBlob, `${activePage.slug || 'export'}.zip`);
       hideMessage();
       message.success('Downloaded successfully!');
+      setIsExportOpen(false);
     } catch (err) {
       console.error(err);
       hideMessage();
@@ -298,20 +515,76 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   };
 
-  const { data: allPagesWidgets, isFetching: isFetchingWidgets } = useQuery({
-    queryKey: ['site-all-widgets', siteId, pages],
-    queryFn: async () => {
-      if (!pages || pages.length === 0) return [];
-      const results = await Promise.all(
-        pages.map((page: any) => fetchWidgetsApi(page.id).catch(() => []))
-      );
-      return results.flat();
-    },
-    enabled: !!pages && pages.length > 0 && !!siteId,
-  });
+  const handleCopyCode = () => {
+    const htmlString = getActivePageCode();
+    navigator.clipboard.writeText(htmlString);
+    message.success('Đã sao chép mã HTML vào bảng nhớ tạm!');
+    setIsExportOpen(false);
+  };
+
+  const handleSummarizeProject = async (_description: string) => {
+    const activePage = getTargetActivePage();
+    if (!activePage) return;
+    
+    setIsExportOpen(false);
+    const hideMessage = message.loading('AI Studio đang tạo tóm tắt...', 0);
+    try {
+      setTimeout(() => {
+        const projectName = site?.name || 'ELARA';
+        const projectDesc = site?.settings?.designPrompt || 'Luxury Minimalist Lifestyle';
+        
+        const summaryText = `Project Brief: ${projectName} — ${projectDesc}
+
+## Brand Vision
+**${projectName}** is a lifestyle brand dedicated to "Precision in Simplicity." The brand elevates everyday experiences through curated design and mindful production, emphasizing high-quality materials, architectural structure, and a "less is more" philosophy.
+
+## Target Audience
+- **Discerning Minimalists**: Individuals who value quality over quantity and seek timeless pieces.
+- **Design Enthusiasts**: Users appreciative of architectural forms, clean lines, and neutral palettes.
+- **Luxury Shoppers**: Customers looking for an exclusive, calm, and premium digital shopping experience.
+
+## Design Principles
+- **Minimalist Luxury**: Use of ample whitespace, a monochromatic palette (Black, White, Stone), and high-contrast typography.
+- **Typographic Hierarchy**: Bold use of serif typefaces (Playfair Display) for headlines to convey heritage and elegance, paired with clean sans-serifs for utility.
+- **Materiality**: Visuals should focus on texture, craftsmanship, and "obsidian structure."
+- **Invisible Interface**: UI elements should be functional but unobtrusive, allowing product imagery to take center stage.
+
+## Key Features & User Journey
+- **Immersive Homepage**: A high-impact entry point featuring "The Core Collection" and a scroll-triggered discovery flow.
+- **Curated Collections**: Structured galleries for "Limited Series" and "Essentials."
+- **The Journal**: A space for brand storytelling, philosophy, and "Precision in Simplicity" content.
+- **Seamless Navigation**: A clean, center-aligned header with a slide-out drawer for deep exploration.
+- **Exclusive Shopping Bag**: A refined checkout preview that maintains the luxury aesthetic.
+
+## Visual Identity (Current Assets)
+- **Primary Color**: #1a1a1a (Deep Obsidian)
+- **Surface Color**: #fbf9f9 (Off-white / Stone)
+- **Typography**: Playfair Display (Headline), Sans-serif (Body)
+- **Logo**: Geometric "A" within a circle
+
+## Success Metrics
+- **Brand Cohesion**: Consistency across all touchpoints (Mobile, Desktop, Marketing).
+- **Engagement**: High interaction rates with "The Journal" and Collection deep-dives.
+- **Conversion**: A frictionless, premium path to purchase.`;
+
+        message.success('Đã tạo tóm tắt dự án thành công!');
+        hideMessage();
+        
+        setFloatingNotes(prev => [...prev, { id: `note-${Date.now()}`, title: 'Project Brief', content: summaryText }]);
+        
+        // Dispatch custom event if a widget listener exists
+        window.dispatchEvent(new CustomEvent('genzite:widget:create', {
+          detail: { type: 'text', content: summaryText }
+        }));
+      }, 2000);
+    } catch (err) {
+      hideMessage();
+      message.error('Lỗi khi tạo tóm tắt');
+    }
+  };
 
   const getActivePageCode = useCallback(() => {
-    const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+    const activePage = getTargetActivePage();
     if (!activePage || !allPagesWidgets) return '';
     
     const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
@@ -324,7 +597,10 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       htmlContent = grapesWidget.contentConfig?.html || '';
       cssContent = grapesWidget.contentConfig?.css || '';
     } else {
-      htmlContent = pageWidgets.map((w: any) => w.contentConfig?.html || '').join('\n');
+      htmlContent = pageWidgets.map((w: any) => {
+        if (w.contentConfig?.html) return w.contentConfig.html; // Fallback to legacy HTML
+        return renderToStaticMarkup(<WidgetRenderer type={w.type} config={w.contentConfig} isActive={false} />);
+      }).join('\n');
     }
     
     return `<!DOCTYPE html>
@@ -461,7 +737,7 @@ ${htmlContent}
 
   const zoomIn = () => setZoom(z => Math.min(MAX_ZOOM, parseFloat((z + ZOOM_STEP).toFixed(2))));
   const zoomOut = () => setZoom(z => Math.max(MIN_ZOOM, parseFloat((z - ZOOM_STEP).toFixed(2))));
-  const resetZoom = () => { setZoom(0.4); setPan({ x: 100, y: 100 }); };
+  const resetZoom = () => panToCenterDevice(canvasDevice);
 
   useEffect(() => {
     const el = canvasCenterRef.current;
@@ -480,16 +756,37 @@ ${htmlContent}
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
       switch(e.key.toLowerCase()) {
-        case 'v': setActiveTool('select'); break;
-        case 'f': setActiveTool('frame'); break;
-        case 'p': setActiveTool('draw'); break;
-        case 'h': setActiveTool('pan'); break;
+        case 'v': 
+          setActiveTool('select'); 
+          setIsStylesOpen(false);
+          setIsDetailsOpen(false);
+          break;
+        case 'f': 
+          setActiveTool('frame'); 
+          setIsStylesOpen(false);
+          setIsDetailsOpen(false);
+          break;
+        case 'a':
+        case 'p': 
+          setActiveTool('draw'); 
+          setIsStylesOpen(false);
+          setIsDetailsOpen(false);
+          break;
+        case 'h': 
+          setActiveTool('pan'); 
+          setIsStylesOpen(false);
+          setIsDetailsOpen(false);
+          break;
         case 'i': 
           setActiveTool('image'); 
+          setIsStylesOpen(false);
+          setIsDetailsOpen(false);
           fileInputRef.current?.click();
           break;
         case 'c': 
           setActiveTool('palette'); 
+          setIsStylesOpen(prev => !prev);
+          setIsDetailsOpen(false);
           setPan({ x: 100, y: 100 }); 
           break;
       }
@@ -499,9 +796,19 @@ ${htmlContent}
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 0 && activeTool === 'frame') {
+      const rootRect = workspaceRootRef.current?.getBoundingClientRect();
+      if (rootRect) {
+        const vx = (e.clientX - rootRect.left - pan.x) / zoom;
+        const vy = (e.clientY - rootRect.top - pan.y) / zoom;
+        setFrameSelectBox({ startX: vx, startY: vy, currentX: vx, currentY: vy });
+      }
+      return;
+    }
+
     if ((e.target as HTMLElement).classList.contains('canvas-center') ||
         (e.target as HTMLElement).classList.contains('canvas-viewport')) {
-      if (e.button === 0) {
+      if (e.button === 0 && activeTool !== 'pan') {
         setSelectedId(null);
       }
     }
@@ -511,9 +818,15 @@ ${htmlContent}
       setIsPanning(true);
       panStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
     }
-  }, [pan.x, pan.y, activeTool]);
+  }, [pan.x, pan.y, zoom, activeTool]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (frameSelectBox && workspaceRootRef.current) {
+      const rootRect = workspaceRootRef.current.getBoundingClientRect();
+      const vx = (e.clientX - rootRect.left - pan.x) / zoom;
+      const vy = (e.clientY - rootRect.top - pan.y) / zoom;
+      setFrameSelectBox(prev => prev ? { ...prev, currentX: vx, currentY: vy } : null);
+    }
     if (isPanning && panStart.current) {
       setPan({
         x: panStart.current.px + (e.clientX - panStart.current.mx),
@@ -525,23 +838,70 @@ ${htmlContent}
       workspaceRootRef.current.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
       workspaceRootRef.current.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
     }
-  }, [isPanning]);
+  }, [isPanning, frameSelectBox, pan.x, pan.y, zoom]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (frameSelectBox) {
+      const rootRect = workspaceRootRef.current?.getBoundingClientRect();
+      if (rootRect && pages && pages.length > 0) {
+        const vxMin = Math.min(frameSelectBox.startX, frameSelectBox.currentX);
+        const vxMax = Math.max(frameSelectBox.startX, frameSelectBox.currentX);
+        const vyMin = Math.min(frameSelectBox.startY, frameSelectBox.currentY);
+        const vyMax = Math.max(frameSelectBox.startY, frameSelectBox.currentY);
+
+        const screenLeft = rootRect.left + pan.x + vxMin * zoom;
+        const screenTop = rootRect.top + pan.y + vyMin * zoom;
+        const screenRight = rootRect.left + pan.x + vxMax * zoom;
+        const screenBottom = rootRect.top + pan.y + vyMax * zoom;
+
+        if (Math.abs(vxMax - vxMin) > 5 || Math.abs(vyMax - vyMin) > 5) {
+          const matchedPageIds: string[] = [];
+          pages.forEach((p: any) => {
+            const pageEl = document.getElementById(`page-card-${p.id}`);
+            if (pageEl) {
+              const rect = pageEl.getBoundingClientRect();
+              const intersects = !(
+                screenLeft > rect.right ||
+                screenRight < rect.left ||
+                screenTop > rect.bottom ||
+                screenBottom < rect.top
+              );
+              if (intersects) {
+                matchedPageIds.push(p.id);
+              }
+            }
+          });
+
+          if (matchedPageIds.length > 0) {
+            const newSelection = e.shiftKey && selectedId
+              ? Array.from(new Set([...selectedId.split(','), ...matchedPageIds])).join(',')
+              : matchedPageIds.join(',');
+            setSelectedId(newSelection);
+          } else if (!e.shiftKey) {
+            setSelectedId(null);
+          }
+        }
+      }
+      setFrameSelectBox(null);
+    }
+
     setIsPanning(false);
     panStart.current = null;
-  }, []);
+  }, [frameSelectBox, pan.x, pan.y, zoom, pages, selectedId]);
 
   const handlePreview = () => {
-    const homePage = pages?.find((p: any) => p.slug === 'home' || p.slug === '/') || pages?.[0];
-    if (homePage) {
-      window.open(`/live/${homePage.id}`, '_blank');
+    const activePage = getTargetActivePage();
+    if (activePage) {
+      window.open(`/preview/${siteId}?pageId=${activePage.id}`, '_blank');
     }
   };
 
   const handlePublish = () => {
-    window.open(`https://${siteId}.genzite.com`, '_blank');
+    // Publish logic is handled inside CanvasToolbarModals via API
+    // We no longer need to open the local /live/ route
   };
+
+  const activePage = getTargetActivePage();
 
   return (
     <div 
@@ -569,20 +929,27 @@ ${htmlContent}
         siteId={siteId}
         site={site}
         selectedId={selectedId}
+        activePageId={activePage?.id}
         canvasDevice={canvasDevice}
-        onDeviceChange={setCanvasDevice}
+        onDeviceChange={panToCenterDevice}
         onViewDetails={onViewDetails || (() => { setIsDetailsOpen(true); setIsStylesOpen(false); })}
+        onViewStyles={(tab) => { setIsStylesOpen(true); if (tab) setDetailThemeTab(tab); setIsDetailsOpen(false); setActiveTool('palette'); }}
         onViewCode={onViewCode || (() => setIsCodeModalOpen(true))}
+        onExport={() => setIsExportOpen(!isExportOpen)}
         onDownload={onDownload || handleDownload}
         onReloadPage={onReloadPage || handleReloadPage}
         onDeletePage={onDeletePage || handleDeletePage}
+        onDuplicateProject={onDuplicateProject || handleDuplicateProject}
+        onSelectTool={(toolId) => setActiveTool(toolId as any)}
       />
       
       <div className="canvas-body" style={{ display: 'flex', position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        <LeftSidebar 
-          isSidebarExpanded={isSidebarExpanded} 
-          setIsSidebarExpanded={setIsSidebarExpanded} 
-        />
+        {isOwner && (
+          <LeftSidebar 
+            isSidebarExpanded={isSidebarExpanded} 
+            setIsSidebarExpanded={setIsSidebarExpanded} 
+          />
+        )}
 
         <div
           className="canvas-center"
@@ -863,22 +1230,158 @@ ${htmlContent}
 
             {(pages || []).map((page: any, index: number) => {
               const isSelectedPage = selectedId?.includes(page.id) || (!selectedId && index === 0);
+              const isPageRegenerating = isGenerating && (
+                activeTargetPageId === page.id || 
+                (!activeTargetPageId && isSelectedPage && activePrompt && !activePrompt.match(/(?:Create|Tạo trang|Thêm trang|Tạo|Thêm)\s+/i))
+              );
+              const currentStepObj = aiSteps.length > 0 ? aiSteps[aiSteps.length - 1] : null;
+
               return (
                 <DraggableBoard
                   key={page.id}
                   initialX={(index + 1) * PAGE_SPACING}
-                  initialY={100}
+                  initialY={160}
                   zoom={zoom}
                   activeTool={activeTool}
                   requestTopZ={requestTopZ}
                 >
-                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                    {isFetchingWidgets && isSelectedPage && (
+                  <div id={`page-card-${page.id}`} style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    {isFetchingWidgets && isSelectedPage && !isPageRegenerating && (
                       <div style={{ position: 'absolute', inset: -8, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', borderRadius: 12 }}>
                         <Spin size="large" />
                         <div style={{ marginTop: 16, color: '#38bdf8', fontWeight: 600, fontSize: 16, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>Reloading data...</div>
                       </div>
                     )}
+
+                    {isPageRegenerating && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: -8,
+                        borderRadius: 24,
+                        zIndex: 9999,
+                        overflow: 'hidden',
+                        pointerEvents: 'none',
+                        boxShadow: '0 0 60px rgba(56, 189, 248, 0.45), inset 0 0 35px rgba(56, 189, 248, 0.25)',
+                        border: '2px solid rgba(56, 189, 248, 0.65)',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {/* Animated AI Scanning Laser Wave */}
+                        <motion.div
+                          animate={{
+                            top: ['-20%', '120%'],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut'
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            height: 80,
+                            background: 'linear-gradient(180deg, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.5) 50%, rgba(56, 189, 248, 0) 100%)',
+                            boxShadow: '0 0 40px 10px rgba(56, 189, 248, 0.7)',
+                            borderBottom: '2px solid #38bdf8',
+                            zIndex: 1
+                          }}
+                        />
+
+                        {/* Cybernetic Grid Overlay */}
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundImage: 'radial-gradient(rgba(56, 189, 248, 0.25) 1px, transparent 1px)',
+                          backgroundSize: '24px 24px',
+                          opacity: 0.7,
+                          zIndex: 2
+                        }} />
+
+                        {/* Center Glowing Luxury AI Progress Card */}
+                        <motion.div
+                          initial={{ scale: 0.85, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          style={{
+                            position: 'relative',
+                            zIndex: 10,
+                            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))',
+                            border: '1px solid rgba(56, 189, 248, 0.5)',
+                            borderRadius: 22,
+                            padding: '28px 36px',
+                            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 18,
+                            maxWidth: 360,
+                            width: '85%',
+                            textAlign: 'center'
+                          }}
+                        >
+                          {/* Rotating glowing AI ring + Sparkles Icon */}
+                          <div style={{ position: 'relative', width: 68, height: 68, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                borderRadius: '50%',
+                                border: '2px dashed #38bdf8',
+                                opacity: 0.8
+                              }}
+                            />
+                            <motion.div
+                              animate={{ scale: [1, 1.12, 1] }}
+                              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                              style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #38bdf8, #3b82f6)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 0 25px rgba(56, 189, 248, 0.9)'
+                              }}
+                            >
+                              <Sparkles className="w-6 h-6 text-white animate-pulse" />
+                            </motion.div>
+                          </div>
+
+                          <div>
+                            <div style={{ color: '#38bdf8', fontWeight: 700, fontSize: 13, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 6 }}>
+                              ✨ AI REGENERATING PAGE
+                            </div>
+                            <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 16, lineHeight: '1.4' }}>
+                              {currentStepObj ? currentStepObj.step : 'AI is reconstructing page layout...'}
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div style={{ width: '100%', background: 'rgba(255, 255, 255, 0.12)', borderRadius: 10, height: 6, overflow: 'hidden', position: 'relative' }}>
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${currentStepObj ? currentStepObj.percent : 20}%` }}
+                              transition={{ duration: 0.5 }}
+                              style={{
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #38bdf8, #34d399)',
+                                borderRadius: 10,
+                                boxShadow: '0 0 14px rgba(56, 189, 248, 0.85)'
+                              }}
+                            />
+                          </div>
+                        </motion.div>
+                      </div>
+                    )}
+
                     <CanvasPageFrame
                       pageId={page.id}
                       pageTitle={page.title || 'Home'}
@@ -887,18 +1390,271 @@ ${htmlContent}
                       onSelectWidget={setSelectedId}
                       activeTool={activeTool}
                       canvasDevice={canvasDevice}
+                      isStarred={starredPageIds.includes(page.id)}
+                      onToggleStar={() => {
+                        setStarredPageIds(prev =>
+                          prev.includes(page.id) ? prev.filter(id => id !== page.id) : [...prev, page.id]
+                        );
+                      }}
+                      onEditPageSettings={() => setPageToEdit(page)}
                     />
                   </div>
                 </DraggableBoard>
               );
             })}
+
+            {/* ── Floating Notes (e.g. Project Summaries) ── */}
+            {floatingNotes.map((note, idx) => (
+              <DraggableBoard
+                key={note.id}
+                initialX={(pages?.length + 1 + floatingImages.length + idx) * PAGE_SPACING}
+                initialY={160}
+                zoom={zoom}
+                activeTool={activeTool}
+                requestTopZ={requestTopZ}
+                style={{ width: 480 }}
+              >
+                {/* Title bar */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                  fontFamily: site?.settings?.fontFamily || 'Inter, system-ui, sans-serif'
+                }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1E293B', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <BookOutlined style={{ fontSize: 14, color: '#fff' }} />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 340 }}>
+                    {note.title}
+                  </span>
+                  <button
+                    type="button"
+                    data-nodrag
+                    onClick={() => setFloatingNotes(prev => prev.filter(n => n.id !== note.id))}
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#94A3B8', width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    title="Remove from canvas"
+                  >
+                    <CloseOutlined style={{ fontSize: 11 }} />
+                  </button>
+                </div>
+
+                {/* Note content */}
+                <div 
+                  className="custom-scrollbar markdown-content"
+                  style={{ 
+                    background: '#1A1C1E', 
+                    borderRadius: 20, 
+                    border: '1px solid rgba(255,255,255,0.1)', 
+                    boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+                    padding: 24,
+                    maxHeight: '60vh',
+                    overflowY: 'auto'
+                  }}
+                >
+                  <ReactMarkdown>
+                    {note.content}
+                  </ReactMarkdown>
+                </div>
+              </DraggableBoard>
+            ))}
+
+            {/* ── Floating Image Boards (uploaded via Image/Media tool) ── */}
+            {floatingImages.map((img, idx) => (
+              <DraggableBoard
+                key={img.id}
+                initialX={(pages?.length + 1 + idx) * PAGE_SPACING}
+                initialY={160}
+                zoom={zoom}
+                activeTool={activeTool}
+                requestTopZ={requestTopZ}
+                style={{ width: 480 }}
+              >
+                {/* Title bar */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                  fontFamily: site?.settings?.fontFamily || 'Inter, system-ui, sans-serif'
+                }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1E293B', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PictureOutlined style={{ fontSize: 14, color: '#fff' }} />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 340 }} title={img.name}>
+                    {img.name}
+                  </span>
+                  <button
+                    type="button"
+                    data-nodrag
+                    onClick={() => setFloatingImages(prev => prev.filter(i => i.id !== img.id))}
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#94A3B8', width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    title="Remove from canvas"
+                  >
+                    <CloseOutlined style={{ fontSize: 11 }} />
+                  </button>
+                </div>
+
+                {/* Image card */}
+                <div style={{ background: '#0F172A', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+                  {/* Image area with optional uploading overlay */}
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      style={{ width: '100%', display: 'block', maxHeight: 500, objectFit: 'contain', background: '#0F172A' }}
+                    />
+                    {img.uploading && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'rgba(15,23,42,0.55)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10
+                      }}>
+                        <Spin size="large" />
+                        <span style={{ color: '#38bdf8', fontSize: 13, fontWeight: 600, letterSpacing: '0.02em' }}>Uploading…</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(148,163,184,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
+                      {img.uploading ? 'Uploading to cloud…' : img.name}
+                    </span>
+                    <button
+                      type="button"
+                      data-nodrag
+                      disabled={img.uploading}
+                      onClick={() => { navigator.clipboard.writeText(img.url); message.success('URL copied!'); }}
+                      style={{ background: img.uploading ? 'rgba(56,189,248,0.04)' : 'rgba(56,189,248,0.1)', border: `1px solid ${img.uploading ? 'rgba(56,189,248,0.1)' : 'rgba(56,189,248,0.25)'}`, color: img.uploading ? 'rgba(56,189,248,0.35)' : '#38bdf8', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, cursor: img.uploading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                    >
+                      Copy URL
+                    </button>
+                  </div>
+                </div>
+              </DraggableBoard>
+            ))}
+
+            {/* ── Marquee / Frame Tool Selection Rectangle ── */}
+            {frameSelectBox && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: Math.min(frameSelectBox.startX, frameSelectBox.currentX),
+                  top: Math.min(frameSelectBox.startY, frameSelectBox.currentY),
+                  width: Math.abs(frameSelectBox.currentX - frameSelectBox.startX),
+                  height: Math.abs(frameSelectBox.currentY - frameSelectBox.startY),
+                  border: '2px dashed #38bdf8',
+                  background: 'rgba(56, 189, 248, 0.18)',
+                  boxShadow: '0 0 24px rgba(56, 189, 248, 0.4)',
+                  borderRadius: 8,
+                  pointerEvents: 'none',
+                  zIndex: 9999999
+                }}
+              />
+            )}
+
+            {/* ── Global Drawing Layer (Draw/Pencil Tool P overlay) ── */}
+            <svg
+              className="canvas-drawing-layer"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: 10000,
+                height: 10000,
+                pointerEvents: activeTool === 'draw' ? 'auto' : 'none',
+                zIndex: activeTool === 'draw' ? 99999 : 999,
+                cursor: isEraserMode ? 'not-allowed' : 'crosshair'
+              }}
+              onMouseDown={(e) => {
+                if (activeTool !== 'draw' || e.button !== 0) return;
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / zoom;
+                const y = (e.clientY - rect.top) / zoom;
+                setCurrentStroke({
+                  id: `stroke-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  points: [{ x, y }],
+                  color: drawColor,
+                  width: drawWidth
+                });
+              }}
+              onMouseMove={(e) => {
+                if (activeTool !== 'draw' || !currentStroke) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / zoom;
+                const y = (e.clientY - rect.top) / zoom;
+                setCurrentStroke(prev => prev ? {
+                  ...prev,
+                  points: [...prev.points, { x, y }]
+                } : null);
+              }}
+              onMouseUp={() => {
+                if (!currentStroke) return;
+                if (!isEraserMode && currentStroke.points.length >= 1) {
+                  const nextDrawings = [...drawings, currentStroke];
+                  setDrawings(nextDrawings);
+                  saveDrawingsToBackend(nextDrawings);
+                }
+                setCurrentStroke(null);
+              }}
+              onMouseLeave={() => {
+                if (currentStroke) {
+                  if (!isEraserMode && currentStroke.points.length >= 1) {
+                    const nextDrawings = [...drawings, currentStroke];
+                    setDrawings(nextDrawings);
+                    saveDrawingsToBackend(nextDrawings);
+                  }
+                  setCurrentStroke(null);
+                }
+              }}
+            >
+              {drawings.map((stroke) => {
+                const pathD = stroke.points.reduce((acc, pt, i) => {
+                  return i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+                }, '');
+                return (
+                  <path
+                    key={stroke.id}
+                    d={pathD}
+                    stroke={stroke.color}
+                    strokeWidth={stroke.width}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                    style={{ cursor: isEraserMode ? 'pointer' : 'default', pointerEvents: (activeTool === 'draw' && isEraserMode) ? 'auto' : 'none' }}
+                    onPointerDown={(e) => {
+                      if (activeTool === 'draw' && isEraserMode) {
+                        e.stopPropagation();
+                        const next = drawings.filter(d => d.id !== stroke.id);
+                        setDrawings(next);
+                        saveDrawingsToBackend(next);
+                        message.info('Erased stroke');
+                      }
+                    }}
+                    onPointerEnter={(e) => {
+                      if (activeTool === 'draw' && isEraserMode && e.buttons === 1) {
+                        e.stopPropagation();
+                        const next = drawings.filter(d => d.id !== stroke.id);
+                        setDrawings(next);
+                        saveDrawingsToBackend(next);
+                      }
+                    }}
+                  />
+                );
+              })}
+              {currentStroke && !isEraserMode && (
+                <path
+                  d={currentStroke.points.reduce((acc, pt, i) => i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`, '')}
+                  stroke={currentStroke.color}
+                  strokeWidth={currentStroke.width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              )}
+            </svg>
           </div>
         </div>
 
         <div id="portal-right-sidebar" style={{ display: 'none' }} />
 
         <div
-          className="canvas-tools-right-pill"
+          className="canvas-right-dock-wrapper"
           style={{
             position: 'absolute',
             right: 20,
@@ -906,112 +1662,309 @@ ${htmlContent}
             transform: 'translateY(-50%)',
             zIndex: 50,
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '8px 5px',
-            gap: 8,
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(17, 24, 39, 0.6)',
-            borderRadius: 30,
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)'
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 12
           }}
         >
-          {[
-            { id: 'select', title: 'Select / Pointer (V)', icon: <ArrowUpOutlined style={{ transform: 'rotate(-45deg)' }} /> },
-            { id: 'frame', title: 'Frame / Marquee Tool (F)', icon: <BorderOutlined /> },
-            { id: 'draw', title: 'Draw / Pencil Tool (P)', icon: <EditOutlined /> },
-            { id: 'pan', title: 'Hand / Pan Tool (H)', icon: <DragOutlined /> },
-            { id: 'image', title: 'Image / Media Tool (I)', icon: <PictureOutlined /> },
-            { id: 'divider', title: '', icon: null },
-            { id: 'palette', title: 'Color Palette / Styles (C)', icon: <BgColorsOutlined /> },
-            { id: 'star', title: 'Favorites / Assets (S)', icon: <StarOutlined /> }
-          ].map(tool => {
-            if (tool.id === 'divider') {
-              return <div key="divider" style={{ width: 18, height: 1, background: 'rgba(255, 255, 255, 0.12)', margin: '2px 0' }} />;
-            }
-            return (
-              <button
-                key={tool.id}
-                type="button"
-                className="canvas-right-tool-btn"
-                onClick={() => {
-                  if (tool.id === 'image') fileInputRef.current?.click();
-                  if (tool.id === 'palette') {
-                    setIsStylesOpen(!isStylesOpen);
-                    setIsDetailsOpen(false);
-                  }
-                  setActiveTool(tool.id as any);
-                }}
-                style={getToolBtnStyle(tool.id)}
-                title={tool.title}
-              >
-                {activeTool === tool.id && (
-                  <motion.div
-                    layoutId="activeToolBg"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    style={{ position: 'absolute', inset: 0, background: '#F8FAFC', borderRadius: '50%', zIndex: -1, boxShadow: '0 4px 12px rgba(255, 255, 255, 0.25)' }}
+          {/* ── Floating Draw Toolbar (when Draw active) ── */}
+          {activeTool === 'draw' && (
+            <motion.div
+              initial={{ opacity: 0, x: 15, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 15, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              style={{
+                position: 'relative',
+                zIndex: 60,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '12px 10px',
+                gap: 10,
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.98))',
+                borderRadius: 22,
+                border: '1px solid rgba(255, 255, 255, 0.16)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.7), 0 0 24px rgba(99, 102, 241, 0.3)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+                width: 86
+              }}
+            >
+              {/* Color Palette (2 columns) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, justifyItems: 'center', width: '100%' }}>
+                {['#6366F1', '#EF4444', '#10B981', '#F59E0B', '#38BDF8', '#FFFFFF'].map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    onClick={() => {
+                      setDrawColor(col);
+                      setIsEraserMode(false);
+                    }}
+                    title={`Color: ${col}`}
+                    style={{
+                      width: 24, height: 24, borderRadius: '50%', border: drawColor === col && !isEraserMode ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                      background: col, cursor: 'pointer',
+                      transform: drawColor === col && !isEraserMode ? 'scale(1.15)' : 'scale(1)',
+                      boxShadow: drawColor === col && !isEraserMode ? `0 0 12px ${col}` : 'none',
+                      transition: 'all 0.15s'
+                    }}
                   />
-                )}
-                {tool.icon && React.cloneElement(tool.icon as React.ReactElement<any>, { style: { ...(tool.icon as React.ReactElement<any>).props.style, position: 'relative', zIndex: 2 } })}
-              </button>
-            );
-          })}
+                ))}
+              </div>
+
+              <div style={{ width: '80%', height: 1, background: 'rgba(255, 255, 255, 0.12)' }} />
+
+              {/* Stroke Widths (2 columns) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }}>
+                {[
+                  { width: 2, title: 'Fine (2px)' },
+                  { width: 4, title: 'Medium (4px)' },
+                  { width: 8, title: 'Thick (8px)' },
+                  { width: 14, title: 'Marker (14px)' }
+                ].map((w) => (
+                  <button
+                    key={w.width}
+                    type="button"
+                    onClick={() => {
+                      setDrawWidth(w.width);
+                      setIsEraserMode(false);
+                    }}
+                    title={w.title}
+                    style={{
+                      height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
+                      background: drawWidth === w.width && !isEraserMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.04)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ width: 20, height: Math.min(w.width, 10), borderRadius: 999, background: drawWidth === w.width && !isEraserMode ? drawColor : '#94A3B8' }} />
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ width: '80%', height: 1, background: 'rgba(255, 255, 255, 0.12)' }} />
+
+              {/* Undo / Clear Actions (side by side) */}
+              <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+                <button
+                  type="button"
+                  disabled={drawings.length === 0}
+                  onClick={() => {
+                    if (drawings.length === 0) return;
+                    const next = drawings.slice(0, -1);
+                    setDrawings(next);
+                    saveDrawingsToBackend(next);
+                  }}
+                  title="Undo last stroke"
+                  style={{
+                    flex: 1, height: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', cursor: drawings.length === 0 ? 'not-allowed' : 'pointer',
+                    background: 'rgba(255,255,255,0.05)', color: drawings.length === 0 ? '#475569' : '#E2E8F0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <UndoOutlined style={{ fontSize: 14 }} />
+                </button>
+                <button
+                  type="button"
+                  disabled={drawings.length === 0}
+                  onClick={() => setIsClearDrawingsModalOpen(true)}
+                  title="Clear all drawings"
+                  style={{
+                    flex: 1, height: 32, borderRadius: 10, border: '1px solid rgba(239, 68, 68, 0.3)', cursor: drawings.length === 0 ? 'not-allowed' : 'pointer',
+                    background: drawings.length === 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.15)',
+                    color: drawings.length === 0 ? '#64748B' : '#EF4444',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Main Right Tool Dock Pill ── */}
+          {isOwner && (
+          <div
+            className="canvas-tools-right-pill"
+            style={{
+              position: 'relative',
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '8px 5px',
+              gap: 8,
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(17, 24, 39, 0.6)',
+              borderRadius: 30,
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)'
+            }}
+          >
+            {[
+              { id: 'select', title: 'Select / Pointer (V)', icon: <ArrowUpOutlined style={{ transform: 'rotate(-45deg)' }} /> },
+              { id: 'frame', title: 'Frame / Marquee Tool (F)', icon: <BorderOutlined /> },
+              { id: 'draw', title: 'Draw / Pencil Tool (P)', icon: <EditOutlined /> },
+              { id: 'pan', title: 'Hand / Pan Tool (H)', icon: <DragOutlined /> },
+              { id: 'image', title: 'Image / Media Tool (I)', icon: <PictureOutlined /> },
+              { id: 'divider', title: '', icon: null },
+              { id: 'palette', title: 'Color Palette / Styles (C)', icon: <BgColorsOutlined /> },
+              { id: 'star', title: 'Favorites / Assets (S)', icon: <StarOutlined /> },
+              { id: 'tag', title: 'Page Tags (T)', icon: <TagOutlined /> }
+            ].map(tool => {
+              if (tool.id === 'divider') {
+                return <div key="divider" style={{ width: 18, height: 1, background: 'rgba(255, 255, 255, 0.12)', margin: '2px 0' }} />;
+              }
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  className="canvas-right-tool-btn"
+                  onClick={() => {
+                    if (tool.id === 'image') fileInputRef.current?.click();
+                    if (tool.id === 'palette') {
+                      setIsStylesOpen(!isStylesOpen);
+                      setIsDetailsOpen(false);
+                      setPageToEdit(null);
+                    } else {
+                      setIsStylesOpen(false);
+                      setIsDetailsOpen(false);
+                      setPageToEdit(null);
+                    }
+                    if (tool.id === 'star') {
+                      if (selectedId) {
+                        const ids = selectedId.split(',').filter(Boolean);
+                        if (ids.length > 0) {
+                          const allStarred = ids.every(id => starredPageIds.includes(id));
+                          if (allStarred) {
+                            setStarredPageIds(prev => prev.filter(id => !ids.includes(id)));
+                            message.success('Removed star from selected page(s)');
+                          } else {
+                            setStarredPageIds(prev => Array.from(new Set([...prev, ...ids])));
+                            message.success('Starred selected page(s) ⭐');
+                          }
+                        }
+                      }
+                    }
+                    setActiveTool(tool.id as any);
+                  }}
+                  style={getToolBtnStyle(tool.id)}
+                  title={tool.title}
+                >
+                  {activeTool === tool.id && (
+                    <motion.div
+                      layoutId="activeToolBg"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      style={{ position: 'absolute', inset: 0, background: '#F8FAFC', borderRadius: '50%', zIndex: -1, boxShadow: '0 4px 12px rgba(255, 255, 255, 0.25)' }}
+                    />
+                  )}
+                  {tool.icon && React.cloneElement(tool.icon as React.ReactElement<any>, { style: { ...(tool.icon as React.ReactElement<any>).props.style, position: 'relative', zIndex: 2 } })}
+                </button>
+              );
+            })}
+          </div>
+          )}
         </div>
 
-<div className="canvas-prompt-wrapper">
-          <AIPromptBar 
-            compact 
-            onGenerated={onAIGenerated} 
-            siteId={siteId} 
-            selectedPage={pages?.find((p: any) => selectedId?.includes(p.id))}
-            onClearSelection={() => setSelectedId(null)}
-            onSelectTheme={(id) => {
-              setDetailThemeId(id);
-            }}
-            onCreateNewTheme={() => {
-              setDetailThemeId('custom');
-              setIsStylesOpen(true);
-            }}
-            themeOverrides={{
-              themeId: detailThemeId,
-              mode: themeMode,
-              radius: themeRadius,
-              colors: themeColorOverrides,
-              fonts: themeFonts,
-              scheme: themeScheme
-            }}
-          />
-        </div>
+        {isOwner && (
+          <div className="canvas-prompt-wrapper">
+            <AIPromptBar 
+              compact 
+              initialPlatform={site?.settings?.platform || 'app'}
+              onGenerated={(jobId, subdomain, platform) => {
+                onAIGenerated?.(jobId, subdomain, platform);
+              }}
+              siteId={siteId}
+              customInstructions={site?.settings?.prompt}
+              chatModel={site?.settings?.chatModel}
+              selectedPages={pages?.filter((p: any) => selectedId?.includes(p.id))}
+              selectedPage={(() => {
+                const matched = pages?.filter((p: any) => selectedId?.includes(p.id)) || [];
+                if (matched.length === 0) return undefined;
+                return {
+                  id: matched.map((p: any) => p.id).join(','),
+                  title: matched.map((p: any) => p.title || 'Page').join(', ')
+                };
+              })()}
+              onRemovePage={(idToRemove) => {
+                if (!selectedId) return;
+                const nextIds = selectedId.split(',').filter(id => id !== idToRemove);
+                setSelectedId(nextIds.length > 0 ? nextIds.join(',') : null);
+              }}
+              onClearSelection={() => setSelectedId(null)}
+              onSelectTheme={(id) => {
+                setDetailThemeId(id);
+              }}
+              onCreateNewTheme={() => {
+                setDetailThemeId('custom');
+                setIsStylesOpen(true);
+              }}
+              themeOverrides={{
+                themeId: detailThemeId,
+                mode: themeMode,
+                radius: themeRadius,
+                colors: themeColorOverrides,
+                fonts: themeFonts,
+                scheme: themeScheme
+              }}
+            />
+          </div>
+        )}
 
         {(() => {
           if (!isDetailsOpen) return null;
           
-          const activePage = pages?.find((p: any) => selectedId?.includes(p.id)) || pages?.[0];
+          const activePage = getTargetActivePage();
           let pageHeight = 1000;
           let extractedAssets: string[] = [];
+          let widgetsCount = 0;
           
           if (activePage && allPagesWidgets) {
             const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
+            widgetsCount = pageWidgets.length;
             let maxH = 0;
+            
+            const extractUrls = (obj: any): string[] => {
+              let urls: string[] = [];
+              if (!obj) return urls;
+              
+              if (typeof obj === 'string') {
+                const urlRegex = /(https?:\/\/[^\s"'()[\]{}<>]+)/g;
+                const matches = obj.match(urlRegex);
+                if (matches) {
+                  matches.forEach(m => {
+                    if (m.match(/\.(jpeg|jpg|gif|png|svg|webp)/i) || m.includes('unsplash.com') || m.includes('images.') || m.includes('image/upload')) {
+                      urls.push(m);
+                    }
+                  });
+                }
+              } else if (typeof obj === 'object' && !Array.isArray(obj)) {
+                for (const key in obj) {
+                  urls = urls.concat(extractUrls(obj[key]));
+                }
+              } else if (Array.isArray(obj)) {
+                obj.forEach(item => {
+                  urls = urls.concat(extractUrls(item));
+                });
+              }
+              return urls;
+            };
+
             pageWidgets.forEach((w: any) => {
               const h = w.contentConfig?.geometry?.height || 200;
               const y = w.contentConfig?.geometry?.y || 0;
               if (y + h > maxH) maxH = y + h;
               
-              const props = w.contentConfig?.props || {};
-              if (props.src) extractedAssets.push(props.src);
-              if (props.url) extractedAssets.push(props.url);
-              if (props.images && Array.isArray(props.images)) {
-                extractedAssets.push(...props.images.map((img: any) => img.url || img));
-              }
+              extractedAssets = extractedAssets.concat(extractUrls(w.contentConfig));
             });
             if (maxH > 0) pageHeight = maxH;
           }
           
           extractedAssets = [...new Set(extractedAssets)].filter(url => typeof url === 'string' && url.startsWith('http'));
+          const deviceWidth = canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : 1440;
 
           return (
             <div style={{
@@ -1048,20 +2001,21 @@ ${htmlContent}
                   <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Properties</div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, alignItems: 'center' }}>
-                    <span style={{ color: '#94A3B8' }}>Type</span>
+                    <span style={{ color: '#94A3B8' }}>URL Slug</span>
                     <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <Monitor size={12} style={{ opacity: 0.7 }} /> Design Screen
+                      {activePage?.slug || '/'}
                     </span>
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, alignItems: 'center' }}>
-                    <span style={{ color: '#94A3B8' }}>Size</span>
-                    <span style={{ fontWeight: 500 }}>1440 x {pageHeight}</span>
+                    <span style={{ color: '#94A3B8' }}>Device Size</span>
+                    <span style={{ fontWeight: 500 }}>{deviceWidth} x {pageHeight}</span>
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, alignItems: 'center' }}>
                     <span style={{ color: '#94A3B8' }}>DESIGN.md</span>
                     <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 10px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: themeColorOverrides['primary'] || site?.settings?.primaryColor || '#06B6D4' }} />
                       {site?.name || 'My Project'}
                     </span>
                   </div>
@@ -1075,7 +2029,7 @@ ${htmlContent}
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Design Prompt</div>
                   <div style={{ fontSize: 12, lineHeight: 1.6, color: '#CBD5E1', background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                    {activePage?.settings?.designPrompt || site?.settings?.systemPrompt || 'No design prompt specified for this project.'}
+                    {((site?.settings as any)?.prompt) || site?.description || 'No design prompt specified for this project.'}
                   </div>
                 </div>
                 
@@ -1125,6 +2079,15 @@ ${htmlContent}
             isApplyingTheme={isApplyingTheme}
             selectedId={selectedId}
             setIsStylesOpen={setIsStylesOpen}
+          />
+        )}
+        
+        {isExportOpen && (
+          <ExportPanel
+            onClose={() => setIsExportOpen(false)}
+            onDownloadZip={handleDownload}
+            onCopyCode={handleCopyCode}
+            onSummarizeProject={handleSummarizeProject}
           />
         )}
 
@@ -1182,11 +2145,13 @@ ${htmlContent}
           centered
           styles={{
             content: {
-              background: '#1e1e1e',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 12,
+              background: 'rgba(17, 24, 39, 0.85)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 16,
               padding: 0,
-              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.8)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
               overflow: 'hidden'
             },
             mask: {
@@ -1195,7 +2160,7 @@ ${htmlContent}
             }
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', background: '#252526' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ed6a5e' }} />
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f4bf4f' }} />
@@ -1218,7 +2183,7 @@ ${htmlContent}
             </div>
           </div>
           
-          <div style={{ padding: 20, maxHeight: '70vh', overflow: 'auto', background: '#1e1e1e', fontFamily: 'monospace', fontSize: 13, color: '#d4d4d4', lineHeight: 1.6 }} className="custom-scrollbar">
+          <div style={{ padding: 20, maxHeight: '70vh', overflow: 'auto', fontFamily: 'monospace', fontSize: 13, color: '#F8FAFC', lineHeight: 1.6 }} className="custom-scrollbar">
             {getActivePageCode().split('\n').map((line, i) => {
               let highlighted = line
                 .replace(/</g, '&lt;')
@@ -1355,6 +2320,342 @@ ${htmlContent}
             </button>
           </div>
         </Modal>
+
+        {/* Clear All Drawings Modal - Synchronized with aiLogs UI */}
+        <Modal
+          open={isClearDrawingsModalOpen}
+          onCancel={() => setIsClearDrawingsModalOpen(false)}
+          footer={null}
+          closable={false}
+          width={460}
+          centered
+          styles={{
+            content: {
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 20,
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+            },
+            mask: {
+              backdropFilter: 'blur(6px)',
+              background: 'rgba(0, 0, 0, 0.65)',
+            }
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#EF4444',
+              flexShrink: 0
+            }}>
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Clear All Drawings?</h3>
+              <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm permanent deletion of all canvas notes</p>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.025)',
+            borderRadius: 12,
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            padding: '16px',
+            marginBottom: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
+                <span style={{ color: '#06B6D4' }}>✦</span>
+                <span>Project Drawings:</span>
+              </div>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{drawings.length} strokes</span>
+            </div>
+
+            <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
+              Are you sure you want to delete these drawings? This will remove all pencil/draw notes on this project canvas.
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#F87171',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              padding: '8px 12px',
+              borderRadius: 8
+            }}>
+              <span style={{ fontSize: 14 }}>⚠️</span>
+              <span>This action cannot be undone.</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setIsClearDrawingsModalOpen(false)}
+              style={{
+                padding: '9px 18px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 8,
+                color: '#CBD5E1',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDrawings([]);
+                saveDrawingsToBackend([]);
+                message.success('Cleared all drawings');
+                setIsClearDrawingsModalOpen(false);
+              }}
+              style={{
+                padding: '9px 20px',
+                background: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.8)',
+                borderRadius: 8,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Clear All
+            </button>
+          </div>
+        </Modal>
+        
+        <MediaLibraryModal globalListener={true} />
+
+        {pageToEdit && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            right: 70, 
+            width: 320,
+            background: 'rgba(17, 24, 39, 0.85)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderRadius: 16,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 100,
+            color: '#F8FAFC',
+            overflow: 'hidden'
+          }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Page Settings</span>
+              <button 
+                onClick={() => setPageToEdit(null)} 
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ padding: 20, overflowY: 'auto' }} className="custom-scrollbar">
+              <Form
+                layout="vertical"
+                initialValues={{ title: pageToEdit.title, slug: pageToEdit.slug }}
+                onFinish={(values) => {
+                  const isDuplicate = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === values.title?.toLowerCase());
+                  if (isDuplicate) {
+                     message.error('Tag name already exists on another page!');
+                     return;
+                  }
+                  updatePageMutation.mutate({ id: pageToEdit.id, data: values });
+                }}
+              >
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ color: '#94A3B8', display: 'block', marginBottom: 8, fontSize: 14 }}>Select or Enter Tag</span>
+                  <Form.Item noStyle shouldUpdate={(prev, current) => prev.title !== current.title}>
+                    {({ getFieldValue, setFieldsValue }) => {
+                      const currentTitle = getFieldValue('title') || '';
+                      const ALL_TAGS = Array.from(new Set([
+                        'Home', 'About', 'Products', 'Services', 'Contact', 'Blog',
+                        ...pages.map((p: any) => p.title).filter(Boolean)
+                      ]));
+                      const isCustom = !ALL_TAGS.includes(currentTitle);
+                      
+                      return (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {ALL_TAGS.map(tag => {
+                            const isSelected = currentTitle === tag;
+                            const isUsed = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === tag.toLowerCase());
+                            return (
+                              <div
+                                key={tag}
+                                onClick={() => {
+                                  if (!isUsed) {
+                                    setFieldsValue({ title: tag, slug: tag === 'Home' ? '/' : '/' + tag.toLowerCase() });
+                                  }
+                                }}
+                                style={{
+                                  padding: '6px 16px',
+                                  borderRadius: 999,
+                                  cursor: isUsed ? 'not-allowed' : 'pointer',
+                                  background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                  border: `1px solid ${isSelected ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                                  color: isSelected ? '#818CF8' : isUsed ? '#475569' : '#CBD5E1',
+                                  fontWeight: isSelected ? 600 : 400,
+                                  opacity: isUsed ? 0.5 : 1,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {tag} {isUsed && <span style={{ fontSize: 10 }}>(Used)</span>}
+                              </div>
+                            );
+                          })}
+                          <div
+                            onClick={() => {
+                              if (!isCustom) {
+                                setFieldsValue({ title: 'Custom Page' });
+                              }
+                            }}
+                            style={{
+                              padding: '6px 16px',
+                              borderRadius: 999,
+                              cursor: 'pointer',
+                              background: isCustom ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${isCustom ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                              color: isCustom ? '#818CF8' : '#CBD5E1',
+                              fontWeight: isCustom ? 600 : 400,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            Custom...
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </Form.Item>
+                </div>
+
+                <Form.Item noStyle shouldUpdate={(prev, current) => prev.title !== current.title}>
+                  {({ getFieldValue }) => {
+                    const currentTitle = getFieldValue('title') || '';
+                    const ALL_TAGS = Array.from(new Set([
+                      'Home', 'About', 'Products', 'Services', 'Contact', 'Blog',
+                      ...pages.map((p: any) => p.title).filter(Boolean)
+                    ]));
+                    const isCustom = !ALL_TAGS.includes(currentTitle);
+                    
+                    return (
+                      <div style={{ display: isCustom ? 'block' : 'none' }}>
+                        <Form.Item
+                          name="title"
+                          label={<span style={{ color: '#94A3B8' }}>Custom Tag Name</span>}
+                          rules={[
+                            { required: isCustom, message: 'Please input custom tag name!' },
+                            {
+                              validator: async (_, value) => {
+                                if (!value) return;
+                                const isDuplicate = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === value.toLowerCase());
+                                if (isDuplicate) {
+                                  return Promise.reject(new Error('This tag is already used on another page!'));
+                                }
+                              }
+                            }
+                          ]}
+                        >
+                          <Input
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: '#fff',
+                              borderRadius: 8
+                            }}
+                            placeholder="e.g. Landing Page"
+                          />
+                        </Form.Item>
+                      </div>
+                    );
+                  }}
+                </Form.Item>
+
+                <Form.Item
+                  name="slug"
+                  label={<span style={{ color: '#94A3B8' }}>URL Slug</span>}
+                  rules={[{ required: true, message: 'Please input URL slug!' }]}
+                  extra={<span style={{ color: '#64748B', fontSize: 12 }}>This will be used for navigation, e.g. /about</span>}
+                >
+                  <Input
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff',
+                      borderRadius: 8
+                    }}
+                    placeholder="e.g. /about"
+                  />
+                </Form.Item>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPageToEdit(null)}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'transparent',
+                      border: '1px solid #3F3F46',
+                      color: '#fff',
+                      borderRadius: 8,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatePageMutation.isPending}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#06B6D4',
+                      border: 'none',
+                      color: '#fff',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    {updatePageMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </Form>
+            </div>
+          </div>
+        )}
       </div>
   );
 };

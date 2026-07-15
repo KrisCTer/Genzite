@@ -9,7 +9,7 @@ interface ModelMenuProps {
 const ModelMenu = forwardRef<HTMLDivElement, ModelMenuProps>(({ model, onSelectModel }, ref) => {
   return (
     <div className="ai-model-menu" ref={ref}>
-      <button 
+      <button
         className={`ai-model-item ${(!model || model === 'gemini-2.5-flash') ? 'selected' : ''}`}
         onClick={() => onSelectModel('gemini-2.5-flash')}
       >
@@ -23,7 +23,7 @@ const ModelMenu = forwardRef<HTMLDivElement, ModelMenuProps>(({ model, onSelectM
         {(!model || model === 'gemini-2.5-flash') && <Check size={16} className="ai-model-item-check" />}
       </button>
 
-      <button 
+      <button
         className={`ai-model-item ${model === 'gemini-2.0-pro' ? 'selected' : ''}`}
         onClick={() => onSelectModel('gemini-2.0-pro')}
       >
@@ -37,7 +37,7 @@ const ModelMenu = forwardRef<HTMLDivElement, ModelMenuProps>(({ model, onSelectM
         {model === 'gemini-2.0-pro' && <Check size={16} className="ai-model-item-check" />}
       </button>
 
-      <button 
+      <button
         className={`ai-model-item ${model === 'llama-3.3-70b-versatile' ? 'selected' : ''}`}
         onClick={() => onSelectModel('llama-3.3-70b-versatile')}
       >
@@ -45,13 +45,13 @@ const ModelMenu = forwardRef<HTMLDivElement, ModelMenuProps>(({ model, onSelectM
           <Wand2 size={16} />
         </div>
         <div className="ai-model-item-content">
-          <div className="ai-model-item-title">Llama 3.3 (Free)</div>
+          <div className="ai-model-item-title">Llama 3.3</div>
           <div className="ai-model-item-desc">Free open-source model, suitable for testing and content creation.</div>
         </div>
         {model === 'llama-3.3-70b-versatile' && <Check size={16} className="ai-model-item-check" />}
       </button>
 
-      <button 
+      <button
         className={`ai-model-item ${model === 'deepseek-chat' ? 'selected' : ''}`}
         onClick={() => onSelectModel('deepseek-chat')}
       >

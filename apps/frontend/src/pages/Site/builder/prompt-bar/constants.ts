@@ -1,7 +1,7 @@
 export const MODEL_OPTIONS = [
-  { value: 'gemini-2.5-flash', label: '✦ 2.5 Flash' },
-  { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 (Free)' },
-  { value: 'gemini-2.0-pro', label: '✦ 2.0 Pro' },
+  { value: 'gemini-2.5-flash', label: '2.5 Flash' },
+  { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3' },
+  { value: 'gemini-2.0-pro', label: '2.0 Pro' },
   { value: 'deepseek-chat', label: 'DeepSeek' },
 ];
 

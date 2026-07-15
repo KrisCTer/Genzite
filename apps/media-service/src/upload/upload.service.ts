@@ -18,6 +18,21 @@ export class UploadService {
     // AWS region used to access S3.
     region: process.env.AWS_REGION,
   });
+
+  private getPublicUrl(s3Key: string): string {
+    if (!s3Key) return "";
+    if (s3Key.startsWith("http://") || s3Key.startsWith("https://")) {
+      return s3Key;
+    }
+    const bucket = process.env.AWS_S3_BUCKET || "genzite-media-dev";
+    const endpoint = process.env.AWS_ENDPOINT;
+    if (endpoint) {
+      return `${endpoint.replace(/\/$/, "")}/${bucket}/${s3Key}`;
+    }
+    const region = process.env.AWS_REGION || "ap-southeast-1";
+    return `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
+  }
+
   async generatePresignedUrl(
     ownerId: string,
     filename: string,
@@ -85,7 +100,10 @@ export class UploadService {
       mimeType: media.mimeType,
       ownerId: media.ownerId,
     });
-    return media;
+    return {
+      ...media,
+      url: this.getPublicUrl(media.s3Key),
+    };
   }
 
   async deleteByS3Key(s3Key: string) {

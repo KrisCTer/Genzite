@@ -57,6 +57,25 @@ export interface SiteCreatedEvent extends BaseEvent {
   };
 }
 
+export interface SiteInvitedEvent extends BaseEvent {
+  type: "site.invited";
+  payload: {
+    siteId: string;
+    siteName: string;
+    inviterEmail: string;
+    invitedEmail: string;
+  };
+}
+
+export interface FeedbackSubmittedEvent extends BaseEvent {
+  type: "feedback.submitted";
+  payload: {
+    siteId?: string;
+    text: string;
+    userEmail: string;
+  };
+}
+
 export interface PageUpdatedEvent extends BaseEvent {
   type: "page.updated";
   payload: {
@@ -208,7 +227,9 @@ export type GenziteEvent =
   | ResumeAnalyzedEvent
   | InterviewCompletedEvent
   | WidgetConfigChangedEvent
-  | CreditsAdjustedEvent;
+  | CreditsAdjustedEvent
+  | SiteInvitedEvent
+  | FeedbackSubmittedEvent;
 
 // --- Kafka Topic Names ---
 export const KAFKA_TOPICS = {
@@ -216,6 +237,7 @@ export const KAFKA_TOPICS = {
   USER_UPDATED: 'user.updated',
   ROLE_ASSIGNED: 'role.assigned',
   SITE_CREATED: 'site.created',
+  SITE_INVITED: 'site.invited',
   PAGE_UPDATED: 'page.updated',
   WIDGET_CONFIG_CHANGED: 'widget.config-changed',
   COLLECTION_CREATED: 'collection.created',
@@ -234,6 +256,7 @@ export const KAFKA_TOPICS = {
   ORDER_CREATED: 'order.created',
   PAYMENT_COMPLETED: 'payment.completed',
   CREDITS_ADJUSTED: 'credits.adjusted',
+  FEEDBACK_SUBMITTED: 'feedback.submitted',
 } as const;
 
 

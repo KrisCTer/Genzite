@@ -1,9 +1,6 @@
 import axios from 'axios';
 import apiClient from './client';
 
-const BUCKET_NAME = 'genzite-media-dev-khoa-811046140260-us-east-1-an';
-const REGION = 'us-east-1';
-
 export interface MediaFile {
   id: string;
   filename: string;
@@ -15,10 +12,7 @@ export interface MediaFile {
 
 export const fetchMediaFilesApi = async () => {
   const response = await apiClient.get<MediaFile[]>('/media');
-  return response.data.map((file) => ({
-    ...file,
-    url: file.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${file.s3Key}`,
-  }));
+  return response.data;
 };
 
 const convertToWebP = (file: File): Promise<File> => {
@@ -81,17 +75,37 @@ export const uploadMediaFileApi = async (originalFile: File, onUploadProgress?: 
     onUploadProgress,
   });
 
+  // Derive the permanent public URL: strip auth query-string from the presigned PUT URL
+  const publicUrl = uploadUrl.split('?')[0];
+
   // 3. Confirm upload with the backend
-  const confirmRes = await apiClient.post<MediaFile>('/media/confirm', {
+  const confirmRes = await apiClient.post('/media/confirm', {
     s3Key,
     filename: file.name,
     mimeType: file.type,
     sizeBytes: file.size,
   });
 
-  const confirmed = confirmRes.data;
+  // Backend Prisma model doesn't include a url field — attach it here
   return {
-    ...confirmed,
-    url: confirmed.url ?? `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${confirmed.s3Key}`,
-  };
+    ...confirmRes.data,
+    url: publicUrl,
+    filename: file.name,
+  } as MediaFile;
 };
+
+export const deleteMediaFileApi = async (mediaId: string) => {
+  const response = await apiClient.delete(`/media/${mediaId}`);
+  return response.data;
+};
+
+export const fetchTrashMediaApi = async () => {
+  const response = await apiClient.get<MediaFile[]>('/media/trash/list');
+  return response.data;
+};
+
+export const restoreMediaApi = async (mediaId: string) => {
+  const response = await apiClient.post(`/media/${mediaId}/restore`);
+  return response.data;
+};
+

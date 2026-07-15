@@ -34,7 +34,7 @@ export class NvidiaClient {
       timeout: 15000,
     });
     this.defaultModel = (this.config.get<string>('NVIDIA_NIM_MODEL') ?? 'deepseek-ai/deepseek-v4-flash') as NvidiaModelName;
-    
+
     if (apiKey === 'dummy-key-to-prevent-crash') {
       this.logger.warn('NVIDIA_NIM_API_KEY is missing. NVIDIA NIM provider will not be available.');
     } else {
@@ -97,7 +97,7 @@ export class NvidiaClient {
       });
 
       let text = completion.choices[0]?.message?.content ?? '{}';
-      
+
       const start = Math.min(
         text.indexOf('{') === -1 ? Infinity : text.indexOf('{'),
         text.indexOf('[') === -1 ? Infinity : text.indexOf('[')
@@ -154,7 +154,7 @@ export class NvidiaClient {
       });
 
       let text = completion.choices[0]?.message?.content ?? '{}';
-      
+
       const start = Math.min(
         text.indexOf('{') === -1 ? Infinity : text.indexOf('{'),
         text.indexOf('[') === -1 ? Infinity : text.indexOf('[')
