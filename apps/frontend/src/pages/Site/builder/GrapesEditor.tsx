@@ -20,11 +20,8 @@ export interface GrapesEditorRef {
 import { CUSTOM_SECTORS } from './GrapesSectors';
 import { registerGenziteBlocks } from './GrapesBlocks';
 import { handleGrapesAction } from './GrapesActions';
-<<<<<<< HEAD
-=======
 import layerIconsPlugin from './plugins/grapesjs-layer-icons';
 import { injectTailwindAndStyles } from './plugins/grapesjs-tailwind';
->>>>>>> 97ffa59762b32520bb72239fe2fbff21c0421107
 
 interface GrapesEditorProps {
   htmlContent: string;
@@ -39,7 +36,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
   const editorRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
   const onSaveRef = useRef(onSave);
-  
+
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
@@ -136,7 +133,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       allowScripts: 1,
       storageManager: { type: 'none' }, // We'll handle saving manually
       panels: { defaults: [] }, // We hide default panels and build our own
-      selectorManager: { 
+      selectorManager: {
         appendTo: '#gjs-selectors',
       },
       styleManager: {
@@ -293,7 +290,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         frameWrapper.style.borderRadius = '0';
         frameWrapper.style.overflow = 'hidden';
         frameWrapper.style.backgroundColor = 'transparent';
-        
+
         // Force width to 100% so it fits our custom EditViewer container sizes
         frameWrapper.style.setProperty('width', '100%', 'important');
         frame.style.setProperty('width', '100%', 'important');
@@ -323,7 +320,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
             if (containerRef.current) {
               containerRef.current.style.height = `${height}px`;
             }
-            
+
             const doc = editor.Canvas.getDocument();
             if (doc?.documentElement) doc.documentElement.style.overflow = 'hidden';
             if (doc?.body) doc.body.style.overflow = 'hidden';
@@ -334,7 +331,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
             if (containerRef.current) {
               containerRef.current.style.height = '100%';
             }
-            
+
             const doc = editor.Canvas.getDocument();
             if (doc?.documentElement) doc.documentElement.style.overflow = 'auto';
             if (doc?.body) doc.body.style.overflow = 'auto';
@@ -435,10 +432,10 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       const disableNativeAutoScroll = () => {
         try {
           const cv = (editor.Canvas as any).getCanvasView?.() || (editor.Canvas as any)._cv;
-          if (cv) { cv.checkAutoScroll = () => {}; cv.autoscroll = () => {}; }
+          if (cv) { cv.checkAutoScroll = () => { }; cv.autoscroll = () => { }; }
           const sorter = (editor as any).Sorter || (editor as any).sorter;
-          if (sorter) { sorter.checkAutoScroll = () => {}; sorter.autoscroll = () => {}; }
-        } catch (_) {}
+          if (sorter) { sorter.checkAutoScroll = () => { }; sorter.autoscroll = () => { }; }
+        } catch (_) { }
       };
       disableNativeAutoScroll();
 
@@ -521,12 +518,8 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
           }
           const blocksEl = document.getElementById('gjs-blocks');
           if (blocksEl && editor.BlockManager && blocksEl.children.length === 0) {
-<<<<<<< HEAD
-            blocksEl.appendChild(editor.BlockManager.render() as Node);
-=======
             const el = editor.BlockManager.render();
             if (el) blocksEl.appendChild(el as Node);
->>>>>>> 97ffa59762b32520bb72239fe2fbff21c0421107
           }
         } catch (e) {
           console.error('GrapesEditor: Panel mount error:', e);
@@ -659,7 +652,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       wrapper: 'Body', text: 'Text', textnode: 'Text',
       image: 'Image', link: 'Link', video: 'Video',
     };
-      const TAG_NAMES: Record<string, string> = {
+    const TAG_NAMES: Record<string, string> = {
       section: 'Section', header: 'Header', footer: 'Footer',
       nav: 'Navigation', form: 'Form', button: 'Button',
       ul: 'List', ol: 'List', li: 'List Item', table: 'Table',
@@ -678,7 +671,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       const type = (model.get('type') || '').toLowerCase();
       const tagName = (model.get('tagName') || 'div').toLowerCase();
       const name = (model.getName() || '').toLowerCase();
-      
+
       const ICONS: Record<string, string> = {
         image: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#38BDF8;flex-shrink:0"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
         text: '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:#FCD34D;flex-shrink:0"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>',
@@ -712,7 +705,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       if (tagName === 'ul' || tagName === 'ol' || tagName === 'li') return ICONS.list;
       if (tagName === 'table' || tagName === 'tr' || tagName === 'td' || tagName === 'th') return ICONS.table;
       if (type === 'section' || tagName === 'section' || name.includes('section')) return ICONS.section;
-      
+
       return ICONS.div;
     };
 
