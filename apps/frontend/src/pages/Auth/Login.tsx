@@ -63,10 +63,7 @@ const Login: React.FC = () => {
   const { message } = App.useApp();
   const token = useAuthStore((state) => state.token);
 
-  // Cognito verification modal states
-  const [verificationCode, setVerificationCode] = useState<string>('');
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string>('');
+  // Cognito verification modal states removed (switching to Link flow)
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -110,7 +107,7 @@ const Login: React.FC = () => {
             // Ignore error if no active session existed
           }
 
-          const { isSignedIn, nextStep } = await signIn({
+          const { isSignedIn } = await signIn({
             username: values.email,
             password: values.password,
           });
@@ -131,14 +128,11 @@ const Login: React.FC = () => {
               user: me,
               refreshToken: undefined,
             };
-          } else if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
-            return {
-              isCognito: true,
-              needsConfirmation: true,
-              email: values.email,
-            };
           }
-        } catch (authErr) {
+        } catch (authErr: any) {
+          if (authErr.name === 'UserNotConfirmedException') {
+            throw new Error('Tài khoản chưa được xác thực. Vui lòng kiểm tra email và click vào link kích hoạt.');
+          }
           console.warn('Cognito auth failed, falling back to local database authentication', authErr);
           localStorage.removeItem('gz_token');
         }
@@ -153,7 +147,7 @@ const Login: React.FC = () => {
         message.info('Tài khoản chưa được xác thực. Vui lòng kiểm tra email và nhập mã xác nhận.');
         return;
       }
-      
+
       if (!('user' in data) || !data.user || !('accessToken' in data) || !data.accessToken) return;
 
       setLoginError(null);
@@ -221,10 +215,9 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       setRegisterError(null);
       if (data.isCognito) {
-        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
-          setPendingVerificationEmail(data.email);
-          setIsVerificationModalOpen(true);
-          message.info('Mã xác thực đã được gửi đến email của bạn.');
+        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP' || data.nextStep?.signUpStep === 'DONE') {
+          message.success('Đăng ký thành công! Vui lòng kiểm tra email và click vào link để xác thực tài khoản.');
+          setIsSignUp(false);
         } else {
           message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
           setIsSignUp(false);
@@ -240,24 +233,7 @@ const Login: React.FC = () => {
     },
   });
 
-  const confirmSignUpMutation = useMutation({
-    mutationFn: async (code: string) => {
-      await confirmSignUp({
-        username: pendingVerificationEmail,
-        confirmationCode: code,
-      });
-    },
-    onSuccess: () => {
-      setIsVerificationModalOpen(false);
-      setVerificationCode('');
-      message.success('Xác thực tài khoản thành công! Vui lòng đăng nhập.');
-      setIsSignUp(false);
-    },
-    onError: (err: any) => {
-      console.error('Verification error', err);
-      message.error(err.message || 'Mã xác thực không chính xác.');
-    },
-  });
+  // confirmSignUpMutation removed (using Link verification instead of Code)
 
   // ── handlers ───────────────────────────────────────────────────────────────
 
@@ -410,23 +386,7 @@ const Login: React.FC = () => {
                     </Button>
                   </div>
 
-                  {/* Centered Social Logins directly below Sign In button */}
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('Google')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GoogleIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('GitHub')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GithubIcon />
-                    </button>
-                  </div>
+
                 </Form>
               </div>
             </div>
@@ -498,7 +458,7 @@ const Login: React.FC = () => {
                       validator: (_, value: boolean) =>
                         value ? Promise.resolve() : Promise.reject(new Error('Accept terms to continue')),
                     }]}
-                    className="!mb-0"
+                    className="!mb-0 text-center [&_.ant-form-item-explain]:!justify-center [&_.ant-form-item-explain-error]:!text-center"
                   >
                     <label className="flex items-center justify-center gap-2 text-[11px] text-slate-400 cursor-pointer select-none mx-auto">
                       <input type="checkbox" className="accent-cyan-500 w-3.5 h-3.5 rounded" />
@@ -509,7 +469,7 @@ const Login: React.FC = () => {
                   {/* CTA — Centered pill button */}
                   <div className="text-center">
                     <Button type="primary" htmlType="submit" className={ctaBtnCls}>
-                      Join Us
+                      Sign Up
                     </Button>
                   </div>
                 </Form>
@@ -564,13 +524,13 @@ const Login: React.FC = () => {
                 <div className="w-full max-w-[280px] flex flex-col justify-center items-center text-center gap-4">
                   <div>
                     <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                      {isSignUp ? 'Welcome Back!' : 'Hello Friend!'}
+                      {isSignUp ? 'Hello Friend!' : 'Welcome Back!'}
                     </h2>
                   </div>
                   <p className="text-slate-200 text-sm leading-relaxed">
                     {isSignUp
-                      ? 'To keep connected with us please login with your personal info.'
-                      : 'Enter your personal details and start your journey with us.'}
+                      ? 'Enter your personal details and start your journey with us.'
+                      : 'To keep connected with us please login with your personal info.'}
                   </p>
 
                   <div className="w-full flex flex-col items-center">
@@ -634,23 +594,7 @@ const Login: React.FC = () => {
                     </Button>
                   </div>
 
-                  {/* Centered Social Logins directly below Sign In button */}
-                  <div className="mt-4 flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('Google')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GoogleIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSocialLogin('GitHub')}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 bg-[#0e1422] text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer shrink-0"
-                    >
-                      <GithubIcon />
-                    </button>
-                  </div>
+
                 </Form>
                 <p className="text-center text-sm text-slate-400 mt-2">
                   Don't have an account?{' '}
@@ -705,6 +649,7 @@ const Login: React.FC = () => {
                       validator: (_, value: boolean) =>
                         value ? Promise.resolve() : Promise.reject(new Error('Accept terms to continue')),
                     }]}
+                    className="text-center [&_.ant-form-item-explain]:!justify-center [&_.ant-form-item-explain-error]:!text-center"
                   >
                     <label className="flex items-center justify-center gap-2 text-[11px] text-slate-400 cursor-pointer select-none mx-auto">
                       <input type="checkbox" className="accent-cyan-500 w-3.5 h-3.5 rounded" />
@@ -712,7 +657,7 @@ const Login: React.FC = () => {
                     </label>
                   </Form.Item>
                   <Button type="primary" htmlType="submit" className={ctaBtnCls}>
-                    Join Us
+                    Sign Up
                   </Button>
                 </Form>
                 <p className="text-center text-sm text-slate-400">
@@ -748,40 +693,7 @@ const Login: React.FC = () => {
         </defs>
       </svg>
 
-      {/* Cognito verification modal */}
-      <Modal
-        title={<span className="text-white text-lg font-bold">Xác thực tài khoản Cognito</span>}
-        open={isVerificationModalOpen}
-        onCancel={() => setIsVerificationModalOpen(false)}
-        footer={null}
-        className="gz-verification-modal"
-        styles={{
-          body: { backgroundColor: '#090d16', padding: '24px 0 12px 0' },
-          content: { backgroundColor: '#090d16', border: '1px solid rgba(255,255,255,0.05)' },
-          header: { backgroundColor: '#090d16', borderBottom: 'none' },
-        }}
-      >
-        <div className="flex flex-col gap-4">
-          <p className="text-slate-400 text-sm">
-            Vui lòng nhập mã xác thực gồm 6 chữ số đã được gửi tới email <strong className="text-white">{pendingVerificationEmail}</strong>.
-          </p>
-          <Input
-            placeholder="Mã xác thực (e.g. 123456)"
-            value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value)}
-            className={`${inputCls} text-center text-lg tracking-widest`}
-            maxLength={6}
-          />
-          <Button
-            type="primary"
-            onClick={() => confirmSignUpMutation.mutate(verificationCode)}
-            loading={confirmSignUpMutation.isPending}
-            className={`${ctaBtnCls} w-full max-w-full`}
-          >
-            Xác thực
-          </Button>
-        </div>
-      </Modal>
+      {/* Cognito verification modal removed */}
     </div>
   );
 };

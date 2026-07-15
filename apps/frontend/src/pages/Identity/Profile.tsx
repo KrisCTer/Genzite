@@ -244,9 +244,7 @@ const Profile: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#a1a1aa', fontSize: 13, textAlign: 'left', width: '100%' }}>
                   <Mail size={16} style={{ flexShrink: 0 }} /> <span style={{ wordBreak: 'break-all' }}>{displayEmail}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#a1a1aa', fontSize: 13, textAlign: 'left' }}>
-                  <Wallet size={16} /> <span>{credits.toLocaleString()} Credits</span>
-                </div>
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#a1a1aa', fontSize: 13, textAlign: 'left' }}>
                   <CalendarDays size={16} /> <span>Joined: {createdAt ? new Date(createdAt).toLocaleDateString('en-US') : '--'}</span>
                 </div>

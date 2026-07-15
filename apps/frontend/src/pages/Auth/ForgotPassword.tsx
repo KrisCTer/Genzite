@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { forgotPasswordApi } from '../../api/auth';
+import { resetPassword } from 'aws-amplify/auth';
 import { motion } from 'framer-motion';
 
 const ForgotPassword: React.FC = () => {
@@ -21,14 +21,17 @@ const ForgotPassword: React.FC = () => {
   }, []);
 
   const forgotMutation = useMutation({
-    mutationFn: forgotPasswordApi,
-    onSuccess: () => {
-      setIsSuccess(true);
-      message.success('Reset link sent to your email.');
+    mutationFn: async ({ email }: { email: string }) => {
+      const output = await resetPassword({ username: email });
+      return { email, nextStep: output.nextStep };
+    },
+    onSuccess: (data) => {
+      message.success('Mã xác nhận đã được gửi đến email của bạn.');
+      navigate(`/reset-password?email=${encodeURIComponent(data.email)}`);
     },
     onError: (err: any) => {
       console.error('Forgot password error', err);
-      message.error(err.response?.data?.message || 'Failed to send reset link.');
+      message.error(err.message || err.response?.data?.message || 'Failed to send reset link.');
     },
   });
 
@@ -72,7 +75,7 @@ const ForgotPassword: React.FC = () => {
       >
         <h2 className="text-3xl font-extrabold text-white tracking-tight mb-4">Forgot Password</h2>
         
-        {isSuccess ? (
+        {false ? (
           <div className="flex flex-col items-center">
             <p className="text-slate-400 mb-8 text-sm">
               We've sent a password reset link to your email address. Please check your inbox.
@@ -90,7 +93,7 @@ const ForgotPassword: React.FC = () => {
         ) : (
           <>
             <p className="text-slate-400 mb-8 text-sm">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address to receive a verification code for password reset.
             </p>
             <Form
               name="forgot_password_form"

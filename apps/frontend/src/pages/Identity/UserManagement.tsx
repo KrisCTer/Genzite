@@ -296,9 +296,6 @@ const UserManagement: React.FC = () => {
                           </div>
                         </div>
                         <div className="hub-card-right justify-center">
-                          <div style={{ padding: '8px 20px' }} className="text-[14px] font-black text-[#00e5ff] bg-[rgba(0,229,255,0.1)] rounded-full border-2 border-[rgba(0,229,255,0.3)] whitespace-nowrap flex items-center justify-center shadow-[0_0_15px_rgba(0,229,255,0.15)]">
-                            {user.credits?.toLocaleString() || '0'} CR
-                          </div>
                         </div>
                       </div>
                     );
@@ -381,34 +378,7 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '32px', paddingTop: '32px' }} className="border-t border-[rgba(255,255,255,0.05)]">
-                <div style={{ marginBottom: '16px' }} className="flex items-center justify-between">
-                  <span className="text-[12px] font-bold text-white uppercase tracking-widest">Adjust Credits</span>
-                  <div className="text-right">
-                    <span className="text-[13px] font-bold text-[#00e5ff]">{selectedUser.credits?.toLocaleString() || '0'} CR</span>
-                  </div>
-                </div>
-                <div style={{ gap: '12px' }} className="flex items-center h-[42px]">
-                  <div className="flex-1 h-full relative">
-                    <input
-                      type="number"
-                      value={creditsAmount}
-                      onChange={e => setCreditsAmount(e.target.value)}
-                      placeholder="Enter amount..."
-                      style={{ paddingLeft: '16px', paddingRight: '40px' }}
-                      className="w-full h-full bg-[rgba(30,41,59,0.4)] border border-[rgba(255,255,255,0.1)] rounded-xl text-[14px] text-white font-bold outline-none focus:border-[#00e5ff]"
-                    />
-                  </div>
-                  <button
-                    onClick={handleSaveCredits}
-                    disabled={!creditsAmount || creditsMutation.isPending}
-                    style={{ padding: '0 24px' }}
-                    className="h-full bg-[#00e5ff] hover:bg-[#00cce6] hover:shadow-[0_0_15px_rgba(0,229,255,0.4)] cursor-pointer text-[#0f172a] rounded-xl text-[13px] font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ADD
-                  </button>
-                </div>
-              </div>
+
 
               <div style={{ paddingTop: '32px' }} className="border-t border-[rgba(255,255,255,0.05)]">
                 <h4 style={{ marginBottom: '16px' }} className="text-[12px] font-bold text-white uppercase tracking-widest">Security</h4>
