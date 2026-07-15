@@ -527,7 +527,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
           border: '1px solid rgba(255,255,255,0.05)',
           width: '100%'
         }}>
-          <Tooltip title="Sửa Giao Diện & Style" placement="bottom">
+          <Tooltip title="Edit Appearance & Style" placement="bottom">
             <div 
               onClick={() => setActiveTab('style')}
               style={{
@@ -548,10 +548,10 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
               }}
             >
               <Palette size={15} />
-              <span>Giao Diện</span>
+              <span>Appearance</span>
             </div>
           </Tooltip>
-          <Tooltip title="Sự Kiện Click & Gắn Link Chuyển Trang" placement="bottom">
+          <Tooltip title="Click Events & Navigation Links" placement="bottom">
             <div 
               onClick={() => setActiveTab('content')}
               style={{
@@ -572,7 +572,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
               }}
             >
               <Link size={15} />
-              <span>Sự Kiện & Link</span>
+              <span>Events & Links</span>
             </div>
           </Tooltip>
         </div>
@@ -909,21 +909,21 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
         {tag && activeTab === 'content' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Section 1: Universal Click Action / Navigation Control (Sự Kiện & Gắn Link Chuyển Trang) */}
+            {/* Section 1: Universal Click Action / Navigation Control */}
             <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 10, padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#06B6D4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  <ExternalLink size={14} /> Sự Kiện Click & Chuyển Trang
+                  <ExternalLink size={14} /> Click Events & Navigation
                 </div>
                 <span style={{ fontSize: 9.5, background: 'rgba(6,182,212,0.2)', color: '#06B6D4', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>
                   &lt;{tag}&gt;
                 </span>
               </div>
               <p style={{ fontSize: 11, color: '#94A3B8', margin: '0 0 12px 0', lineHeight: 1.4 }}>
-                Gắn liên kết website hoặc thao tác chuyển trang ngay khi click vào thành phần <b>{tag.toUpperCase()}</b> này.
+                Attach a website link or navigation action when clicking on this <b>{tag.toUpperCase()}</b> element.
               </p>
 
-              <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Loại thao tác (Action Type)</div>
+              <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Action Type</div>
               <select
                 value={attrs['data-gz-action-type'] || (attrs.href ? 'url' : attrs.onclick?.includes('location.href') ? 'page' : 'none')}
                 onChange={e => {
@@ -968,15 +968,15 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
                 }}
                 style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer', marginBottom: 12 }}
               >
-                <option value="none">🚫 Không có thao tác Click (None)</option>
-                <option value="page">📄 Chuyển đến Trang khác (Internal Page Navigation)</option>
-                <option value="url">🌐 Mở liên kết Website (Link URL / Href)</option>
-                <option value="scroll">📜 Cuộn tới khu vực trên trang (Scroll to Section ID)</option>
+                <option value="none">🚫 No Click Action (None)</option>
+                <option value="page">📄 Internal Page Navigation</option>
+                <option value="url">🌐 Open Website Link (Link URL / Href)</option>
+                <option value="scroll">📜 Scroll to Section (Scroll to Section ID)</option>
               </select>
 
               {(attrs['data-gz-action-type'] === 'page' || (!attrs['data-gz-action-type'] && attrs.onclick?.includes('location.href'))) && (
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Chọn Trang đích chuyển tới (Target Page Path)</div>
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Select Target Page Path</div>
                   <select
                     value={attrs['data-gz-href'] || attrs.href || (attrs.onclick?.match(/href='([^']+)'/)?.[1]) || '/products'}
                     onChange={e => {
@@ -989,12 +989,12 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
                     }}
                     style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
                   >
-                    <option value="/">Trang chủ (Home Page - /)</option>
-                    <option value="/products">Trang Sản phẩm (Products - /products)</option>
-                    <option value="/about">Trang Giới thiệu (About - /about)</option>
-                    <option value="/contact">Trang Liên hệ (Contact - /contact)</option>
-                    <option value="/pricing">Trang Bảng giá (Pricing - /pricing)</option>
-                    <option value="/login">Trang Đăng nhập (Login - /login)</option>
+                    <option value="/">Home Page (/)</option>
+                    <option value="/products">Products Page (/products)</option>
+                    <option value="/about">About Page (/about)</option>
+                    <option value="/contact">Contact Page (/contact)</option>
+                    <option value="/pricing">Pricing Page (/pricing)</option>
+                    <option value="/login">Login Page (/login)</option>
                   </select>
                 </div>
               )}
@@ -1002,10 +1002,10 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
               {(attrs['data-gz-action-type'] === 'url' || attrs['data-gz-action-type'] === 'scroll' || (!attrs['data-gz-action-type'] && attrs.href)) && (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>
-                    {attrs['data-gz-action-type'] === 'scroll' ? 'ID phần tử tới cuộn (vd: #section-id)' : 'Đường dẫn liên kết (Link URL / Href)'}
+                    {attrs['data-gz-action-type'] === 'scroll' ? 'Target Element ID (e.g., #section-id)' : 'Link URL / Href'}
                   </div>
                   <input
-                    placeholder={attrs['data-gz-action-type'] === 'scroll' ? '#section-id' : 'https://... hoặc /path'}
+                    placeholder={attrs['data-gz-action-type'] === 'scroll' ? '#section-id' : 'https://... or /path'}
                     value={attrs['data-gz-href'] || attrs.href || (attrs.onclick?.match(/href='([^']+)'/)?.[1]) || ''}
                     onChange={e => {
                       const val = e.target.value;
@@ -1024,14 +1024,14 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
               {(attrs['data-gz-action-type'] === 'url' || attrs['data-gz-action-type'] === 'page' || (tag === 'a')) && attrs['data-gz-action-type'] !== 'none' && (
                 <div>
-                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Cửa sổ mở liên kết (Open Target)</div>
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Open Target</div>
                   <select
                     value={attrs.target || '_self'}
                     onChange={e => updateAttr({ target: e.target.value })}
                     style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
                   >
-                    <option value="_self">Mở ngay trong trang hiện tại (_self)</option>
-                    <option value="_blank">Mở ở tab / cửa sổ mới (_blank)</option>
+                    <option value="_self">Open in current tab (_self)</option>
+                    <option value="_blank">Open in new tab / window (_blank)</option>
                   </select>
                 </div>
               )}
@@ -1041,7 +1041,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
             {/* Section 2: Content / Media */}
             <div>
-              <SectionTitle>Nội dung & Hình ảnh (Content)</SectionTitle>
+              <SectionTitle>Content & Media</SectionTitle>
               {tag === 'img' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
@@ -1077,7 +1077,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
                 </div>
               ) : (
                 <div>
-                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Văn bản hiển thị (Element Text)</div>
+                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Element Text</div>
                   <textarea
                     rows={4}
                     placeholder="Enter text content for this element..."
@@ -1094,7 +1094,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
             {/* Section 3: Optional Collapsed Dynamic CMS */}
             <details style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 10 }}>
               <summary style={{ fontSize: 10.5, fontWeight: 600, color: '#94A3B8', cursor: 'pointer', userSelect: 'none' }}>
-                ⚙️ Dữ liệu CMS động (Nâng cao)
+                ⚙️ Dynamic CMS Data (Advanced)
               </summary>
               <div style={{ marginTop: 12 }}>
                 <DynamicBindingControl

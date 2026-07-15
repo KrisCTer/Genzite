@@ -151,7 +151,7 @@ const PreviewViewer: React.FC = () => {
         {/* Right: Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button className="canvas-header-btn-pill" onClick={() => setIsShareModalOpen(true)}>
-            <Share2 size={14} /> Chia sẻ
+            <Share2 size={14} /> Share
           </button>
           
           <div style={{ position: 'relative' }}>
@@ -249,7 +249,7 @@ const PreviewViewer: React.FC = () => {
               position: 'relative'
             }}>
               <Info size={16} />
-              <span>Nội dung này do một người dùng Genzite tạo. Đừng nhập thông tin nhạy cảm vì chủ sở hữu có thể xem được thông tin đó.</span>
+              <span>This content was created by a Genzite user. Do not enter sensitive information as the owner can view it.</span>
               <X
                 size={16}
                 style={{ position: 'absolute', right: 16, cursor: 'pointer', opacity: 0.6 }}
@@ -292,7 +292,7 @@ const PreviewViewer: React.FC = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 500, margin: '0 0 24px 0', textAlign: 'center' }}>
-            Quét mã QR
+            Scan QR Code
           </h2>
           <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 20 }}>
             <img 
@@ -302,7 +302,7 @@ const PreviewViewer: React.FC = () => {
             />
           </div>
           <div style={{ color: '#A1A1AA', textAlign: 'center', fontSize: 13.5, lineHeight: 1.6, fontWeight: 400 }}>
-            Quét mã này bằng thiết bị di động để<br/>xem bản xem trước.
+            Scan this code with a mobile device to<br/>view the preview.
           </div>
         </div>
       </Modal>
@@ -322,20 +322,20 @@ const PreviewViewer: React.FC = () => {
       >
         <div>
           <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: '0 0 24px 0' }}>
-            Chia sẻ dự án
+            Share Project
           </h2>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Cho phép chia sẻ và phối lại</span>
+            <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>Allow sharing and remixing</span>
             <Switch checked={isShareEnabled} onChange={setIsShareEnabled} />
           </div>
           <div style={{ color: '#A1A1AA', fontSize: 13, marginBottom: 24 }}>
-            {isShareEnabled ? 'Bất cứ ai có liên kết đều có thể xem dự án này' : 'Chỉ bạn mới có thể truy cập vào dự án này'}
+            {isShareEnabled ? 'Anyone with the link can view this project' : 'Only you can access this project'}
           </div>
 
           <div style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 16, marginBottom: 24 }}>
             <div style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.5 }}>
-              Khi công khai dự án, bạn cho phép bất cứ ai có đường liên kết có thể xem và phối lại các bản thiết kế và mã đã tạo của dự án này. Bạn có thể thu hồi quyền truy cập công khai bất cứ lúc nào nhưng các bản thiết kế đã được phối lại sẽ không bị xoá.
+              When making a project public, you allow anyone with the link to view and remix the designs and generated code of this project. You can revoke public access at any time but remixed designs will not be deleted.
             </div>
           </div>
 
@@ -343,7 +343,7 @@ const PreviewViewer: React.FC = () => {
             disabled={!isShareEnabled}
             onClick={() => {
               navigator.clipboard.writeText(window.location.origin + '/live/' + siteId);
-              message.success('Đã sao chép liên kết chia sẻ dự án!');
+              message.success('Project share link copied!');
             }}
             style={{ 
               width: '100%', 
@@ -358,7 +358,7 @@ const PreviewViewer: React.FC = () => {
               transition: 'all 0.2s'
             }}
           >
-            Sao chép đường liên kết
+            Copy link
           </button>
         </div>
       </Modal>

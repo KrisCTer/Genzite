@@ -226,7 +226,7 @@ export class SiteGeneratorService {
         prompt = prompt.replace(/\[PLATFORM:(APP|WEB)\]\s*/i, '').trim();
       }
 
-      const createMatch = prompt.match(/(?:Create|Tạo trang|Thêm trang|Tạo thêm trang|Tạo|Thêm)\s+(?:a\s+|an\s+|trang\s+)?([a-zA-Z0-9_ -]+?)(?:\s+Page|\s+trang)?$/i);
+      const createMatch = prompt.match(/(?:Create|Add page|Add|Generate)\s+(?:a\s+|an\s+)?([a-zA-Z0-9_ -]+?)(?:\s+Page)?$/i);
       if (createMatch && createMatch[1] && createMatch[1].trim().length > 0) {
         // Explicit "create/tạo trang <name>" intent → new named page
         pageTitle = createMatch[1].trim();
@@ -307,7 +307,7 @@ export class SiteGeneratorService {
       ]);
 
       let attempt = 1;
-      const MAX_ATTEMPTS = 1; // Giới hạn 1 vòng lặp để tiết kiệm Quota API Gemini
+      const MAX_ATTEMPTS = 1; // Limit 1 loop to save Gemini API Quota
       let htmlContent = '';
 
       while (attempt <= MAX_ATTEMPTS) {
@@ -814,7 +814,7 @@ ${dedupedCss}
     const cleanPrompt = prompt
       .replace(/\[TARGET_PAGE:[^\]]+\]\s*/gi, '')
       .replace(/\[PLATFORM:[^\]]+\]\s*/gi, '')
-      .replace(/^(?:Please create a |Please create |Create a |Design a |Build a |Make a |Generate a |Hãy tạo |Tạo trang web |Tạo website |Một trang web |Trang web |Please |Hãy |Create |Tạo |Thêm |Design |Build |Make |Generate )+/gi, '')
+      .replace(/^(?:Please create a |Please create |Create a |Design a |Build a |Make a |Generate a |Please |Create |Design |Build |Make |Generate )+/gi, '')
       .trim();
 
     if (cleanPrompt && cleanPrompt.length >= 3) {

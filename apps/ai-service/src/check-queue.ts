@@ -29,11 +29,11 @@ async function checkQueues() {
     try {
       const counts = await queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed');
       console.log(`📦 Queue: [ ${name} ]`);
-      console.log(`   ⏳ Waiting (chờ xử lý) : ${counts.waiting}`);
-      console.log(`   ⚙️  Active (đang chạy)   : ${counts.active}`);
-      console.log(`   ✅ Completed (hoàn thành): ${counts.completed}`);
-      console.log(`   ❌ Failed (thất bại)     : ${counts.failed}`);
-      console.log(`   🕒 Delayed (hẹn giờ)     : ${counts.delayed}`);
+      console.log(`   ⏳ Waiting : ${counts.waiting}`);
+      console.log(`   ⚙️  Active   : ${counts.active}`);
+      console.log(`   ✅ Completed: ${counts.completed}`);
+      console.log(`   ❌ Failed   : ${counts.failed}`);
+      console.log(`   🕒 Delayed  : ${counts.delayed}`);
 
       if (counts.waiting > 0 || counts.active > 0) {
         const activeJobs = await queue.getActive();

@@ -27,7 +27,7 @@ function formatDistanceToNowEn(dateString: string) {
   return `${Math.floor(diffInDays / 365)} years ago`;
 }
 
-// Helpers cho UI
+// UI Helpers
 const getIconForType = (type: string) => {
   switch (type) {
     case 'EMAIL': return <div className="hub-card-icon amber"><Inbox size={24} /></div>;
@@ -52,7 +52,7 @@ export const AdminNotificationsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
 
-  // Lấy dữ liệu thật
+  // Fetch real data
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetchNotificationsApi(),
@@ -68,11 +68,11 @@ export const AdminNotificationsPage: React.FC = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
   });
 
-  // Tính toán KPI
+  // Calculate KPI
   const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
   const totalCount = notifications.length;
 
-  // Lọc dữ liệu
+  // Filter data
   const filteredList = useMemo(() => {
     let list = [...notifications];
     if (filter === 'read') list = list.filter(n => n.isRead);

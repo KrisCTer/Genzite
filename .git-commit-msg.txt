@@ -1,9 +1,0 @@
-﻿feat(ui): refine CanvasWorkspace and View Details metrics
-
-- Fix Page Settings side panel to auto-close when switching to other tools
-- Update Custom Tag UI to automatically display newly saved custom tags as pills
-- Fix App URL validation to instantly show 'Available' for default subdomain
-- Replace View Details mock data with real-time metrics (Slug, Device Size, Elements)
-- Add Primary Color indicator dot next to DESIGN.md in the Properties panel
-- Implement a deep recursive regex scanner to successfully extract all nested image URLs from widgets
-- Update Design Prompt fallback logic to properly read from project settings

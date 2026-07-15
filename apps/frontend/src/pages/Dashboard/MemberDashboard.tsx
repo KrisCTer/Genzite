@@ -11,21 +11,21 @@ import {
   Layout,
   ChevronRight
 } from 'lucide-react';
-import '../NotificationsStyle.css'; // Kế thừa phong cách Dark Space / Glassmorphism
+import '../NotificationsStyle.css'; // Inherit Dark Space / Glassmorphism style
 
 const MemberDashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [timeStr, setTimeStr] = useState(new Date().toISOString());
 
-  // Lấy dữ liệu thông báo thật (NO MOCK)
+  // Fetch real notification data (NO MOCK)
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetchNotificationsApi(),
     retry: 1,
   });
 
-  // Tối ưu hóa setInterval tránh leak memory
+  // Optimize setInterval to prevent memory leaks
   useEffect(() => {
     let animationFrameId: number;
     let lastUpdate = Date.now();
