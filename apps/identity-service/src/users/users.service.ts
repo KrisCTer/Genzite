@@ -51,13 +51,10 @@ export class UsersService {
 
     if (!user) {
       // Provision default role
-      const adminRole = await this.prisma.role.findFirst({
-        where: { name: 'ADMIN' },
-      });
       const userRole = await this.prisma.role.findFirst({
-        where: { name: 'USER' },
+        where: { name: 'VIEWER' },
       });
-      const roleToAssign = adminRole || userRole;
+      const roleToAssign = userRole;
 
       user = await this.prisma.user.create({
         data: {
