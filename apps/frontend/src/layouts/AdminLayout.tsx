@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Dropdown, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
+import { Layout, Menu, Typography, Badge, List, Popover, Button, Spin, FloatButton } from 'antd';
 import {
-  UserOutlined,
   DatabaseOutlined,
-  BellOutlined,
-  SettingOutlined,
-  LogoutOutlined,
   RocketOutlined,
 } from '@ant-design/icons';
-import UserAvatar from '../components/UserAvatar';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi, type AppNotification } from '../api/notifications';
+import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
-import { logoutApi } from '../api/auth';
-import { hasMemberAccess, getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
+import { getNotificationsPath, getProfilePath, ADMIN_BASE, WORKSPACE_BASE } from '../utils/userNav';
 import { resolveUserRoles } from '../utils/jwt';
 import UserAccountMenu from '../components/UserAccountMenu';
 import { ADMIN_MENU, WORKSPACE_MENU, filterNavConfig } from '../utils/navMenuConfig';
-import { Shield, Sparkles, Info, DollarSign } from 'lucide-react';
+import { 
+  Bell,
+  Sparkles, 
+  Info, 
+  Shield, 
+  DollarSign
+} from 'lucide-react';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -52,7 +52,7 @@ const getNotificationIcon = (metadata?: { event?: string }) => {
     case 'payment.succeeded':
       return <span className="p-2 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex items-center justify-center shrink-0"><DollarSign size={14} /></span>;
     default:
-      return <span className="p-2 rounded-lg bg-zinc-700/30 text-zinc-400 border border-zinc-700/55 flex items-center justify-center shrink-0"><BellOutlined style={{ fontSize: 14 }} /></span>;
+      return <span className="p-2 rounded-lg bg-zinc-700/30 text-zinc-400 border border-zinc-700/55 flex items-center justify-center shrink-0"><Bell size={14} /></span>;
   }
 };
 
@@ -61,18 +61,28 @@ const AdminLayout: React.FC = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const isAdminArea = location.pathname.startsWith(ADMIN_BASE);
   const effectiveRoles = resolveUserRoles(user?.roles, token);
   const menuConfig = isAdminArea ? ADMIN_MENU : WORKSPACE_MENU;
   const menuItems = filterNavConfig(menuConfig, effectiveRoles).map(toMenuItem);
   const notificationsPath = getNotificationsPath(effectiveRoles);
-  const profilePath = getProfilePath(effectiveRoles);
 
   const isFullWidthPage = location.pathname.includes('/notifications') ||
     location.pathname.includes('/identity') ||
     location.pathname.includes('/profile') ||
     location.pathname === ADMIN_BASE;
+
+  let pageTitle = isAdminArea ? 'Admin Console' : 'My workspace';
+  const path = location.pathname;
+  if (path.includes('/dashboard') || path === '/workspace') pageTitle = 'Dashboard';
+  else if (path.includes('/projects') || path.includes('/sites')) pageTitle = 'Projects';
+  else if (path.includes('/profile') || path.includes('/identity') || path.includes('/user-management')) pageTitle = path.includes('/user-management') ? 'User Management' : 'Personal Profile';
+  else if (path.includes('/notifications')) pageTitle = 'Notifications';
+  else if (path.includes('/trash')) pageTitle = 'Trash';
+  else if (path.includes('/canvas')) pageTitle = 'AI Canvas';
+  else if (path.includes('/media')) pageTitle = 'Media Library';
+  else if (path.includes('/cms')) pageTitle = 'CMS Collections';
 
   const queryClient = useQueryClient();
   const { data: notifications, isLoading: notifLoading } = useQuery({
@@ -119,7 +129,7 @@ const AdminLayout: React.FC = () => {
             type="link"
             size="small"
             onClick={() => { setNotifOpen(false); navigate(notificationsPath); }}
-            style={{ fontSize: '11px', padding: 0 }}
+            style={{ fontSize: '11px', padding: 0, fontWeight: 'bold' }}
           >
             View all
           </Button>
@@ -129,7 +139,7 @@ const AdminLayout: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}><Spin size="small" /></div>
       ) : !displayNotifications || displayNotifications.length === 0 ? (
         <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--gz-text-muted, #71717a)' }}>
-          <BellOutlined style={{ fontSize: '24px', marginBottom: '8px', opacity: 0.5 }} />
+          <Bell size={24} style={{ marginBottom: '8px', opacity: 0.5, display: 'inline-block' }} />
           <div>No new notifications</div>
         </div>
       ) : (
@@ -181,7 +191,72 @@ const AdminLayout: React.FC = () => {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh', background: 'var(--color-bg-app)' }} hasSider>
+    <Layout 
+      className="admin-layout-wrapper"
+      style={{ 
+        minHeight: '100vh', 
+        position: 'relative',
+        backgroundColor: '#07090f',
+        backgroundImage: `
+          radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.1), transparent 25%),
+          radial-gradient(circle at 25% 25%, rgba(0, 229, 255, 0.25), transparent 40%),
+          radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.25), transparent 40%),
+          radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.2), transparent 45%)
+        `
+      }} 
+      hasSider
+      onMouseMove={(e) => {
+        const target = e.currentTarget;
+        const rect = target.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        target.style.setProperty('--mouse-x', `${x}px`);
+        target.style.setProperty('--mouse-y', `${y}px`);
+      }}
+    >
+      {/* Aurora Background Effect (matching CanvasBuilder) */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 0,
+        background: `
+          radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.15), transparent 25%),
+          radial-gradient(circle at 30% 25%, rgba(0, 229, 255, 0.35), transparent 35%),
+          radial-gradient(circle at 70% 30%, rgba(139, 92, 246, 0.3), transparent 35%)
+        `,
+        filter: 'blur(60px)',
+        opacity: 1
+      }} />
+
+      {/* Dot Grid Overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 0,
+        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)',
+        backgroundSize: '16px 16px',
+        backgroundPosition: '0 0',
+        opacity: 0.7
+      }} />
+
+      {/* Glowing Dot Grid Overlay (Mouse Hover) */}
+      <div 
+        className="admin-spotlight"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 0)',
+          backgroundSize: '16px 16px',
+          backgroundPosition: '0 0',
+          WebkitMaskImage: 'radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), black, transparent 40%)',
+          maskImage: 'radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), black, transparent 40%)',
+        }} 
+      />
+
       <Sider
         collapsible
         collapsed={collapsed}
@@ -190,15 +265,40 @@ const AdminLayout: React.FC = () => {
         width={260}
         collapsedWidth={72}
         style={{
-          borderRight: '1px solid var(--color-border)',
-          background: 'var(--gz-dark-2)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.85)',
+          backdropFilter: 'blur(24px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(140%)',
           position: 'sticky',
-          top: 0,
-          height: '100vh',
-          overflow: 'auto',
-          zIndex: 100
+          top: 16,
+          height: 'calc(100vh - 32px)',
+          margin: '16px',
+          borderRadius: '24px',
+          overflow: 'hidden',
+          zIndex: 100,
+          boxShadow: `
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -18px 36px rgba(255, 255, 255, 0.018),
+            0 24px 80px rgba(0, 0, 0, 0.42),
+            0 0 60px rgba(59, 130, 246, 0.14)
+          `
         }}
       >
+        {/* Inner Glow matching ai-prompt-bar */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          borderRadius: 'inherit',
+          background: `
+            radial-gradient(circle at 14% 0%, rgba(0, 229, 255, 0.16), transparent 34%),
+            radial-gradient(circle at 86% 100%, rgba(139, 92, 246, 0.13), transparent 36%)
+          `,
+          opacity: 0.84,
+          zIndex: 0
+        }} />
+        
+        <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{
           height: 64,
           margin: '0 20px',
@@ -238,26 +338,45 @@ const AdminLayout: React.FC = () => {
           onClick={(e) => navigate(e.key)}
           style={{ borderRight: 'none', padding: '8px 10px', background: 'transparent' }}
         />
+        </div>
       </Sider>
       <Layout style={{ background: 'transparent', minWidth: 0 }}>
         <Header
           style={{
-            padding: '0 32px',
-            background: 'var(--gz-dark-2)',
-            borderBottom: '1px solid var(--color-border)',
+            padding: '0 24px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.85)',
+            backdropFilter: 'blur(24px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+            borderRadius: '24px',
+            margin: '16px 16px 0 0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             position: 'sticky',
-            top: 0,
+            top: 16,
             zIndex: 90,
-            height: 56,
-            lineHeight: '56px'
+            height: 64,
+            lineHeight: '64px',
+            boxShadow: `
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              inset 0 -18px 36px rgba(255, 255, 255, 0.018),
+              0 24px 80px rgba(0, 0, 0, 0.42),
+              0 0 60px rgba(59, 130, 246, 0.14)
+            `
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Title level={5} style={{ margin: 0, color: 'var(--color-text-primary)', fontWeight: 600 }}>
-              {isAdminArea ? 'Admin Console' : 'My workspace'}
+            <Title level={4} style={{ 
+              margin: 0, 
+              fontWeight: 800,
+              background: 'linear-gradient(92deg, rgba(255,255,255,.99) 0%, rgba(184,247,255,.96) 46%, rgba(193,173,255,.94) 100%)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+              letterSpacing: '-0.02em'
+            }}>
+              {pageTitle}
             </Title>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -266,7 +385,7 @@ const AdminLayout: React.FC = () => {
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<BellOutlined style={{ fontSize: '18px', color: 'var(--color-text-secondary)' }} />}
+                  icon={<Bell size={20} color="var(--color-text-secondary)" />}
                   style={{ width: 36, height: 36 }}
                 />
               </Badge>
@@ -274,13 +393,11 @@ const AdminLayout: React.FC = () => {
             <UserAccountMenu avatarSize={34} />
           </div>
         </Header>
-        <Content id="admin-content-scroll" style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto' }}>
+        <Content id="admin-content-scroll" style={{ padding: isFullWidthPage ? 0 : '24px 28px', overflow: 'auto', position: 'relative', zIndex: 1 }}>
           <div
             style={{
               padding: 0,
               minHeight: 360,
-              maxWidth: isFullWidthPage ? '100%' : 1280,
-              margin: '0 auto',
               width: '100%',
               background: 'transparent',
               height: isFullWidthPage ? '100%' : 'auto',

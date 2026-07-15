@@ -33,15 +33,7 @@ export const WORKSPACE_MENU: NavMenuConfig[] = [
   { label: 'Profile', key: `${WORKSPACE_BASE}/profile`, icon: <UserOutlined />, roles: VIEWER_ROLES },
   { label: 'Notifications', key: `${WORKSPACE_BASE}/notifications`, icon: <BellOutlined />, roles: VIEWER_ROLES },
   { label: 'Trash', key: `${WORKSPACE_BASE}/trash`, icon: <DeleteOutlined />, roles: VIEWER_ROLES },
-  {
-    label: 'AI Services',
-    key: 'workspace-ai',
-    icon: <RobotOutlined />,
-    roles: VIEWER_ROLES,
-    children: [
-      { label: 'AI Canvas', key: '/project', roles: VIEWER_ROLES },
-    ],
-  },
+  { label: 'AI Canvas', key: '/project', icon: <RobotOutlined />, roles: VIEWER_ROLES },
 ];
 
 export const ADMIN_MENU: NavMenuConfig[] = [
@@ -50,6 +42,10 @@ export const ADMIN_MENU: NavMenuConfig[] = [
   { label: 'Notifications', key: `${ADMIN_BASE}/notifications`, icon: <BellOutlined />, roles: STAFF_ROLES },
   { label: 'Trash', key: `${ADMIN_BASE}/trash`, icon: <DeleteOutlined />, roles: STAFF_ROLES },
   { label: 'Identity (Users/Roles)', key: `${ADMIN_BASE}/identity`, icon: <TeamOutlined />, roles: ['ADMIN'] },
+  { label: 'Media Library', key: `${ADMIN_BASE}/media`, icon: <PictureOutlined />, roles: STAFF_ROLES },
+  { label: 'Data CMS', key: `${ADMIN_BASE}/cms`, icon: <DatabaseOutlined />, roles: STAFF_ROLES },
+  { label: 'Site Builder', key: `${ADMIN_BASE}/site`, icon: <GlobalOutlined />, roles: STAFF_ROLES },
+  { label: 'AI Canvas', key: `/project`, icon: <RobotOutlined />, roles: STAFF_ROLES },
 ];
 
 export function filterNavConfig(config: NavMenuConfig[], roles: string[]): NavMenuConfig[] {

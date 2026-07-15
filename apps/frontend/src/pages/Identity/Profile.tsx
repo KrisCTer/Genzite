@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMeApi, updateMeApi } from '../../api/users';
 import { changePasswordApi } from '../../api/auth';
+import { updatePassword } from 'aws-amplify/auth';
 import { uploadMediaFileApi } from '../../api/media';
 import '../NotificationsStyle.css';
 
@@ -113,7 +114,25 @@ const Profile: React.FC = () => {
   });
 
   const passwordMutation = useMutation({
-    mutationFn: changePasswordApi,
+    mutationFn: async (values: any) => {
+      const cognitoUserPoolId = import.meta.env.VITE_COGNITO_AUTHORITY?.split('/').pop() || '';
+      const cognitoClientId = import.meta.env.VITE_COGNITO_CLIENT_ID || '';
+      
+      if (cognitoUserPoolId && cognitoClientId && !cognitoUserPoolId.includes('xxxxxx')) {
+        try {
+          await updatePassword({ oldPassword: values.oldPassword, newPassword: values.newPassword });
+          return;
+        } catch (err: any) {
+          if (err.name === 'NotAuthorizedException') {
+            const e = new Error('Current password is incorrect.') as any;
+            e.response = { data: { errorCode: 'AUTH_INVALID_OLD_PASSWORD' } };
+            throw e;
+          }
+          console.warn('Cognito change password failed, trying local DB fallback', err);
+        }
+      }
+      return changePasswordApi(values);
+    },
     onSuccess: () => {
       message.success('Password changed successfully!');
       pwdForm.resetFields();
@@ -187,11 +206,6 @@ const Profile: React.FC = () => {
     <div className="hub-root">
       <div className="hub-wrapper" style={{ maxWidth: '100%' }}>
         
-        {/* Header */}
-        <div className="hub-header">
-          <h1 className="hub-header-title">Personal Profile</h1>
-          <p className="hub-header-desc">Manage your identity and account security in the Genzite workspace.</p>
-        </div>
 
         {/* Main Content Layout */}
         <div className="hub-main">

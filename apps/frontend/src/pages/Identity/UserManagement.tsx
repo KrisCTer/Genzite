@@ -176,11 +176,6 @@ const UserManagement: React.FC = () => {
     <div className="hub-root select-none">
       <div className="hub-wrapper" style={{ maxWidth: '100%' }}>
         
-        {/* Header */}
-        <div className="hub-header">
-          <h1 className="hub-header-title">User Management</h1>
-          <p className="hub-header-desc">System for authorization, identity and account security.</p>
-        </div>
 
         {/* KPI Stats */}
         <div className="hub-stats mb-8">

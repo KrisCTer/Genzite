@@ -131,11 +131,7 @@ const Collections: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: 32 }}>CMS Collections</Title>
-          <div style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>Manage your dynamic database schemas (Headless CMS)</div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Space size="large">
           <Select
             value={selectedSiteId}

@@ -1,0 +1,34 @@
+.trash-tabs-container {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  padding: 4px;
+  margin: 24px 24px 0 24px;
+  width: fit-content;
+}
+
+.trash-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  padding: 10px 20px;
+  color: #a1a1aa;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trash-tab:hover {
+  color: #fff;
+}
+
+.trash-tab.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}

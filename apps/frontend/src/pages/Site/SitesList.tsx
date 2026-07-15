@@ -81,11 +81,7 @@ const SitesList: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-32)' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <Title level={2} className="page-title">Sites Management</Title>
-          <div className="page-description">Manage your websites and domains</div>
-        </div>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
         <Button type="primary" icon={<PlusOutlined />} size="large" style={{ fontWeight: 500 }} onClick={() => handleOpenModal()}>
           Create Site
         </Button>

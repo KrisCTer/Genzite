@@ -27,7 +27,6 @@ interface SignUpValues {
   acceptTerms: boolean;
 }
 
-
 // ---------------------------------------------------------------------------
 // Sub-icons
 // ---------------------------------------------------------------------------
@@ -54,7 +53,6 @@ const GithubIcon: React.FC = () => (
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
-
 
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 850);
@@ -132,7 +130,6 @@ const Login: React.FC = () => {
               refreshToken: undefined,
             };
           }
-<<<<<<< HEAD
         } catch (authErr: any) {
           if (authErr.name === 'UserNotConfirmedException') {
             throw new Error('Account is not verified. Please check your email and click the activation link.');
@@ -213,12 +210,12 @@ const Login: React.FC = () => {
         if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
           setPendingVerificationEmail(data.email);
           setIsVerificationModalOpen(true);
-          message.info('A verification code has been sent to your email.');
+          message.info('A verification code/link has been sent to your email.');
         } else if (data.nextStep?.signUpStep === 'DONE') {
-          message.success('Registration successful! Please check your email and click the link to verify your account.');
+          message.success('Registration successful! Please check your email and click the verification link to verify your account.');
           setIsSignUp(false);
         } else {
-          message.success('Registration successful! Please sign in.');
+          message.success('Registration successful! Please check your email/link and sign in.');
           setIsSignUp(false);
         }
       } else {
@@ -248,11 +245,8 @@ const Login: React.FC = () => {
     onError: (err: any) => {
       console.error('Verification error', err);
       message.error(err.message || 'Invalid verification code.');
->>>>>>> main
     },
   });
-
-  // confirmSignUpMutation removed (using Link verification instead of Code)
 
   // ── handlers ───────────────────────────────────────────────────────────────
 
@@ -404,7 +398,6 @@ const Login: React.FC = () => {
                       Sign In
                     </Button>
                   </div>
-
 
                 </Form>
               </div>
@@ -612,7 +605,6 @@ const Login: React.FC = () => {
                       Sign In
                     </Button>
                   </div>
-
 
                 </Form>
                 <p className="text-center text-sm text-slate-400 mt-2">
