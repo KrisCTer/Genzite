@@ -213,13 +213,13 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
       const userPrompt = state.activePrompt || '';
 
       let sectionTitle = 'Home, About, Projects, Contact';
-      if (userPrompt.toLowerCase().includes('home') || userPrompt.toLowerCase().includes('trang chủ')) {
+      if (userPrompt.toLowerCase().includes('home')) {
         sectionTitle = 'Home Page & Components';
-      } else if (userPrompt.toLowerCase().includes('about') || userPrompt.toLowerCase().includes('giới thiệu')) {
+      } else if (userPrompt.toLowerCase().includes('about')) {
         sectionTitle = 'About & Features Page';
-      } else if (userPrompt.toLowerCase().includes('product') || userPrompt.toLowerCase().includes('sản phẩm')) {
+      } else if (userPrompt.toLowerCase().includes('product')) {
         sectionTitle = 'Products & E-Commerce Grid';
-      } else if (userPrompt.toLowerCase().includes('contact') || userPrompt.toLowerCase().includes('liên hệ')) {
+      } else if (userPrompt.toLowerCase().includes('contact')) {
         sectionTitle = 'Contact & Support Section';
       } else if (userPrompt.length > 3) {
         sectionTitle = userPrompt.length > 40 ? userPrompt.substring(0, 40) + '...' : userPrompt;
@@ -328,7 +328,7 @@ export const useAiLogStore = create<AiLogState>((set, get) => ({
         globalSseConnection?.close();
         globalSseConnection = null;
         set({ isGenerating: false });
-        get().failGeneration('Mất kết nối stream tiến trình AI');
+        get().failGeneration('Connection to AI process stream lost');
         onError?.('Connection to generation stream lost');
       };
     } catch (error: any) {

@@ -35,7 +35,7 @@ export const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widgets }) => {
     return <div className="p-10 text-center text-zinc-500">No content available.</div>;
   }
 
-  // Sắp xếp theo sortOrder
+  // Sort by sortOrder
   const sortedWidgets = [...widgets].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (

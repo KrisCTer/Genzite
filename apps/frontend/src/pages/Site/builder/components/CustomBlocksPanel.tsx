@@ -295,7 +295,7 @@ export const CustomBlocksPanel: React.FC<CustomBlocksPanelProps> = ({ editor }) 
 
   const handleInsertBlock = (block: BlockItem) => {
     if (!editor) {
-      message.error('Trình chỉnh sửa GrapesJS chưa sẵn sàng');
+      message.error('GrapesJS editor is not ready');
       return;
     }
 

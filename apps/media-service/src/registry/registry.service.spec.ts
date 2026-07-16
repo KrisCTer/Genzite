@@ -30,6 +30,7 @@ describe('RegistryService', () => {
             mediaFile: {
               findMany: jest.fn(),
               findUnique: jest.fn(),
+              update: jest.fn(),
               delete: jest.fn(),
             },
           },
@@ -59,12 +60,12 @@ describe('RegistryService', () => {
       const result = await service.findByOwnerId('user-1', 2, 10);
 
       expect(prisma.mediaFile.findMany).toHaveBeenCalledWith({
-        where: { ownerId: 'user-1' },
+        where: { ownerId: 'user-1', isDeleted: false },
         orderBy: { createdAt: 'desc' },
         skip: 10,
         take: 10,
       });
-      expect(result).toEqual([{ id: 'media-1' }]);
+      expect(result).toEqual([{ id: 'media-1', url: '' }]);
     });
   });
 
@@ -81,17 +82,19 @@ describe('RegistryService', () => {
       await expect(service.deleteMedia('media-1', 'user-1')).rejects.toThrow(ForbiddenException);
     });
 
-    it('should delete media and emit event', async () => {
+    it('should soft delete media and emit event', async () => {
       jest.spyOn(prisma.mediaFile, 'findUnique').mockResolvedValue({ id: 'media-1', ownerId: 'user-1', s3Key: 'key-1' } as any);
-      jest.spyOn(prisma.mediaFile, 'delete').mockResolvedValue({ id: 'media-1' } as any);
-      
-      const s3ClientInstance = (service as any).s3;
-      s3ClientInstance.send.mockResolvedValue({});
+      jest.spyOn(prisma.mediaFile, 'update').mockResolvedValue({ id: 'media-1' } as any);
 
       const result = await service.deleteMedia('media-1', 'user-1');
 
-      expect(s3ClientInstance.send).toHaveBeenCalled();
-      expect(prisma.mediaFile.delete).toHaveBeenCalledWith({ where: { id: 'media-1' } });
+      expect(prisma.mediaFile.update).toHaveBeenCalledWith({
+        where: { id: 'media-1' },
+        data: {
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        },
+      });
       expect(mediaProducer.emitMediaDeleted).toHaveBeenCalledWith({
         mediaId: 'media-1',
         s3Key: 'key-1',

@@ -1,5 +1,6 @@
 import { Injectable, NestMiddleware, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
+import { RequestWithUser } from '@genzite/shared-types';
 import * as jwt from 'jsonwebtoken';
 
 /** Mock user injected when identity-service is not running (dev mode). */
@@ -37,6 +38,11 @@ export class AuthMiddleware implements NestMiddleware {
     'POST /api/v1/auth/reset-password',
     'GET /health',
     'GET /api/v1/ai/stream',
+    'GET /api/v1/ai/admin/queues',
+    'PUT /api/v1/ai/admin/queues',
+    'DELETE /api/v1/ai/admin/queues',
+    'POST /api/v1/ai/admin/queues',
+    'GET /api/v1/settings/public',
   ];
 
   constructor() {
@@ -50,7 +56,7 @@ export class AuthMiddleware implements NestMiddleware {
     }
   }
 
-  use(req: Request, _res: Response, next: NextFunction) {
+  use(req: RequestWithUser, _res: Response, next: NextFunction) {
     const url = (req.originalUrl || req.url || req.path || '').split('?')[0];
 
     // Block browser/external access to internal service-to-service routes
@@ -91,7 +97,7 @@ export class AuthMiddleware implements NestMiddleware {
     // --- PRODUCTION MODE: verify JWT ---
     const authHeader = req.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Thiếu hoặc sai định dạng Header Authorization');
+      throw new UnauthorizedException('Missing or invalid Authorization header');
     }
 
     try {
@@ -122,7 +128,7 @@ export class AuthMiddleware implements NestMiddleware {
 
       next();
     } catch (error) {
-      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException('Invalid or expired token');
     }
   }
 }

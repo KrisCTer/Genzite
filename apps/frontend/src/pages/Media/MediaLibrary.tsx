@@ -4,7 +4,8 @@ import { UploadOutlined, InboxOutlined, FileOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchMediaFilesApi, uploadMediaFileApi, type MediaFile } from '../../api/media';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
+
 const { Dragger } = Upload;
 
 const MediaLibrary: React.FC = () => {
@@ -95,11 +96,7 @@ const MediaLibrary: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#111827', fontSize: 32 }}>Media Library</Title>
-          <div style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>Manage all your uploaded images and files in AWS S3</div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <Button type="primary" icon={<UploadOutlined />} size="large" style={{ fontWeight: 500 }} onClick={() => setIsModalOpen(true)}>
           Upload Media
         </Button>

@@ -131,3 +131,14 @@ export const restoreSiteApi = async (id: string) => {
   return response.data;
 };
 
+export const fetchSiteMetricsApi = async (siteId: string, range: string = '24h') => {
+  const response = await apiClient.get(`/sites/${siteId}/observability/metrics`, { params: { range } });
+  return response.data;
+};
+
+export const fetchSiteLogsApi = async (siteId: string, severity?: string) => {
+  const response = await apiClient.get(`/sites/${siteId}/observability/logs`, { params: { severity } });
+  return response.data;
+};
+
+

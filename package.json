@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:gateway\" \"pnpm run dev:identity\" \"pnpm run dev:site\" \"pnpm run dev:data\" \"pnpm run dev:media\" \"pnpm run dev:notification\" \"pnpm run dev:ai\" \"pnpm run dev:commerce\" \"pnpm run dev:frontend\"",
+    "dev": "concurrently --restart-tries 10 --restart-after 3000 --names \"gw,id,site,data,media,notif,ai,web\" --prefix-colors \"blue,magenta,green,yellow,cyan,red,white,gray\" \"pnpm run dev:gateway\" \"pnpm run dev:identity\" \"pnpm run dev:site\" \"pnpm run dev:data\" \"pnpm run dev:media\" \"pnpm run dev:notification\" \"pnpm run dev:ai\" \"pnpm run dev:frontend\"",
     "build:ui": "pnpm --filter ./packages/shared-ui run build",
     "build:types": "pnpm --filter ./packages/shared-types run build",
     "build:utils": "pnpm --filter ./packages/shared-utils run build",
@@ -25,9 +25,7 @@
     "dev:media": "node scripts/dev.mjs start:dev --service media-service",
     "dev:notification": "node scripts/dev.mjs start:dev --service notification-service",
     "dev:ai": "node scripts/dev.mjs start:dev --service ai-service",
-    "dev:commerce": "node scripts/dev.mjs start:dev --service commerce-service",
     "dev:identity": "node scripts/dev.mjs start:dev --service identity-service",
-    "dev:commerce": "node scripts/dev.mjs start:dev --service commerce-service",
     "prisma:migrate": "node scripts/dev.mjs prisma migrate dev --all",
     "prisma:generate": "node scripts/dev.mjs prisma generate --all",
     "prisma:migrate:site": "node scripts/dev.mjs prisma migrate dev --service site-service",
@@ -36,18 +34,18 @@
     "prisma:migrate:media": "node scripts/dev.mjs prisma migrate dev --service media-service",
     "prisma:migrate:notification": "node scripts/dev.mjs prisma migrate dev --service notification-service",
     "prisma:migrate:ai": "node scripts/dev.mjs prisma migrate dev --service ai-service",
-    "prisma:migrate:commerce": "node scripts/dev.mjs prisma migrate dev --service commerce-service",
     "prisma:migrate:identity": "node scripts/dev.mjs prisma migrate dev --service identity-service",
     "prisma:studio:site": "node scripts/dev.mjs prisma studio --service site-service",
     "prisma:studio:data": "node scripts/dev.mjs prisma studio --service data-service",
     "prisma:studio:media": "node scripts/dev.mjs prisma studio --service media-service",
     "prisma:studio:notification": "node scripts/dev.mjs prisma studio --service notification-service",
     "prisma:studio:ai": "node scripts/dev.mjs prisma studio --service ai-service",
-    "prisma:studio:commerce": "node scripts/dev.mjs prisma studio --service commerce-service",
     "prisma:studio:identity": "node scripts/dev.mjs prisma studio --service identity-service"
   },
   "devDependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.15.43",
     "concurrently": "^10.0.3"
   }
 }

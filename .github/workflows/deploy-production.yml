@@ -1,0 +1,68 @@
+name: Deploy Production (Backend Services)
+
+on:
+  push:
+    branches:
+      - production
+      - deploy/production
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Backend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - gateway
+          - identity-service
+          - site-service
+          - data-service
+          - media-service
+          - notification-service
+          - ai-service
+      # Prevent all services from failing if one fails
+      fail-fast: false
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./infra/Dockerfile.prod
+          push: true
+          build-args: |
+            APP_NAME=${{ matrix.service }}
+          tags: |
+            ${{ env.ECR_REGISTRY }}/genzite-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.ECR_REGISTRY }}/genzite-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service \
+            --cluster genzite-production-cluster \
+            --service genzite-${{ matrix.service }} \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}

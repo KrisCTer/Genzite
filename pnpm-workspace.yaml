@@ -4,11 +4,13 @@ packages:
 onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"
+  - "@swc/core"
   - "prisma"
   - "unrs-resolver"
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
+  '@swc/core': true
   codebase-memory-mcp: true
   esbuild: true
   msgpackr-extract: true

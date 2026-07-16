@@ -6,7 +6,7 @@ import { fetchCollectionsApi } from '../../api/cms';
 import { fetchSitesApi } from '../../api/sites';
 import { Users, Database, Globe, Sparkles, Shield, UserCircle, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../store/auth';
-import '../NotificationsStyle.css'; // Kế thừa phong cách Dark Space / Glassmorphism
+import '../NotificationsStyle.css'; // Inherit Dark Space / Glassmorphism style
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -17,9 +17,10 @@ export const Dashboard: React.FC = () => {
   const { data: collections } = useQuery({ queryKey: ['cms-collections'], queryFn: () => fetchCollectionsApi('') });
   const { data: sites } = useQuery({ queryKey: ['sites'], queryFn: fetchSitesApi });
 
+
   const [timeStr, setTimeStr] = useState(new Date().toISOString());
 
-  // Tối ưu hóa setInterval tránh leak memory
+  // Optimize setInterval to prevent memory leaks
   useEffect(() => {
     let animationFrameId: number;
     let lastUpdate = Date.now();
@@ -55,7 +56,7 @@ export const Dashboard: React.FC = () => {
       }),
     [timeStr],
   );
-  
+
   const welcomeGreeting = useMemo(() => {
     const hour = new Date(timeStr).getHours();
     if (hour < 12) return 'Good morning';

@@ -7,11 +7,11 @@ interface SEOProps {
 
 const useSEO = ({ title, description }: SEOProps) => {
   useEffect(() => {
-    // Đổi Title
+    // Change Title
     const defaultTitle = 'Genzite Platform';
     document.title = `${title} | ${defaultTitle}`;
 
-    // Đổi Meta Description nếu có truyền vào
+    // Change Meta Description if provided
     if (description) {
       let metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
@@ -24,7 +24,7 @@ const useSEO = ({ title, description }: SEOProps) => {
       }
     }
 
-    // Cleanup khi rời khỏi trang (optional, tuỳ kiến trúc)
+    // Cleanup on page leave (optional, depends on architecture)
     return () => {
       document.title = defaultTitle;
     };

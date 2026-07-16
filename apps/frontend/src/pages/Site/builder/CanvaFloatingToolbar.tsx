@@ -23,14 +23,12 @@ export interface CanvaFloatingToolbarProps {
 
 export const CanvaFloatingToolbar: React.FC<CanvaFloatingToolbarProps> = ({
   widgetId,
-
   isLocked = false,
   selectionTimestamp = 0,
   onAction,
   onOpenMenu,
   onPointerDownMove,
 }) => {
-
   const mountTimeRef = useRef<number>(Date.now());
   const lastWidgetIdRef = useRef<string>(widgetId);
 

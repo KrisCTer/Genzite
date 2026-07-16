@@ -15,9 +15,9 @@ export interface CanvasStroke {
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import ReactMarkdown from 'react-markdown';
-import {
-  ZoomInOutlined,
-  ZoomOutOutlined,
+import { 
+  ZoomInOutlined, 
+  ZoomOutOutlined, 
   FullscreenOutlined,
   ArrowUpOutlined,
   BorderOutlined,
@@ -43,7 +43,7 @@ import CanvasPageFrame from './CanvasPageFrame';
 import AIPromptBar from './AIPromptBar';
 import CanvasToolbar from './CanvasToolbar';
 import { useAiLogStore } from '../../../store/aiLogs';
-import { ThemeEditorPanel } from './workspace-components/ThemeEditorPanel';
+import { ThemeEditorPanel, THEMES, generateDesignMd } from './workspace-components/ThemeEditorPanel';
 import { ExportPanel } from './workspace-components/ExportPanel';
 import { LeftSidebar } from './workspace-components/LeftSidebar';
 import { useAuthStore } from '../../../store/auth';
@@ -70,10 +70,10 @@ interface CanvasWorkspaceProps {
   onDuplicateProject?: () => void;
 }
 
-const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
-  pages,
-  siteId,
-  site,
+const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({ 
+  pages, 
+  siteId, 
+  site, 
   onAIGenerated,
   onViewDetails,
   onViewCode,
@@ -88,7 +88,12 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [pageToDelete, setPageToDelete] = useState<any>(null);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const isOwner = !!(user?.id && site?.ownerId && site.ownerId === user.id);
+  const isGenerating = useAiLogStore((state) => state.isGenerating);
+  const isOwner = !!(
+    (user?.id && site?.ownerId && site.ownerId === user.id) ||
+    (user?.id && (!site?.ownerId || siteId?.startsWith('gen-') || siteId?.startsWith('new-') || isGenerating)) ||
+    (!site?.ownerId && (siteId?.startsWith('gen-') || siteId?.startsWith('new-') || isGenerating))
+  );
 
   const CANVAS_IMAGES_KEY = `genzite-canvas-images-${siteId}`;
   const [floatingImages, setFloatingImages] = useState<{ id: string; url: string; name: string; previewUrl?: string; uploading?: boolean }[]>(() => {
@@ -173,7 +178,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       message.warning('Please select a page first');
       return;
     }
-
+    
     const themeOverrides = {
       themeId: detailThemeId,
       mode: themeMode,
@@ -181,10 +186,10 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       colors: themeColorOverrides,
       fonts: themeFonts,
     };
-
+    
     setIsApplyingTheme(true);
     message.info('Applying design system to selected page...');
-
+    
     submitSiteGeneration(
       `[TARGET_PAGE:${selectedId}] Update the current page UI to perfectly match the provided Design System and color palette.`,
       'gemini-2.5-flash',
@@ -225,6 +230,20 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     return () => window.removeEventListener('genzite:history:state', handleHistoryState);
   }, [pages]);
 
+  const [pageDimensions, setPageDimensions] = useState<Record<string, { width: number; height: number }>>({});
+  useEffect(() => {
+    const handlePageDimensions = (e: any) => {
+      if (e.detail?.pageId && e.detail.width && e.detail.height) {
+        setPageDimensions(prev => ({
+          ...prev,
+          [e.detail.pageId]: { width: e.detail.width, height: e.detail.height }
+        }));
+      }
+    };
+    window.addEventListener('genzite:page:dimensions', handlePageDimensions);
+    return () => window.removeEventListener('genzite:page:dimensions', handlePageDimensions);
+  }, []);
+
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -247,7 +266,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [expandedFontRole, setExpandedFontRole] = useState<string | null>(null);
   const [fontSearch, setFontSearch] = useState('');
   const [themeScheme, setThemeScheme] = useState('Fidelity');
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+  const [themeMode, setThemeMode] = useState<'light'|'dark'>('light');
   const [themeRadius, setThemeRadius] = useState<number>(4);
   const [isThemeSchemeOpen, setIsThemeSchemeOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
@@ -302,11 +321,10 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   }, [site?.settings?.platform]);
 
-  const isGenerating = useAiLogStore(state => state.isGenerating);
   const activeTargetPageId = useAiLogStore(state => state.activeTargetPageId);
   const activePrompt = useAiLogStore(state => state.activePrompt);
   const aiSteps = useAiLogStore(state => state.steps);
-
+  
   useEffect(() => {
     if (isGenerating) {
       setIsSidebarExpanded(true);
@@ -371,7 +389,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       e.target.value = '';
     }
   };
-
+  
   const topZCounter = useRef(10);
   const requestTopZ = useCallback(() => {
     topZCounter.current += 1;
@@ -454,16 +472,16 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
       navigate('/project');
     } catch (error: any) {
       hideLoading();
-      message.error({
-        content: error?.response?.data?.message || 'Failed to duplicate project',
-        key: 'duplicate-project'
+      message.error({ 
+        content: error?.response?.data?.message || 'Failed to duplicate project', 
+        key: 'duplicate-project' 
       });
     }
   };
 
   const handleReloadPage = () => {
     queryClient.invalidateQueries({ queryKey: ['site-all-widgets', siteId] });
-
+    
     // Create a visual feedback effect on the active page
     const activePage = getTargetActivePage();
     if (activePage) {
@@ -473,12 +491,12 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
         pageEl.style.transform = 'scale(0.98)';
         pageEl.style.opacity = '0.7';
         pageEl.style.filter = 'brightness(1.1)';
-
+        
         setTimeout(() => {
           pageEl.style.transform = 'scale(1)';
           pageEl.style.opacity = '1';
           pageEl.style.filter = 'brightness(1)';
-
+          
           setTimeout(() => {
             pageEl.style.transition = '';
             pageEl.style.transform = '';
@@ -489,50 +507,79 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   };
 
-  const handleDownload = async () => {
-    const activePage = getTargetActivePage();
-    if (!activePage) return;
-
-    const hideMessage = message.loading('Preparing download data...', 0);
+  const handleDownload = async (options?: { selectedPageIds?: string[]; rootFolderName?: string; zipFileName?: string }) => {
+    if (!pages || pages.length === 0) return;
+    
+    const hideMessage = message.loading('Đang chuẩn bị dữ liệu tải về...', 0);
     try {
       const zip = new JSZip();
+      
+      const rootFolderStr = (options?.rootFolderName || site?.name || site?.subdomain || 'Project').trim() || 'Project';
+      const rootFolder = zip.folder(rootFolderStr);
+      if (!rootFolder) {
+        throw new Error('Failed to create root folder inside zip');
+      }
 
-      const htmlString = getActivePageCode();
-      zip.file(`${activePage.slug || 'index'}.html`, htmlString);
+      const targetPageIds = options?.selectedPageIds && options.selectedPageIds.length > 0
+        ? options.selectedPageIds
+        : pages.map((p: any) => p.id);
+      
+      const selectedPages = pages.filter((p: any) => targetPageIds.includes(p.id));
+      if (selectedPages.length === 0) {
+        hideMessage();
+        message.warning('Vui lòng chọn ít nhất 1 trang để tải về!');
+        return;
+      }
 
-      const designPrompt = activePage?.settings?.designPrompt || site?.settings?.systemPrompt || 'No design prompt specified.';
-      zip.file('DESIGN.md', designPrompt);
+      const activeThemeObj = detailThemeId === 'custom' 
+        ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
+        : (detailThemeId ? THEMES.find(t => t.id === detailThemeId) : THEMES[0]) || THEMES[0];
 
+      for (const page of selectedPages) {
+        const pageFolderName = (page.title || page.slug || 'page').trim().replace(/[^a-zA-Z0-9_\-\u00C0-\u024F\u1E00-\u1EFF]/g, '_') || `page_${page.id.slice(0, 4)}`;
+        const pageFolder = rootFolder.folder(pageFolderName);
+        if (!pageFolder) continue;
+
+        const htmlString = getPageCode(page);
+        const fileName = `${page.slug || 'index'}.html`;
+        pageFolder.file(fileName, htmlString);
+
+        const rawPrompt = page?.settings?.designPrompt || site?.settings?.systemPrompt || ((site?.settings as any)?.prompt) || site?.description || '';
+        const designPrompt = rawPrompt.trim().startsWith('---') 
+          ? rawPrompt 
+          : generateDesignMd(activeThemeObj, themeColorOverrides, themeFonts, themeMode, themeRadius, rawPrompt);
+        pageFolder.file('DESIGN.md', designPrompt);
+      }
+      
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      saveAs(zipBlob, `${activePage.slug || 'export'}.zip`);
+      const finalZipName = `${options?.zipFileName || rootFolderStr}.zip`;
+      saveAs(zipBlob, finalZipName);
       hideMessage();
-      message.success('Downloaded successfully!');
       setIsExportOpen(false);
     } catch (err) {
       console.error(err);
       hideMessage();
-      message.error('Failed to download!');
+      message.error('Tải về thất bại!');
     }
   };
 
   const handleCopyCode = () => {
     const htmlString = getActivePageCode();
     navigator.clipboard.writeText(htmlString);
-    message.success('Đã sao chép mã HTML vào bảng nhớ tạm!');
     setIsExportOpen(false);
   };
 
   const handleSummarizeProject = async (_description: string) => {
     const activePage = getTargetActivePage();
     if (!activePage) return;
-
+    
     setIsExportOpen(false);
     const hideMessage = message.loading('AI Studio đang tạo tóm tắt...', 0);
     try {
       setTimeout(() => {
         const projectName = site?.name || 'ELARA';
         const projectDesc = site?.settings?.designPrompt || 'Luxury Minimalist Lifestyle';
-
+        
         const summaryText = `Project Brief: ${projectName} — ${projectDesc}
 
 ## Brand Vision
@@ -567,11 +614,10 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
 - **Engagement**: High interaction rates with "The Journal" and Collection deep-dives.
 - **Conversion**: A frictionless, premium path to purchase.`;
 
-        message.success('Đã tạo tóm tắt dự án thành công!');
         hideMessage();
-
+        
         setFloatingNotes(prev => [...prev, { id: `note-${Date.now()}`, title: 'Project Brief', content: summaryText }]);
-
+        
         // Dispatch custom event if a widget listener exists
         window.dispatchEvent(new CustomEvent('genzite:widget:create', {
           detail: { type: 'text', content: summaryText }
@@ -583,16 +629,15 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
     }
   };
 
-  const getActivePageCode = useCallback(() => {
-    const activePage = getTargetActivePage();
-    if (!activePage || !allPagesWidgets) return '';
-
-    const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
+  const getPageCode = useCallback((targetPage: any) => {
+    if (!targetPage || !allPagesWidgets) return '';
+    
+    const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(targetPage.id) || w.pageId === targetPage.id);
     const grapesWidget = pageWidgets.find((w: any) => w.type === 'GRAPESJS');
-
+    
     let htmlContent = '';
     let cssContent = '';
-
+    
     if (grapesWidget) {
       htmlContent = grapesWidget.contentConfig?.html || '';
       cssContent = grapesWidget.contentConfig?.css || '';
@@ -602,12 +647,12 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
         return renderToStaticMarkup(<WidgetRenderer type={w.type} config={w.contentConfig} isActive={false} />);
       }).join('\n');
     }
-
+    
     return `<!DOCTYPE html>
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>${activePage.title} | ${site?.name || 'Project'}</title>
+<title>${targetPage.title} | ${site?.name || 'Project'}</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -627,7 +672,12 @@ ${cssContent}
 ${htmlContent}
 </body>
 </html>`;
-  }, [pages, selectedId, allPagesWidgets, site]);
+  }, [allPagesWidgets, site]);
+
+  const getActivePageCode = useCallback(() => {
+    const activePage = getTargetActivePage();
+    return getPageCode(activePage);
+  }, [getTargetActivePage, getPageCode]);
 
   const extractRealProjectColors = () => {
     const colorCounts: Record<string, number> = {};
@@ -672,7 +722,7 @@ ${htmlContent}
     const secondary = sortedColors[1] || (site?.settings?.secondaryColor as string) || '#334155';
     const tertiary = sortedColors[2] || '#2563EB';
     const neutral = sortedColors[3] || '#F8FAFC';
-
+    
     const generateShades = (baseHex: string) => {
       if (!baseHex.startsWith('#') || baseHex.length < 7) {
         return [baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex, baseHex];
@@ -744,7 +794,7 @@ ${htmlContent}
     if (!el) return;
     const handleNativeWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
+        e.preventDefault(); 
         const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
         setZoom(z => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, parseFloat((z + delta).toFixed(2)))));
       }
@@ -755,39 +805,39 @@ ${htmlContent}
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-      switch (e.key.toLowerCase()) {
-        case 'v':
-          setActiveTool('select');
+      switch(e.key.toLowerCase()) {
+        case 'v': 
+          setActiveTool('select'); 
           setIsStylesOpen(false);
           setIsDetailsOpen(false);
           break;
-        case 'f':
-          setActiveTool('frame');
+        case 'f': 
+          setActiveTool('frame'); 
           setIsStylesOpen(false);
           setIsDetailsOpen(false);
           break;
         case 'a':
-        case 'p':
-          setActiveTool('draw');
+        case 'p': 
+          setActiveTool('draw'); 
           setIsStylesOpen(false);
           setIsDetailsOpen(false);
           break;
-        case 'h':
-          setActiveTool('pan');
+        case 'h': 
+          setActiveTool('pan'); 
           setIsStylesOpen(false);
           setIsDetailsOpen(false);
           break;
-        case 'i':
-          setActiveTool('image');
+        case 'i': 
+          setActiveTool('image'); 
           setIsStylesOpen(false);
           setIsDetailsOpen(false);
           fileInputRef.current?.click();
           break;
-        case 'c':
-          setActiveTool('palette');
+        case 'c': 
+          setActiveTool('palette'); 
           setIsStylesOpen(prev => !prev);
           setIsDetailsOpen(false);
-          setPan({ x: 100, y: 100 });
+          setPan({ x: 100, y: 100 }); 
           break;
       }
     };
@@ -807,7 +857,7 @@ ${htmlContent}
     }
 
     if ((e.target as HTMLElement).classList.contains('canvas-center') ||
-      (e.target as HTMLElement).classList.contains('canvas-viewport')) {
+        (e.target as HTMLElement).classList.contains('canvas-viewport')) {
       if (e.button === 0 && activeTool !== 'pan') {
         setSelectedId(null);
       }
@@ -904,25 +954,25 @@ ${htmlContent}
   const activePage = getTargetActivePage();
 
   return (
-    <div
-      className="canvas-workspace-root"
-      ref={workspaceRootRef}
+    <div 
+      className="canvas-workspace-root" 
+      ref={workspaceRootRef} 
       onMouseMove={handleMouseMove}
       style={{ display: 'block', width: '100%', height: '100%', position: 'relative' }}
     >
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        accept="image/*"
-        onChange={handleImageUpload}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        accept="image/*" 
+        onChange={handleImageUpload} 
       />
-
-      <CanvasToolbar
-        zoom={zoom}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        onResetZoom={resetZoom}
+      
+      <CanvasToolbar 
+        zoom={zoom} 
+        onZoomIn={zoomIn} 
+        onZoomOut={zoomOut} 
+        onResetZoom={resetZoom} 
         onPreview={handlePreview}
         onPublish={handlePublish}
         siteTitle={site?.name || pages?.[0]?.title || 'My App'}
@@ -942,12 +992,12 @@ ${htmlContent}
         onDuplicateProject={onDuplicateProject || handleDuplicateProject}
         onSelectTool={(toolId) => setActiveTool(toolId as any)}
       />
-
+      
       <div className="canvas-body" style={{ display: 'flex', position: 'absolute', inset: 0, overflow: 'hidden' }}>
         {isOwner && (
-          <LeftSidebar
-            isSidebarExpanded={isSidebarExpanded}
-            setIsSidebarExpanded={setIsSidebarExpanded}
+          <LeftSidebar 
+            isSidebarExpanded={isSidebarExpanded} 
+            setIsSidebarExpanded={setIsSidebarExpanded} 
           />
         )}
 
@@ -957,14 +1007,14 @@ ${htmlContent}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onContextMenu={(e) => { e.preventDefault(); handleMouseDown(e); }}
-          style={{
+          onContextMenu={(e) => { e.preventDefault(); handleMouseDown(e); }} 
+          style={{ 
             width: '100%',
             height: '100%',
-            cursor: isPanning ? 'grabbing' :
-              activeTool === 'pan' ? 'grab' :
-                (activeTool === 'frame' || activeTool === 'draw') ? 'crosshair' : 'default',
-            background: 'transparent'
+            cursor: isPanning ? 'grabbing' : 
+                    activeTool === 'pan' ? 'grab' : 
+                    (activeTool === 'frame' || activeTool === 'draw') ? 'crosshair' : 'default', 
+            background: 'transparent' 
           }}
         >
           <div
@@ -974,7 +1024,7 @@ ${htmlContent}
               transformOrigin: '0 0',
               position: 'absolute',
               pointerEvents: (activeTool === 'pan' || isPanning) ? 'none' : 'auto',
-              width: 10000, height: 10000
+              width: 10000, height: 10000 
             }}
           >
             <DraggableBoard
@@ -1230,9 +1280,10 @@ ${htmlContent}
 
             {(pages || []).map((page: any, index: number) => {
               const isSelectedPage = selectedId?.includes(page.id) || (!selectedId && index === 0);
+              const isCreatePagePrompt = activePrompt && /(?:Create|Add page|Add|Generate|Tạo|Thêm|Thêm trang|Tạo trang|Làm trang|Xây dựng trang)\s+|(?:page|trang|screen)\s+(?:mới|new|giới thiệu|about|contact|liên hệ|sản phẩm|products|pricing|bảng giá|faq|blog|login|register|đăng nhập|đăng ký|giỏ hàng|cart|checkout)/i.test(activePrompt);
               const isPageRegenerating = isGenerating && (
-                activeTargetPageId === page.id ||
-                (!activeTargetPageId && isSelectedPage && activePrompt && !activePrompt.match(/(?:Create|Tạo trang|Thêm trang|Tạo|Thêm)\s+/i))
+                activeTargetPageId === page.id || 
+                (!activeTargetPageId && isSelectedPage && !isCreatePagePrompt && (selectedId !== null || pages.length <= 1))
               );
               const currentStepObj = aiSteps.length > 0 ? aiSteps[aiSteps.length - 1] : null;
 
@@ -1437,12 +1488,12 @@ ${htmlContent}
                 </div>
 
                 {/* Note content */}
-                <div
+                <div 
                   className="custom-scrollbar markdown-content"
-                  style={{
-                    background: '#1A1C1E',
-                    borderRadius: 20,
-                    border: '1px solid rgba(255,255,255,0.1)',
+                  style={{ 
+                    background: '#1A1C1E', 
+                    borderRadius: 20, 
+                    border: '1px solid rgba(255,255,255,0.1)', 
                     boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
                     padding: 24,
                     maxHeight: '60vh',
@@ -1785,94 +1836,92 @@ ${htmlContent}
 
           {/* ── Main Right Tool Dock Pill ── */}
           {isOwner && (
-            <div
-              className="canvas-tools-right-pill"
-              style={{
-                position: 'relative',
-                zIndex: 50,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '8px 5px',
-                gap: 8,
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(17, 24, 39, 0.6)',
-                borderRadius: 30,
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)'
-              }}
-            >
-              {[
-                { id: 'select', title: 'Select / Pointer (V)', icon: <ArrowUpOutlined style={{ transform: 'rotate(-45deg)' }} /> },
-                { id: 'frame', title: 'Frame / Marquee Tool (F)', icon: <BorderOutlined /> },
-                { id: 'draw', title: 'Draw / Pencil Tool (P)', icon: <EditOutlined /> },
-                { id: 'pan', title: 'Hand / Pan Tool (H)', icon: <DragOutlined /> },
-                { id: 'image', title: 'Image / Media Tool (I)', icon: <PictureOutlined /> },
-                { id: 'divider', title: '', icon: null },
-                { id: 'palette', title: 'Color Palette / Styles (C)', icon: <BgColorsOutlined /> },
-                { id: 'star', title: 'Favorites / Assets (S)', icon: <StarOutlined /> },
-                { id: 'tag', title: 'Page Tags (T)', icon: <TagOutlined /> }
-              ].map(tool => {
-                if (tool.id === 'divider') {
-                  return <div key="divider" style={{ width: 18, height: 1, background: 'rgba(255, 255, 255, 0.12)', margin: '2px 0' }} />;
-                }
-                return (
-                  <button
-                    key={tool.id}
-                    type="button"
-                    className="canvas-right-tool-btn"
-                    onClick={() => {
-                      if (tool.id === 'image') fileInputRef.current?.click();
-                      if (tool.id === 'palette') {
-                        setIsStylesOpen(!isStylesOpen);
-                        setIsDetailsOpen(false);
-                        setPageToEdit(null);
-                      } else {
-                        setIsStylesOpen(false);
-                        setIsDetailsOpen(false);
-                        setPageToEdit(null);
-                      }
-                      if (tool.id === 'star') {
-                        if (selectedId) {
-                          const ids = selectedId.split(',').filter(Boolean);
-                          if (ids.length > 0) {
-                            const allStarred = ids.every(id => starredPageIds.includes(id));
-                            if (allStarred) {
-                              setStarredPageIds(prev => prev.filter(id => !ids.includes(id)));
-                              message.success('Removed star from selected page(s)');
-                            } else {
-                              setStarredPageIds(prev => Array.from(new Set([...prev, ...ids])));
-                              message.success('Starred selected page(s) ⭐');
-                            }
+          <div
+            className="canvas-tools-right-pill"
+            style={{
+              position: 'relative',
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '8px 5px',
+              gap: 8,
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(17, 24, 39, 0.6)',
+              borderRadius: 30,
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)'
+            }}
+          >
+            {[
+              { id: 'select', title: 'Select / Pointer (V)', icon: <ArrowUpOutlined style={{ transform: 'rotate(-45deg)' }} /> },
+              { id: 'frame', title: 'Frame / Marquee Tool (F)', icon: <BorderOutlined /> },
+              { id: 'draw', title: 'Draw / Pencil Tool (P)', icon: <EditOutlined /> },
+              { id: 'pan', title: 'Hand / Pan Tool (H)', icon: <DragOutlined /> },
+              { id: 'image', title: 'Image / Media Tool (I)', icon: <PictureOutlined /> },
+              { id: 'divider', title: '', icon: null },
+              { id: 'palette', title: 'Color Palette / Styles (C)', icon: <BgColorsOutlined /> },
+              { id: 'star', title: 'Favorites / Assets (S)', icon: <StarOutlined /> },
+              { id: 'tag', title: 'Page Tags (T)', icon: <TagOutlined /> }
+            ].map(tool => {
+              if (tool.id === 'divider') {
+                return <div key="divider" style={{ width: 18, height: 1, background: 'rgba(255, 255, 255, 0.12)', margin: '2px 0' }} />;
+              }
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  className="canvas-right-tool-btn"
+                  onClick={() => {
+                    if (tool.id === 'image') fileInputRef.current?.click();
+                    if (tool.id === 'palette') {
+                      setIsStylesOpen(!isStylesOpen);
+                      setIsDetailsOpen(false);
+                      setPageToEdit(null);
+                    } else {
+                      setIsStylesOpen(false);
+                      setIsDetailsOpen(false);
+                      setPageToEdit(null);
+                    }
+                    if (tool.id === 'star') {
+                      if (selectedId) {
+                        const ids = selectedId.split(',').filter(Boolean);
+                        if (ids.length > 0) {
+                          const allStarred = ids.every(id => starredPageIds.includes(id));
+                          if (allStarred) {
+                            setStarredPageIds(prev => prev.filter(id => !ids.includes(id)));
+                          } else {
+                            setStarredPageIds(prev => Array.from(new Set([...prev, ...ids])));
                           }
                         }
                       }
-                      setActiveTool(tool.id as any);
-                    }}
-                    style={getToolBtnStyle(tool.id)}
-                    title={tool.title}
-                  >
-                    {activeTool === tool.id && (
-                      <motion.div
-                        layoutId="activeToolBg"
-                        initial={false}
-                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        style={{ position: 'absolute', inset: 0, background: '#F8FAFC', borderRadius: '50%', zIndex: -1, boxShadow: '0 4px 12px rgba(255, 255, 255, 0.25)' }}
-                      />
-                    )}
-                    {tool.icon && React.cloneElement(tool.icon as React.ReactElement<any>, { style: { ...(tool.icon as React.ReactElement<any>).props.style, position: 'relative', zIndex: 2 } })}
-                  </button>
-                );
-              })}
-            </div>
+                    }
+                    setActiveTool(tool.id as any);
+                  }}
+                  style={getToolBtnStyle(tool.id)}
+                  title={tool.title}
+                >
+                  {activeTool === tool.id && (
+                    <motion.div
+                      layoutId="activeToolBg"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      style={{ position: 'absolute', inset: 0, background: '#F8FAFC', borderRadius: '50%', zIndex: -1, boxShadow: '0 4px 12px rgba(255, 255, 255, 0.25)' }}
+                    />
+                  )}
+                  {tool.icon && React.cloneElement(tool.icon as React.ReactElement<any>, { style: { ...(tool.icon as React.ReactElement<any>).props.style, position: 'relative', zIndex: 2 } })}
+                </button>
+              );
+            })}
+          </div>
           )}
         </div>
 
         {isOwner && (
           <div className="canvas-prompt-wrapper">
-            <AIPromptBar
-              compact
+            <AIPromptBar 
+              compact 
               initialPlatform={site?.settings?.platform || 'app'}
               onGenerated={(jobId, subdomain, platform) => {
                 onAIGenerated?.(jobId, subdomain, platform);
@@ -1916,23 +1965,19 @@ ${htmlContent}
 
         {(() => {
           if (!isDetailsOpen) return null;
-
+          
           const activePage = getTargetActivePage();
           let pageHeight = 1000;
           let extractedAssets: string[] = [];
-          // @ts-ignore
-          let widgetsCount = 0;
-
+          
           if (activePage && allPagesWidgets) {
             const pageWidgets = allPagesWidgets.filter((w: any) => w._id?.includes(activePage.id) || w.pageId === activePage.id);
-            // @ts-ignore
-            widgetsCount = pageWidgets.length;
             let maxH = 0;
-
+            
             const extractUrls = (obj: any): string[] => {
               let urls: string[] = [];
               if (!obj) return urls;
-
+              
               if (typeof obj === 'string') {
                 const urlRegex = /(https?:\/\/[^\s"'()[\]{}<>]+)/g;
                 const matches = obj.match(urlRegex);
@@ -1959,21 +2004,28 @@ ${htmlContent}
               const h = w.contentConfig?.geometry?.height || 200;
               const y = w.contentConfig?.geometry?.y || 0;
               if (y + h > maxH) maxH = y + h;
-
+              
               extractedAssets = extractedAssets.concat(extractUrls(w.contentConfig));
             });
-            if (maxH > 0) pageHeight = maxH;
+            if (maxH > 0) pageHeight = Math.max(maxH, 900);
           }
-
+          
           extractedAssets = [...new Set(extractedAssets)].filter(url => typeof url === 'string' && url.startsWith('http'));
-          const deviceWidth = canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : 1440;
+          const deviceWidth = activePage && pageDimensions[activePage.id]?.width
+            ? pageDimensions[activePage.id].width
+            : (canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : 1440);
+          if (activePage && pageDimensions[activePage.id]?.height) {
+            pageHeight = pageDimensions[activePage.id].height;
+          } else {
+            pageHeight = canvasDevice === 'mobile' ? 844 : canvasDevice === 'tablet' ? 1024 : Math.max(pageHeight, 900);
+          }
 
           return (
             <div style={{
               position: 'absolute',
-              top: 80,
-              right: 70,
-              bottom: 90,
+              top: 80, 
+              right: 70, 
+              bottom: 90, 
               width: 320,
               background: 'rgba(17, 24, 39, 0.85)',
               backdropFilter: 'blur(24px)',
@@ -1989,8 +2041,8 @@ ${htmlContent}
             }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{site?.name ? `${site.name} - ` : ''}{activePage?.title || 'Home'}</span>
-                <button
-                  onClick={() => setIsDetailsOpen(false)}
+                <button 
+                  onClick={() => setIsDetailsOpen(false)} 
                   style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#fff'}
                   onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
@@ -2001,19 +2053,19 @@ ${htmlContent}
               <div style={{ padding: 20, overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Properties</div>
-
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, alignItems: 'center' }}>
                     <span style={{ color: '#94A3B8' }}>URL Slug</span>
                     <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, border: '1px solid rgba(255,255,255,0.05)' }}>
                       {activePage?.slug || '/'}
                     </span>
                   </div>
-
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, alignItems: 'center' }}>
                     <span style={{ color: '#94A3B8' }}>Device Size</span>
                     <span style={{ fontWeight: 500 }}>{deviceWidth} x {pageHeight}</span>
                   </div>
-
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13, alignItems: 'center' }}>
                     <span style={{ color: '#94A3B8' }}>DESIGN.md</span>
                     <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '4px 10px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
@@ -2021,20 +2073,28 @@ ${htmlContent}
                       {site?.name || 'My Project'}
                     </span>
                   </div>
-
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, alignItems: 'center' }}>
                     <span style={{ color: '#94A3B8' }}>Source</span>
                     <span style={{ color: '#38bdf8', cursor: 'pointer', fontWeight: 500 }} onClick={() => setIsCodeModalOpen(true)}>{'</>'} View Code</span>
                   </div>
                 </div>
-
+                
                 <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Design Prompt</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.6, color: '#CBD5E1', background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                    {((site?.settings as any)?.prompt) || site?.description || 'No design prompt specified for this project.'}
-                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Design Prompt & System</div>
+                  <pre style={{ fontSize: 11, lineHeight: 1.5, color: '#CBD5E1', background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)', whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: '"Inter", sans-serif', maxHeight: 300, overflowY: 'auto', margin: 0 }}>
+                    {(() => {
+                      const activeThemeObj = detailThemeId === 'custom' 
+                        ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
+                        : (detailThemeId ? THEMES.find(t => t.id === detailThemeId) : THEMES[0]) || THEMES[0];
+                      const rawPrompt = activePage?.settings?.designPrompt || site?.settings?.systemPrompt || ((site?.settings as any)?.prompt) || site?.description || '';
+                      return rawPrompt.trim().startsWith('---') 
+                        ? rawPrompt 
+                        : generateDesignMd(activeThemeObj, themeColorOverrides, themeFonts, themeMode, themeRadius, rawPrompt);
+                    })()}
+                  </pre>
                 </div>
-
+                
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Assets ({extractedAssets.length})</div>
                   {extractedAssets.length > 0 ? (
@@ -2083,47 +2143,49 @@ ${htmlContent}
             setIsStylesOpen={setIsStylesOpen}
           />
         )}
-
+        
         {isExportOpen && (
           <ExportPanel
             onClose={() => setIsExportOpen(false)}
             onDownloadZip={handleDownload}
             onCopyCode={handleCopyCode}
             onSummarizeProject={handleSummarizeProject}
+            pages={pages || []}
+            defaultProjectName={site?.name || site?.subdomain || 'Project'}
           />
         )}
 
-        <div
-          className="canvas-zoom-floating"
-          style={{
-            position: 'absolute',
-            bottom: 24,
-            right: 20,
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)',
-            padding: '6px 14px',
-            borderRadius: 24,
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+        <div 
+          className="canvas-zoom-floating" 
+          style={{ 
+            position: 'absolute', 
+            bottom: 24, 
+            right: 20, 
+            zIndex: 50, 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 6, 
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(17, 24, 39, 0.6)', 
+            padding: '6px 14px', 
+            borderRadius: 24, 
+            border: '1px solid rgba(255, 255, 255, 0.1)', 
             boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 32px rgba(0,0,0,0.5)',
             backdropFilter: 'blur(24px) saturate(140%)',
             WebkitBackdropFilter: 'blur(24px) saturate(140%)'
           }}
         >
-          <button
-            className="canvas-tool-btn"
-            style={{ color: '#fff', opacity: canUndo ? 1 : 0.35, pointerEvents: canUndo ? 'auto' : 'none' }}
-            onClick={() => window.dispatchEvent(new CustomEvent('genzite:undo', { detail: { pageId: pages[0]?.id } }))}
+          <button 
+            className="canvas-tool-btn" 
+            style={{ color: '#fff', opacity: canUndo ? 1 : 0.35, pointerEvents: canUndo ? 'auto' : 'none' }} 
+            onClick={() => window.dispatchEvent(new CustomEvent('genzite:undo', { detail: { pageId: pages[0]?.id } }))} 
             title="Undo Canvas Action"
           >
             <UndoOutlined />
           </button>
-          <button
-            className="canvas-tool-btn"
-            style={{ color: '#fff', opacity: canRedo ? 1 : 0.35, pointerEvents: canRedo ? 'auto' : 'none' }}
-            onClick={() => window.dispatchEvent(new CustomEvent('genzite:redo', { detail: { pageId: pages[0]?.id } }))}
+          <button 
+            className="canvas-tool-btn" 
+            style={{ color: '#fff', opacity: canRedo ? 1 : 0.35, pointerEvents: canRedo ? 'auto' : 'none' }} 
+            onClick={() => window.dispatchEvent(new CustomEvent('genzite:redo', { detail: { pageId: pages[0]?.id } }))} 
             title="Redo Canvas Action"
           >
             <RedoOutlined />
@@ -2135,530 +2197,530 @@ ${htmlContent}
           <div className="canvas-divider" style={{ background: 'rgba(255, 255, 255, 0.15)', height: 16, width: 1, margin: '0 4px' }} />
           <button className="canvas-tool-btn" onClick={resetZoom} title="Fit to Screen"><FullscreenOutlined /></button>
         </div>
-      </div>
+        </div>
 
-      {/* Code Viewer Modal */}
-      <Modal
-        open={isCodeModalOpen}
-        onCancel={() => setIsCodeModalOpen(false)}
-        footer={null}
-        closable={false}
-        width={1000}
-        centered
-        styles={{
-          content: {
+        {/* Code Viewer Modal */}
+        <Modal
+          open={isCodeModalOpen}
+          onCancel={() => setIsCodeModalOpen(false)}
+          footer={null}
+          closable={false}
+          width={1000}
+          centered
+          styles={{
+            content: {
+              background: 'rgba(17, 24, 39, 0.85)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 16,
+              padding: 0,
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+              overflow: 'hidden'
+            },
+            mask: {
+              backdropFilter: 'blur(4px)',
+              background: 'rgba(0, 0, 0, 0.7)',
+            }
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ed6a5e' }} />
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f4bf4f' }} />
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#61c554' }} />
+            </div>
+            <div style={{ color: '#ccc', fontSize: 13, fontFamily: 'var(--font-sans)', fontWeight: 500 }}>{site?.name || 'Project'} - Code View</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => { navigator.clipboard.writeText(getActivePageCode()); message.success('Code copied to clipboard!'); }}
+                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#ccc', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <CopyOutlined /> Copy Code
+              </button>
+              <button 
+                onClick={() => setIsCodeModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <CloseOutlined />
+              </button>
+            </div>
+          </div>
+          
+          <div style={{ padding: 20, maxHeight: '70vh', overflow: 'auto', fontFamily: 'monospace', fontSize: 13, color: '#F8FAFC', lineHeight: 1.6 }} className="custom-scrollbar">
+            {getActivePageCode().split('\n').map((line, i) => {
+              const highlighted = line
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/(&lt;\/?)([a-zA-Z0-9\-]+)(.*?)(&gt;)/g, (_match, p1, tag, attrs, p4) => {
+                  const coloredAttrs = attrs.replace(/([a-zA-Z0-9\-]+)=(&quot;.*?&quot;|'.*?'|".*?")/g, 
+                    '<span style="color: #9cdcfe;">$1</span>=<span style="color: #ce9178;">$2</span>'
+                  );
+                  return `${p1}<span style="color: #569cd6;">${tag}</span>${coloredAttrs}${p4}`;
+                });
+                
+              return (
+                <div key={i} style={{ display: 'flex' }}>
+                  <span style={{ color: '#858585', minWidth: 40, userSelect: 'none', textAlign: 'right', paddingRight: 16 }}>{i + 1}</span>
+                  <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }} dangerouslySetInnerHTML={{ __html: highlighted || ' ' }} />
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
+
+        {/* Delete Page Modal - Synchronized with aiLogs UI */}
+        <Modal
+          open={!!pageToDelete}
+          onCancel={() => setPageToDelete(null)}
+          footer={null}
+          closable={false}
+          width={440}
+          centered
+          styles={{
+            content: {
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 20,
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+            },
+            mask: {
+              backdropFilter: 'blur(6px)',
+              background: 'rgba(0, 0, 0, 0.65)',
+            }
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#EF4444',
+              flexShrink: 0
+            }}>
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Delete Page</h3>
+              <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm removing this page from the project</p>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.025)',
+            borderRadius: 12,
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            padding: '16px',
+            marginBottom: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
+                <span style={{ color: '#06B6D4' }}>✦</span>
+                <span>Page Name:</span>
+              </div>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{pageToDelete?.title || 'Current Page'}</span>
+            </div>
+
+            <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
+              Are you sure you want to delete this page? All components and content within this page will be permanently removed.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setPageToDelete(null)}
+              style={{
+                padding: '9px 18px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 8,
+                color: '#CBD5E1',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (pageToDelete) {
+                  deletePageMutation.mutate(pageToDelete.id);
+                  setPageToDelete(null);
+                }
+              }}
+              style={{
+                padding: '9px 20px',
+                background: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.8)',
+                borderRadius: 8,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Delete Page
+            </button>
+          </div>
+        </Modal>
+
+        {/* Clear All Drawings Modal - Synchronized with aiLogs UI */}
+        <Modal
+          open={isClearDrawingsModalOpen}
+          onCancel={() => setIsClearDrawingsModalOpen(false)}
+          footer={null}
+          closable={false}
+          width={460}
+          centered
+          styles={{
+            content: {
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 20,
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+            },
+            mask: {
+              backdropFilter: 'blur(6px)',
+              background: 'rgba(0, 0, 0, 0.65)',
+            }
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#EF4444',
+              flexShrink: 0
+            }}>
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Clear All Drawings?</h3>
+              <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm permanent deletion of all canvas notes</p>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.025)',
+            borderRadius: 12,
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            padding: '16px',
+            marginBottom: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
+                <span style={{ color: '#06B6D4' }}>✦</span>
+                <span>Project Drawings:</span>
+              </div>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{drawings.length} strokes</span>
+            </div>
+
+            <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
+              Are you sure you want to delete these drawings? This will remove all pencil/draw notes on this project canvas.
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#F87171',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              padding: '8px 12px',
+              borderRadius: 8
+            }}>
+              <span style={{ fontSize: 14 }}>⚠️</span>
+              <span>This action cannot be undone.</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setIsClearDrawingsModalOpen(false)}
+              style={{
+                padding: '9px 18px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 8,
+                color: '#CBD5E1',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDrawings([]);
+                saveDrawingsToBackend([]);
+                message.success('Cleared all drawings');
+                setIsClearDrawingsModalOpen(false);
+              }}
+              style={{
+                padding: '9px 20px',
+                background: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.8)',
+                borderRadius: 8,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                transition: 'all 0.2s',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              Clear All
+            </button>
+          </div>
+        </Modal>
+        
+        <MediaLibraryModal globalListener={true} />
+
+        {pageToEdit && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            right: 70, 
+            width: 320,
             background: 'rgba(17, 24, 39, 0.85)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: 16,
-            padding: 0,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 100,
+            color: '#F8FAFC',
             overflow: 'hidden'
-          },
-          mask: {
-            backdropFilter: 'blur(4px)',
-            background: 'rgba(0, 0, 0, 0.7)',
-          }
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ed6a5e' }} />
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f4bf4f' }} />
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#61c554' }} />
-          </div>
-          <div style={{ color: '#ccc', fontSize: 13, fontFamily: 'var(--font-sans)', fontWeight: 500 }}>{site?.name || 'Project'} - Code View</div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button
-              onClick={() => { navigator.clipboard.writeText(getActivePageCode()); message.success('Code copied to clipboard!'); }}
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#ccc', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              <CopyOutlined /> Copy Code
-            </button>
-            <button
-              onClick={() => setIsCodeModalOpen(false)}
-              style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              <CloseOutlined />
-            </button>
-          </div>
-        </div>
-
-        <div style={{ padding: 20, maxHeight: '70vh', overflow: 'auto', fontFamily: 'monospace', fontSize: 13, color: '#F8FAFC', lineHeight: 1.6 }} className="custom-scrollbar">
-          {getActivePageCode().split('\n').map((line, i) => {
-            let highlighted = line
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/(&lt;\/?)([a-zA-Z0-9\-]+)(.*?)(&gt;)/g, (_match, p1, tag, attrs, p4) => {
-                const coloredAttrs = attrs.replace(/([a-zA-Z0-9\-]+)=(&quot;.*?&quot;|'.*?'|".*?")/g,
-                  '<span style="color: #9cdcfe;">$1</span>=<span style="color: #ce9178;">$2</span>'
-                );
-                return `${p1}<span style="color: #569cd6;">${tag}</span>${coloredAttrs}${p4}`;
-              });
-
-            return (
-              <div key={i} style={{ display: 'flex' }}>
-                <span style={{ color: '#858585', minWidth: 40, userSelect: 'none', textAlign: 'right', paddingRight: 16 }}>{i + 1}</span>
-                <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }} dangerouslySetInnerHTML={{ __html: highlighted || ' ' }} />
-              </div>
-            );
-          })}
-        </div>
-      </Modal>
-
-      {/* Delete Page Modal - Synchronized with aiLogs UI */}
-      <Modal
-        open={!!pageToDelete}
-        onCancel={() => setPageToDelete(null)}
-        footer={null}
-        closable={false}
-        width={440}
-        centered
-        styles={{
-          content: {
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 20,
-            padding: '24px',
-            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
-            backdropFilter: 'blur(24px) saturate(140%)',
-          },
-          mask: {
-            backdropFilter: 'blur(6px)',
-            background: 'rgba(0, 0, 0, 0.65)',
-          }
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#EF4444',
-            flexShrink: 0
           }}>
-            <Trash2 size={22} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Delete Page</h3>
-            <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm removing this page from the project</p>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.025)',
-          borderRadius: 12,
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          padding: '16px',
-          marginBottom: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
-              <span style={{ color: '#06B6D4' }}>✦</span>
-              <span>Page Name:</span>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Page Settings</span>
+              <button 
+                onClick={() => setPageToEdit(null)} 
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+              >
+                <X size={16} />
+              </button>
             </div>
-            <span style={{ color: '#fff', fontWeight: 600 }}>{pageToDelete?.title || 'Current Page'}</span>
-          </div>
+            <div style={{ padding: 20, overflowY: 'auto' }} className="custom-scrollbar">
+              <Form
+                layout="vertical"
+                initialValues={{ title: pageToEdit.title, slug: pageToEdit.slug }}
+                onFinish={(values) => {
+                  const isDuplicate = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === values.title?.toLowerCase());
+                  if (isDuplicate) {
+                     message.error('Tag name already exists on another page!');
+                     return;
+                  }
+                  updatePageMutation.mutate({ id: pageToEdit.id, data: values });
+                }}
+              >
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ color: '#94A3B8', display: 'block', marginBottom: 8, fontSize: 14 }}>Select or Enter Tag</span>
+                  <Form.Item noStyle shouldUpdate={(prev, current) => prev.title !== current.title}>
+                    {({ getFieldValue, setFieldsValue }) => {
+                      const currentTitle = getFieldValue('title') || '';
+                      const ALL_TAGS = Array.from(new Set([
+                        'Home', 'About', 'Products', 'Services', 'Contact', 'Blog',
+                        ...pages.map((p: any) => p.title).filter(Boolean)
+                      ]));
+                      const isCustom = !ALL_TAGS.includes(currentTitle);
+                      
+                      return (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {ALL_TAGS.map(tag => {
+                            const isSelected = currentTitle === tag;
+                            const isUsed = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === tag.toLowerCase());
+                            return (
+                              <div
+                                key={tag}
+                                onClick={() => {
+                                  if (!isUsed) {
+                                    setFieldsValue({ title: tag, slug: tag === 'Home' ? '/' : '/' + tag.toLowerCase() });
+                                  }
+                                }}
+                                style={{
+                                  padding: '6px 16px',
+                                  borderRadius: 999,
+                                  cursor: isUsed ? 'not-allowed' : 'pointer',
+                                  background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                  border: `1px solid ${isSelected ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                                  color: isSelected ? '#818CF8' : isUsed ? '#475569' : '#CBD5E1',
+                                  fontWeight: isSelected ? 600 : 400,
+                                  opacity: isUsed ? 0.5 : 1,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {tag} {isUsed && <span style={{ fontSize: 10 }}>(Used)</span>}
+                              </div>
+                            );
+                          })}
+                          <div
+                            onClick={() => {
+                              if (!isCustom) {
+                                setFieldsValue({ title: 'Custom Page' });
+                              }
+                            }}
+                            style={{
+                              padding: '6px 16px',
+                              borderRadius: 999,
+                              cursor: 'pointer',
+                              background: isCustom ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${isCustom ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                              color: isCustom ? '#818CF8' : '#CBD5E1',
+                              fontWeight: isCustom ? 600 : 400,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            Custom...
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </Form.Item>
+                </div>
 
-          <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
-            Are you sure you want to delete this page? All components and content within this page will be permanently removed.
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button
-            type="button"
-            onClick={() => setPageToDelete(null)}
-            style={{
-              padding: '9px 18px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 8,
-              color: '#CBD5E1',
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontFamily: 'var(--font-sans)'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (pageToDelete) {
-                deletePageMutation.mutate(pageToDelete.id);
-                setPageToDelete(null);
-              }
-            }}
-            style={{
-              padding: '9px 20px',
-              background: '#EF4444',
-              border: '1px solid rgba(239, 68, 68, 0.8)',
-              borderRadius: 8,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              transition: 'all 0.2s',
-              fontFamily: 'var(--font-sans)'
-            }}
-          >
-            Delete Page
-          </button>
-        </div>
-      </Modal>
-
-      {/* Clear All Drawings Modal - Synchronized with aiLogs UI */}
-      <Modal
-        open={isClearDrawingsModalOpen}
-        onCancel={() => setIsClearDrawingsModalOpen(false)}
-        footer={null}
-        closable={false}
-        width={460}
-        centered
-        styles={{
-          content: {
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)), rgba(19, 21, 29, 0.96)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 20,
-            padding: '24px',
-            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(239, 68, 68, 0.12)',
-            backdropFilter: 'blur(24px) saturate(140%)',
-          },
-          mask: {
-            backdropFilter: 'blur(6px)',
-            background: 'rgba(0, 0, 0, 0.65)',
-          }
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#EF4444',
-            flexShrink: 0
-          }}>
-            <Trash2 size={22} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Clear All Drawings?</h3>
-            <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm permanent deletion of all canvas notes</p>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.025)',
-          borderRadius: 12,
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          padding: '16px',
-          marginBottom: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
-              <span style={{ color: '#06B6D4' }}>✦</span>
-              <span>Project Drawings:</span>
-            </div>
-            <span style={{ color: '#fff', fontWeight: 600 }}>{drawings.length} strokes</span>
-          </div>
-
-          <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
-            Are you sure you want to delete these drawings? This will remove all pencil/draw notes on this project canvas.
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 12,
-            color: '#F87171',
-            background: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            padding: '8px 12px',
-            borderRadius: 8
-          }}>
-            <span style={{ fontSize: 14 }}>⚠️</span>
-            <span>This action cannot be undone.</span>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button
-            type="button"
-            onClick={() => setIsClearDrawingsModalOpen(false)}
-            style={{
-              padding: '9px 18px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 8,
-              color: '#CBD5E1',
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontFamily: 'var(--font-sans)'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDrawings([]);
-              saveDrawingsToBackend([]);
-              message.success('Cleared all drawings');
-              setIsClearDrawingsModalOpen(false);
-            }}
-            style={{
-              padding: '9px 20px',
-              background: '#EF4444',
-              border: '1px solid rgba(239, 68, 68, 0.8)',
-              borderRadius: 8,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              transition: 'all 0.2s',
-              fontFamily: 'var(--font-sans)'
-            }}
-          >
-            Clear All
-          </button>
-        </div>
-      </Modal>
-
-      <MediaLibraryModal globalListener={true} />
-
-      {pageToEdit && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          right: 70,
-          width: 320,
-          background: 'rgba(17, 24, 39, 0.85)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderRadius: 16,
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 100,
-          color: '#F8FAFC',
-          overflow: 'hidden'
-        }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Page Settings</span>
-            <button
-              onClick={() => setPageToEdit(null)}
-              style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-              onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
-            >
-              <X size={16} />
-            </button>
-          </div>
-          <div style={{ padding: 20, overflowY: 'auto' }} className="custom-scrollbar">
-            <Form
-              layout="vertical"
-              initialValues={{ title: pageToEdit.title, slug: pageToEdit.slug }}
-              onFinish={(values) => {
-                const isDuplicate = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === values.title?.toLowerCase());
-                if (isDuplicate) {
-                  message.error('Tag name already exists on another page!');
-                  return;
-                }
-                updatePageMutation.mutate({ id: pageToEdit.id, data: values });
-              }}
-            >
-              <div style={{ marginBottom: 16 }}>
-                <span style={{ color: '#94A3B8', display: 'block', marginBottom: 8, fontSize: 14 }}>Select or Enter Tag</span>
                 <Form.Item noStyle shouldUpdate={(prev, current) => prev.title !== current.title}>
-                  {({ getFieldValue, setFieldsValue }) => {
+                  {({ getFieldValue }) => {
                     const currentTitle = getFieldValue('title') || '';
                     const ALL_TAGS = Array.from(new Set([
                       'Home', 'About', 'Products', 'Services', 'Contact', 'Blog',
                       ...pages.map((p: any) => p.title).filter(Boolean)
                     ]));
                     const isCustom = !ALL_TAGS.includes(currentTitle);
-
+                    
                     return (
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {ALL_TAGS.map(tag => {
-                          const isSelected = currentTitle === tag;
-                          const isUsed = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === tag.toLowerCase());
-                          return (
-                            <div
-                              key={tag}
-                              onClick={() => {
-                                if (!isUsed) {
-                                  setFieldsValue({ title: tag, slug: tag === 'Home' ? '/' : '/' + tag.toLowerCase() });
+                      <div style={{ display: isCustom ? 'block' : 'none' }}>
+                        <Form.Item
+                          name="title"
+                          label={<span style={{ color: '#94A3B8' }}>Custom Tag Name</span>}
+                          rules={[
+                            { required: isCustom, message: 'Please input custom tag name!' },
+                            {
+                              validator: async (_, value) => {
+                                if (!value) return;
+                                const isDuplicate = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === value.toLowerCase());
+                                if (isDuplicate) {
+                                  return Promise.reject(new Error('This tag is already used on another page!'));
                                 }
-                              }}
-                              style={{
-                                padding: '6px 16px',
-                                borderRadius: 999,
-                                cursor: isUsed ? 'not-allowed' : 'pointer',
-                                background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                border: `1px solid ${isSelected ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255,255,255,0.1)'}`,
-                                color: isSelected ? '#818CF8' : isUsed ? '#475569' : '#CBD5E1',
-                                fontWeight: isSelected ? 600 : 400,
-                                opacity: isUsed ? 0.5 : 1,
-                                transition: 'all 0.2s'
-                              }}
-                            >
-                              {tag} {isUsed && <span style={{ fontSize: 10 }}>(Used)</span>}
-                            </div>
-                          );
-                        })}
-                        <div
-                          onClick={() => {
-                            if (!isCustom) {
-                              setFieldsValue({ title: 'Custom Page' });
+                              }
                             }
-                          }}
-                          style={{
-                            padding: '6px 16px',
-                            borderRadius: 999,
-                            cursor: 'pointer',
-                            background: isCustom ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                            border: `1px solid ${isCustom ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255,255,255,0.1)'}`,
-                            color: isCustom ? '#818CF8' : '#CBD5E1',
-                            fontWeight: isCustom ? 600 : 400,
-                            transition: 'all 0.2s'
-                          }}
+                          ]}
                         >
-                          Custom...
-                        </div>
+                          <Input
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: '#fff',
+                              borderRadius: 8
+                            }}
+                            placeholder="e.g. Landing Page"
+                          />
+                        </Form.Item>
                       </div>
                     );
                   }}
                 </Form.Item>
-              </div>
 
-              <Form.Item noStyle shouldUpdate={(prev, current) => prev.title !== current.title}>
-                {({ getFieldValue }) => {
-                  const currentTitle = getFieldValue('title') || '';
-                  const ALL_TAGS = Array.from(new Set([
-                    'Home', 'About', 'Products', 'Services', 'Contact', 'Blog',
-                    ...pages.map((p: any) => p.title).filter(Boolean)
-                  ]));
-                  const isCustom = !ALL_TAGS.includes(currentTitle);
-
-                  return (
-                    <div style={{ display: isCustom ? 'block' : 'none' }}>
-                      <Form.Item
-                        name="title"
-                        label={<span style={{ color: '#94A3B8' }}>Custom Tag Name</span>}
-                        rules={[
-                          { required: isCustom, message: 'Please input custom tag name!' },
-                          {
-                            validator: async (_, value) => {
-                              if (!value) return;
-                              const isDuplicate = pages.some((p: any) => p.id !== pageToEdit.id && p.title?.toLowerCase() === value.toLowerCase());
-                              if (isDuplicate) {
-                                return Promise.reject(new Error('This tag is already used on another page!'));
-                              }
-                            }
-                          }
-                        ]}
-                      >
-                        <Input
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            borderRadius: 8
-                          }}
-                          placeholder="e.g. Landing Page"
-                        />
-                      </Form.Item>
-                    </div>
-                  );
-                }}
-              </Form.Item>
-
-              <Form.Item
-                name="slug"
-                label={<span style={{ color: '#94A3B8' }}>URL Slug</span>}
-                rules={[{ required: true, message: 'Please input URL slug!' }]}
-                extra={<span style={{ color: '#64748B', fontSize: 12 }}>This will be used for navigation, e.g. /about</span>}
-              >
-                <Input
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff',
-                    borderRadius: 8
-                  }}
-                  placeholder="e.g. /about"
-                />
-              </Form.Item>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                <button
-                  type="button"
-                  onClick={() => setPageToEdit(null)}
-                  style={{
-                    padding: '8px 16px',
-                    background: 'transparent',
-                    border: '1px solid #3F3F46',
-                    color: '#fff',
-                    borderRadius: 8,
-                    cursor: 'pointer'
-                  }}
+                <Form.Item
+                  name="slug"
+                  label={<span style={{ color: '#94A3B8' }}>URL Slug</span>}
+                  rules={[{ required: true, message: 'Please input URL slug!' }]}
+                  extra={<span style={{ color: '#64748B', fontSize: 12 }}>This will be used for navigation, e.g. /about</span>}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatePageMutation.isPending}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#06B6D4',
-                    border: 'none',
-                    color: '#fff',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    fontWeight: 600
-                  }}
-                >
-                  {updatePageMutation.isPending ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </Form>
+                  <Input
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff',
+                      borderRadius: 8
+                    }}
+                    placeholder="e.g. /about"
+                  />
+                </Form.Item>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPageToEdit(null)}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'transparent',
+                      border: '1px solid #3F3F46',
+                      color: '#fff',
+                      borderRadius: 8,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatePageMutation.isPending}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#06B6D4',
+                      border: 'none',
+                      color: '#fff',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    {updatePageMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </Form>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
   );
 };
 

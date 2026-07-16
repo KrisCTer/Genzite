@@ -207,8 +207,15 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
     ? (hasGrapes ? fullGrapesHeight : Math.max(computedHeight, 900))
     : fixedViewportHeight;
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('genzite:page:dimensions', {
+      detail: { pageId, width: deviceWidth, height: Math.round(deviceHeight) }
+    }));
+  }, [pageId, deviceWidth, deviceHeight]);
+
   return (
-    <div
+
+    <div 
       style={{ position: 'relative', width: deviceWidth, height: deviceHeight, minHeight: 800, margin: '0 auto', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
       onPointerDown={(e) => {
         if (e.button === 0 && !isEditMode) {
@@ -222,17 +229,17 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
       }}
     >
       {/* Frame Header (Browser Tab Style) */}
-      <div className="canvas-page-drag-handle" style={{
-        position: 'absolute',
-        top: -48,
-        left: 0,
-        width: '100%',
-        height: 40,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        color: '#f8fafc',
-        fontFamily: 'Inter, sans-serif'
+      <div className="canvas-page-drag-handle" style={{ 
+        position: 'absolute', 
+        top: -48, 
+        left: 0, 
+        width: '100%', 
+        height: 40, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        color: '#f8fafc', 
+        fontFamily: 'Inter, sans-serif' 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #334155' }}>
@@ -241,22 +248,22 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
           <span style={{ fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
             {siteName || 'My Site'}
           </span>
-          <span
-            style={{
-              fontSize: 12,
-              background: 'rgba(99, 102, 241, 0.2)',
-              color: '#818CF8',
-              padding: '4px 10px',
-              borderRadius: 999,
-              fontWeight: 600,
-              border: '1px solid rgba(99, 102, 241, 0.3)',
+          <span 
+            style={{ 
+              fontSize: 12, 
+              background: 'rgba(99, 102, 241, 0.2)', 
+              color: '#818CF8', 
+              padding: '4px 10px', 
+              borderRadius: 999, 
+              fontWeight: 600, 
+              border: '1px solid rgba(99, 102, 241, 0.3)', 
               marginLeft: 8,
             }}
           >
             {pageTitle}
           </span>
           {isStarred && (
-            <span
+            <span 
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleStar?.();
@@ -284,13 +291,13 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            fontSize: 12,
-            background: 'rgba(30, 41, 59, 0.8)',
-            color: '#cbd5e1',
-            padding: '4px 12px',
-            borderRadius: 999,
-            fontWeight: 500,
+          <span style={{ 
+            fontSize: 12, 
+            background: 'rgba(30, 41, 59, 0.8)', 
+            color: '#cbd5e1', 
+            padding: '4px 12px', 
+            borderRadius: 999, 
+            fontWeight: 500, 
             border: '1px solid rgba(255, 255, 255, 0.12)',
             display: 'flex',
             alignItems: 'center',
@@ -311,16 +318,16 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
       </div>
 
       {/* Main Content Container with Dynamic Border matching Preview card exact style */}
-      <div id="canvas-page-main-wrapper" style={{
-        width: '100%',
+      <div id="canvas-page-main-wrapper" style={{ 
+        width: '100%', 
         height: deviceHeight,
         minHeight: isFullUnrollMode ? Math.max(computedHeight, 800) : deviceHeight,
-        background: '#ffffff',
+        background: '#ffffff', 
         border: (!isEditMode && (globalSelectedId === pageId || globalSelectedId?.includes(pageId) || (globalSelectedId && widgets.some(w => w._id === globalSelectedId)))) ? '6px solid #8b5cf6' : '6px solid rgba(148, 163, 184, 0.4)',
-        borderRadius: 24,
+        borderRadius: 24, 
         overflow: 'hidden',
         position: 'relative',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
       }}>
         {isLoading && <div style={{ color: '#111827', padding: 20 }}>Loading...</div>}
 
@@ -338,9 +345,9 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
               key={widget._id}
               className="canvas-widget-rnd"
               position={{ x: widget.x || 0, y: widget.y || 0 }}
-              size={{
-                width: isGrapesItem ? deviceWidth : Math.min(widget.width || deviceWidth, deviceWidth),
-                height: isGrapesItem ? deviceHeight : (widget.height || 'auto')
+              size={{ 
+                width: isGrapesItem ? deviceWidth : Math.min(widget.width || deviceWidth, deviceWidth), 
+                height: isGrapesItem ? deviceHeight : (widget.height || 'auto') 
               }}
               onDragStop={(_e, d) => updateWidgetGeometry(widget._id, d.x, d.y, widget.width, widget.height)}
               onResizeStop={(_e, _dir, ref, _delta, pos) => updateWidgetGeometry(widget._id, pos.x, pos.y, ref.offsetWidth, ref.offsetHeight)}
@@ -358,7 +365,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
                 style={{ position: 'relative', width: '100%', height: isGrapesItem ? deviceHeight : '100%' }}
               >
                 <div style={{ width: '100%', height: '100%', overflow: isGrapesItem ? 'hidden' : 'hidden', position: 'relative' }}>
-                  <div
+                  <div 
                     style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, cursor: activeTool === 'pan' ? 'grab' : (activeTool === 'frame' || activeTool === 'draw') ? 'crosshair' : activeTool === 'star' ? 'cell' : (isEditMode ? 'move' : 'pointer') }}
                     onPointerDown={(e) => {
                       if (e.button === 0 && activeTool === 'star') {
@@ -369,7 +376,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
                       if (e.button === 0 && activeTool === 'select') {
                         if (isEditMode) {
                           e.stopPropagation();
-                          onSelectWidget(widget._id);
+                          onSelectWidget(widget._id); 
                           onUpdateWidget?.(widget);
                         } else {
                           onSelectWidget(pageId);

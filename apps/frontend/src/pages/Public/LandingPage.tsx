@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
-import { hasStaffAccess, getHomePath } from '../../utils/userNav';
+import { getHomePath } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
 import './LandingPage.css';
 import './FeaturesPage.css';
@@ -169,8 +169,7 @@ const LandingPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const roles = resolveUserRoles(user?.roles, token);
-  // @ts-ignore
-  const staffAccess = hasStaffAccess(roles);
+
   const goToWorkspace = () => {
     if (token) {
       navigate('/project');
@@ -189,7 +188,7 @@ const LandingPage: React.FC = () => {
     contactForm: 'contact-form-section',
   };
 
-  useSEO({ title: 'Trang chủ', description: 'Trải nghiệm nền tảng tạo website tự động bằng AI từ Genzite.' });
+  useSEO({ title: 'Home', description: 'Experience the AI-powered automated website creation platform from Genzite.' });
 
   useEffect(() => {
     const node = layoutRef.current;

@@ -32,15 +32,12 @@ The system supports dynamic data modeling through PostgreSQL JSONB. Users can cr
 - **AI CV Analysis**: Upload CV + Job Description to analyze compatibility match, calculate ATS Score, and detect missing skills.
 - **AI Mock Interview**: AI acts as the interviewer, generating position-specific questions, scoring candidate responses in real-time, and providing improvement feedback.
 
-### 2.4. E-Commerce & SaaS Billing
-B2B2C payment system integrating PayOS. Customer payments are routed directly to merchants, while the platform automatically deducts SaaS service credits via secure Microservices communication.
 
----
 
 ## 3. Tech Stack
 
 - **Frontend**: React 18, Vite, TypeScript, Tailwind CSS v4. Features a Decoupled Architecture with over 15+ dynamic widgets.
-- **Backend (Microservices)**: Built with NestJS and Prisma ORM. The system is split into 8 core services communicating asynchronously via Kafka and synchronously via API Gateway.
+- **Backend (Microservices)**: Built with NestJS and Prisma ORM. The system is split into 6 core services communicating asynchronously via Kafka and synchronously via API Gateway.
 - **Database**: PostgreSQL (Hybrid architecture: Relational SQL for system data, JSONB for No-Code dynamic data).
 - **Cache & Queue**: Redis, BullMQ (managing queues for heavy LLM jobs).
 - **AI Engine**: Google Gemini API, Groq (Llama3) for high-speed UX auditing, and Model Context Protocol (MCP SDK).

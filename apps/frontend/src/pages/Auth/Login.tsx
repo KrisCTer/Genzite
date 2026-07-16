@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, App } from 'antd';
+import { Form, Input, Button, App, Modal } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginApi, registerApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import { getPostLoginPath, normalizeRoles } from '../../utils/userNav';
 import { resolveUserRoles } from '../../utils/jwt';
-import { signIn, signOut, fetchAuthSession, signUp } from 'aws-amplify/auth';
+import { signIn, signOut, fetchAuthSession, signUp, confirmSignUp } from 'aws-amplify/auth';
 
 import { motion } from 'framer-motion';
 
@@ -27,27 +27,10 @@ interface SignUpValues {
   acceptTerms: boolean;
 }
 
-
 // ---------------------------------------------------------------------------
 // Sub-icons
 // ---------------------------------------------------------------------------
 
-// @ts-ignore
-const GoogleIcon: React.FC = () => (
-  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
-  </svg>
-);
-
-// @ts-ignore
-const GithubIcon: React.FC = () => (
-  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-  </svg>
-);
 
 // ---------------------------------------------------------------------------
 // Component
@@ -57,7 +40,6 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 850);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -65,7 +47,11 @@ const Login: React.FC = () => {
   const { message } = App.useApp();
   const token = useAuthStore((state) => state.token);
 
-  // Cognito verification modal states removed (switching to Link flow)
+  // Cognito verification modal states
+  const [verificationCode, setVerificationCode] = useState<string>('');
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string>('');
+
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -133,7 +119,7 @@ const Login: React.FC = () => {
           }
         } catch (authErr: any) {
           if (authErr.name === 'UserNotConfirmedException') {
-            throw new Error('Tài khoản chưa được xác thực. Vui lòng kiểm tra email và click vào link kích hoạt.');
+            throw new Error('Account is not verified. Please check your email and click the activation link.');
           }
           console.warn('Cognito auth failed, falling back to local database authentication', authErr);
           localStorage.removeItem('gz_token');
@@ -143,17 +129,6 @@ const Login: React.FC = () => {
       return loginApi(values);
     },
     onSuccess: (data) => {
-      if ('needsConfirmation' in data && data.needsConfirmation) {
-        // @ts-ignore
-        setPendingVerificationEmail(data.email as string);
-        // @ts-ignore
-        setIsVerificationModalOpen(true);
-        message.info('Tài khoản chưa được xác thực. Vui lòng kiểm tra email và nhập mã xác nhận.');
-        return;
-      }
-
-      if (!('user' in data) || !data.user || !('accessToken' in data) || !data.accessToken) return;
-
       setLoginError(null);
       message.success('Login Success!');
       const roles = normalizeRoles(resolveUserRoles(data.user.roles, data.accessToken));
@@ -162,18 +137,18 @@ const Login: React.FC = () => {
         roles,
         createdAt: data.user.createdAt ?? new Date().toISOString(),
       };
-      setAuth(data.accessToken, normalizedUser, (data as any).refreshToken);
+      setAuth(data.accessToken, normalizedUser, data.refreshToken);
       navigate(getPostLoginPath(roles), { replace: true });
     },
     onError: (err: any) => {
       console.error('Login error', err);
       const errorCode = err.response?.data?.errorCode;
-      let errMsg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      let errMsg = 'Login failed. Please try again.';
 
       if (errorCode === 'AUTH_INVALID_CREDENTIALS') {
-        errMsg = 'Tài khoản hoặc mật khẩu không chính xác.';
+        errMsg = 'Invalid email or password.';
       } else if (errorCode === 'AUTH_ACCOUNT_LOCKED') {
-        errMsg = 'Tài khoản đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.';
+        errMsg = 'Account locked due to too many failed login attempts. Please try again later.';
       } else if (err.response?.data?.message) {
         errMsg = err.response.data.message;
       } else if (err.message) {
@@ -219,25 +194,46 @@ const Login: React.FC = () => {
     onSuccess: (data) => {
       setRegisterError(null);
       if (data.isCognito) {
-        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP' || data.nextStep?.signUpStep === 'DONE') {
-          message.success('Đăng ký thành công! Vui lòng kiểm tra email và click vào link để xác thực tài khoản.');
+        if (data.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
+          setPendingVerificationEmail(data.email);
+          setIsVerificationModalOpen(true);
+          message.info('A verification code/link has been sent to your email.');
+        } else if (data.nextStep?.signUpStep === 'DONE') {
+          message.success('Registration successful! Please check your email and click the verification link to verify your account.');
           setIsSignUp(false);
         } else {
-          message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+          message.success('Registration successful! Please check your email/link and sign in.');
           setIsSignUp(false);
         }
       } else {
-        message.success((data as any).message || 'Tạo tài khoản thành công! Vui lòng đăng nhập.');
+        message.success((data as any).message || 'Account created successfully! Please sign in.');
         setIsSignUp(false);
       }
     },
     onError: (err: any) => {
       console.error('Registration error', err);
-      setRegisterError(err.message || err.response?.data?.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
+      setRegisterError(err.message || err.response?.data?.message || 'Registration failed. The email might already exist.');
     },
   });
 
-  // confirmSignUpMutation removed (using Link verification instead of Code)
+  const confirmSignUpMutation = useMutation({
+    mutationFn: async (code: string) => {
+      await confirmSignUp({
+        username: pendingVerificationEmail,
+        confirmationCode: code,
+      });
+    },
+    onSuccess: () => {
+      setIsVerificationModalOpen(false);
+      setVerificationCode('');
+      message.success('Account verified successfully! Please sign in.');
+      setIsSignUp(false);
+    },
+    onError: (err: any) => {
+      console.error('Verification error', err);
+      message.error(err.message || 'Invalid verification code.');
+    },
+  });
 
   // ── handlers ───────────────────────────────────────────────────────────────
 
@@ -247,11 +243,6 @@ const Login: React.FC = () => {
 
   const handleSignUp = (values: SignUpValues): void => {
     registerMutation.mutate(values);
-  };
-
-  // @ts-ignore
-  const handleSocialLogin = (platform: 'Google' | 'GitHub'): void => {
-    message.info(`OAuth login via ${platform} is not fully implemented yet.`);
   };
 
   // ── shared styles ──────────────────────────────────────────────────────────
@@ -390,7 +381,6 @@ const Login: React.FC = () => {
                       Sign In
                     </Button>
                   </div>
-
 
                 </Form>
               </div>
@@ -599,7 +589,6 @@ const Login: React.FC = () => {
                     </Button>
                   </div>
 
-
                 </Form>
                 <p className="text-center text-sm text-slate-400 mt-2">
                   Don't have an account?{' '}
@@ -698,7 +687,40 @@ const Login: React.FC = () => {
         </defs>
       </svg>
 
-      {/* Cognito verification modal removed */}
+      {/* Cognito verification modal */}
+      <Modal
+        title={<span className="text-white text-lg font-bold">Cognito Account Verification</span>}
+        open={isVerificationModalOpen}
+        onCancel={() => setIsVerificationModalOpen(false)}
+        footer={null}
+        className="gz-verification-modal"
+        styles={{
+          body: { backgroundColor: '#090d16', padding: '24px 0 12px 0' },
+          content: { backgroundColor: '#090d16', border: '1px solid rgba(255,255,255,0.05)' },
+          header: { backgroundColor: '#090d16', borderBottom: 'none' },
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-slate-400 text-sm">
+            Please enter the 6-digit verification code sent to <strong className="text-white">{pendingVerificationEmail}</strong>.
+          </p>
+          <Input
+            placeholder="Verification Code (e.g. 123456)"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            className={`${inputCls} text-center text-lg tracking-widest`}
+            maxLength={6}
+          />
+          <Button
+            type="primary"
+            onClick={() => confirmSignUpMutation.mutate(verificationCode)}
+            loading={confirmSignUpMutation.isPending}
+            className={`${ctaBtnCls} w-full max-w-full`}
+          >
+            Verify
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

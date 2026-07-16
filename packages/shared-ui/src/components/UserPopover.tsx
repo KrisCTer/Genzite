@@ -1,22 +1,23 @@
 import React from 'react';
-import { X, Settings, LayoutDashboard } from 'lucide-react';
+import { Settings, LayoutDashboard, Palette } from 'lucide-react';
+// @ts-ignore
+import './UserPopover.css';
 
 export interface UserPopoverProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
   user?: {
-    name?: string;
-    email?: string;
-    avatarUrl?: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
   } | null;
-  menuRef?: React.RefObject<HTMLDivElement> | null;
+  menuRef?: React.RefObject<HTMLDivElement | null> | null;
   style?: React.CSSProperties;
 }
 
 export const UserPopover: React.FC<UserPopoverProps> = ({
   isOpen,
-  onClose,
   onLogout,
   user,
   menuRef,
@@ -24,49 +25,53 @@ export const UserPopover: React.FC<UserPopoverProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isWorkspace = pathname.startsWith('/workspace');
+  const isProject = pathname.startsWith('/project');
+
   return (
     <div className="user-popover-menu" ref={menuRef} style={style}>
       <div className="user-popover-header">
         <div className="user-popover-logo" onClick={() => window.location.href = '/'} style={{ cursor: 'pointer' }}>Genzite</div>
-        <button className="user-popover-close" onClick={onClose}>
-          <X size={16} />
-        </button>
       </div>
-      
+
       <div className="user-popover-info">
         <div className="user-popover-avatar">
-          {user?.name ? (
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="User" />
+          ) : user?.name ? (
             <div className="avatar-initials">{user.name.charAt(0).toUpperCase()}</div>
           ) : (
-            <img src={user?.avatarUrl || "https://i.pravatar.cc/150?img=33"} alt="User" />
+            <img src="https://i.pravatar.cc/150?img=33" alt="User" />
           )}
         </div>
         <div className="user-popover-details">
-          <div className="user-popover-name">{user?.name || 'Châu Phúc Lợi'}</div>
-          <div className="user-popover-email">{user?.email || 'phucloidanghoconline@gmail.com'}</div>
+          <div className="user-popover-name">{user?.name || 'Jane Doe'}</div>
+          <div className="user-popover-email">{user?.email || 'jane.doe@example.com'}</div>
         </div>
       </div>
 
       <div className="user-popover-actions">
-        <button className="user-popover-btn" onClick={() => window.location.href = '/workspace'}>
-          <LayoutDashboard size={16} /> Về Bảng điều khiển
-        </button>
-        <button className="user-popover-btn">
-          <Settings size={16} /> Cài đặt Genzite
-        </button>
-        <button className="user-popover-btn">
-          Quản lý tài khoản
-        </button>
-        <button className="user-popover-btn">
-          Chuyển đổi tài khoản
+        {!isProject && (
+          <button className="user-popover-btn" onClick={() => window.location.href = '/project'}>
+            <Palette size={16} /> Canvas Project
+          </button>
+        )}
+        {!isWorkspace && (
+          <button className="user-popover-btn" onClick={() => window.location.href = '/workspace'}>
+            <LayoutDashboard size={16} /> Go to Dashboard
+          </button>
+        )}
+        <button className="user-popover-btn" onClick={() => window.location.href = '/workspace/profile'}>
+          <Settings size={16} /> Profile
         </button>
         <button className="user-popover-btn" onClick={onLogout}>
-          Đăng xuất
+          Sign Out
         </button>
       </div>
 
       <div className="user-popover-footer">
-        <a href="#">Chính sách quyền riêng tư</a> • <a href="#">Điều khoản dịch vụ</a>
+        <a href="#">Privacy Policy</a> • <a href="#">Terms of Service</a>
       </div>
     </div>
   );

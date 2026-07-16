@@ -8,6 +8,8 @@ import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
 import { IdentityProducer } from './events/identity.producer.js';
 import { JwtStrategy } from './auth/jwt.strategy.js';
+import { HealthController } from './health/health.controller.js';
+import { SettingsModule } from './settings/settings.module.js';
 
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -36,6 +38,7 @@ import { ConfigService } from '@nestjs/config';
     MailModule,
     KafkaModule.forRoot(),
     PrismaModule,
+    SettingsModule,
     JwtModule.registerAsync({
       global: true,
       inject: [ConfigService],
@@ -45,7 +48,7 @@ import { ConfigService } from '@nestjs/config';
       }),
     }),
   ],
-  controllers: [AuthController, UsersController],
+  controllers: [HealthController, AuthController, UsersController],
   providers: [
     AuthService, 
     UsersService, 

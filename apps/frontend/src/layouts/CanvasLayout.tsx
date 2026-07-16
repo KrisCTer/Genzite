@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import './CanvasLayout.css';
-
-import { FileText, Gamepad2, PenTool, Gift, MoreVertical } from 'lucide-react';
 import { RocketOutlined } from '@ant-design/icons';
+
+
+import NotificationBell from '../components/NotificationBell';
 import { UserPopover } from '@genzite/shared-ui';
 import { useAuthStore } from '../store/auth';
 
@@ -57,7 +58,7 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
       {!isProjectWorkspace && (
         <div className="canvas-topbar">
           <div className="canvas-topbar-left">
-            <div className="canvas-brand" onClick={() => navigate('/')} title="Back to workspace" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <div className="canvas-brand" onClick={() => navigate('/workspace')} title="Back to workspace" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <RocketOutlined style={{ color: '#60A5FA', fontSize: '20px' }} />
               <span className="canvas-brand-name">Genzite</span>
               <span className="canvas-brand-beta">BETA</span>
@@ -65,23 +66,7 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
           </div>
           
           <div className="canvas-topbar-right">
-            <button className="canvas-icon-btn with-text">
-              <FileText size={18} />
-              <span>Docs</span>
-            </button>
-            <button className="canvas-icon-btn">
-              <Gamepad2 size={20} />
-            </button>
-            <button className="canvas-icon-btn">
-              <PenTool size={20} />
-            </button>
-            <button className="canvas-icon-btn with-badge">
-              <Gift size={20} />
-              <span className="notification-dot"></span>
-            </button>
-            <button className="canvas-icon-btn">
-              <MoreVertical size={20} />
-            </button>
+            <NotificationBell />
             
             <div className="canvas-avatar-wrapper">
               <div 
@@ -103,8 +88,8 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
                   isOpen={isUserMenuOpen}
                   onClose={() => setIsUserMenuOpen(false)}
                   onLogout={handleLogout}
-                  user={user as any}
-                  menuRef={menuRef as any}
+                  user={user}
+                  menuRef={menuRef}
                 />
               )}
             </div>

@@ -7,7 +7,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly identityProducer: IdentityProducer
-  ) { }
+  ) {}
 
   async findOrCreateUser(id: string, email: string, name: string) {
     let user = await this.prisma.user.findUnique({
@@ -51,10 +51,6 @@ export class UsersService {
 
     if (!user) {
       // Provision default role
-      const userRole = await this.prisma.role.findFirst({
-        where: { name: 'VIEWER' },
-      });
-      const roleToAssign = userRole;
 
       user = await this.prisma.user.create({
         data: {
@@ -62,13 +58,16 @@ export class UsersService {
           email,
           name,
           passwordHash: '', // Cognito user - no local password
-          roles: roleToAssign
-            ? {
-              create: {
-                roleId: roleToAssign.id,
+          roles: {
+            create: {
+              role: {
+                connectOrCreate: {
+                  where: { name: 'VIEWER' },
+                  create: { name: 'VIEWER', description: 'Standard viewer role' },
+                },
               },
-            }
-            : undefined,
+            },
+          },
         },
         include: {
           roles: {
@@ -145,7 +144,7 @@ export class UsersService {
       if (match && match[1]) {
         const oldS3Key = match[1];
         const mediaServiceUrl = process.env.MEDIA_SERVICE_URL || 'http://localhost:3004';
-
+        
         // Native Node.js fetch call (non-blocking)
         fetch(`${mediaServiceUrl}/api/v1/media/internal/delete-by-key`, {
           method: 'POST',
@@ -257,7 +256,7 @@ export class UsersService {
 
     await this.prisma.$transaction([
       this.prisma.userRole.deleteMany({ where: { userId: id } }),
-      ...roleNames.map(roleName =>
+      ...roleNames.map(roleName => 
         this.prisma.userRole.create({
           data: {
             user: { connect: { id } },
@@ -286,9 +285,9 @@ export class UsersService {
   async deductCredits(id: string, amount: number) {
     // SECURITY PATCH: Atomic decrement to prevent Race Condition (negative credits)
     const result = await this.prisma.user.updateMany({
-      where: {
-        id,
-        credits: { gte: amount }
+      where: { 
+        id, 
+        credits: { gte: amount } 
       },
       data: {
         credits: {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Database, Link2, Unlink, Sparkles, ImageIcon, CheckCircle2, Repeat, FileText, DollarSign, Calendar, Globe } from 'lucide-react';
+import { ShoppingOutlined, ReadOutlined, BankOutlined, AppstoreOutlined } from '@ant-design/icons';
 
 export interface CmsFieldOption {
   label: string;
@@ -8,10 +9,10 @@ export interface CmsFieldOption {
   sample?: string;
 }
 
-export const CMS_COLLECTIONS: Record<string, { name: string; icon: string; description: string; fields: CmsFieldOption[] }> = {
+export const CMS_COLLECTIONS: Record<string, { name: string; icon: React.ReactNode; description: string; fields: CmsFieldOption[] }> = {
   products: {
     name: 'Products Catalog',
-    icon: '🛍️',
+    icon: <ShoppingOutlined style={{ color: '#06B6D4' }} />,
     description: 'Dynamic eCommerce products dataset',
     fields: [
       { label: 'Product Title', value: '{{ product.title }}', type: 'text', sample: 'Genzite Pro Hoodie' },
@@ -25,7 +26,7 @@ export const CMS_COLLECTIONS: Record<string, { name: string; icon: string; descr
   },
   blogs: {
     name: 'Articles & News',
-    icon: '📰',
+    icon: <ReadOutlined style={{ color: '#A855F7' }} />,
     description: 'Blog posts and news updates collection',
     fields: [
       { label: 'Article Headline', value: '{{ article.title }}', type: 'text', sample: 'Top 10 Web Design Trends for 2026' },
@@ -39,7 +40,7 @@ export const CMS_COLLECTIONS: Record<string, { name: string; icon: string; descr
   },
   store: {
     name: 'Store Settings',
-    icon: '🏢',
+    icon: <BankOutlined style={{ color: '#10B981' }} />,
     description: 'Global site identity and contact info',
     fields: [
       { label: 'Store Name', value: '{{ store.name }}', type: 'text', sample: 'Genzite Studio' },
@@ -138,8 +139,8 @@ export const DynamicBindingControl: React.FC<DynamicBindingControlProps> = ({ ta
       {isConnected && (
         <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, padding: 12, position: 'relative' }}>
           <div style={{ fontSize: 10, color: '#10B981', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Active Data Binding</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#F8FAFC', marginBottom: 2 }}>
-            {CMS_COLLECTIONS[currentSource]?.icon || '📦'} {CMS_COLLECTIONS[currentSource]?.name || currentSource}
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#F8FAFC', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {CMS_COLLECTIONS[currentSource]?.icon || <AppstoreOutlined style={{ color: '#06B6D4' }} />} {CMS_COLLECTIONS[currentSource]?.name || currentSource}
           </div>
           <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#34D399', background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: 4, display: 'inline-block', marginBottom: 10 }}>
             {currentField}

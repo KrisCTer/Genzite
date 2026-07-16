@@ -30,7 +30,7 @@ export interface ThemeEditorPanelProps {
   setIsStylesOpen: (open: boolean) => void;
 }
 
-const THEMES = [
+export const THEMES = [
   { id: 'bauhaus', name: 'Bauhaus', font: 'Aa', colors: ['#171717', '#DC2626', '#2563EB'], buttonBg: '#171717', buttonColor: '#F8FAFC' },
   { id: 'glacier', name: 'Glacier', font: 'Aa', colors: ['#38BDF8', '#A78BFA', '#F472B6'], buttonBg: '#38BDF8', buttonColor: '#0F172A' },
   { id: 'carbon', name: 'Carbon', font: 'Aa', colors: ['#2563EB', '#27272A', '#22C55E'], buttonBg: '#2563EB', buttonColor: '#F8FAFC' },
@@ -40,54 +40,28 @@ const THEMES = [
   { id: 'sahara', name: 'Sahara', font: 'Aa', colors: ['#F97316', '#451A03', '#B45309'], buttonBg: '#F97316', buttonColor: '#F8FAFC' }
 ];
 
-const FONT_OPTIONS = [
-  'Anton', 'Anybody', 'Archivo Narrow', 'Arimo', 
-  'Atkinson Hyperlegible Next', 'Barlow Condensed', 
-  'Inter', 'Noto Serif', 'Public Sans', 'Roboto', 'Open Sans'
-];
+export const generateDesignMd = (
+  activeTheme: any,
+  themeColorOverrides: Record<string, string>,
+  themeFonts: Record<string, string>,
+  themeMode: 'light' | 'dark',
+  themeRadius: number,
+  customPrompt?: string
+): string => {
+  const primaryColor = themeColorOverrides['palette-0'] || activeTheme?.colors?.[0] || '#0052FF';
+  const secondaryColor = themeColorOverrides['palette-1'] || activeTheme?.colors?.[1] || '#64748B';
+  const bgColor = themeMode === 'dark' ? '#0F172A' : '#FAF8FF';
+  const onBgColor = themeMode === 'dark' ? '#F8FAFC' : '#131B2E';
+  const headlineFont = themeFonts['Headline'] || 'Hanken Grotesk';
+  const bodyFont = themeFonts['Body'] || 'Inter';
+  const labelFont = themeFonts['Label'] || 'Inter';
+  const radius = themeRadius || 4;
 
-export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
-  detailThemeId,
-  setDetailThemeId,
-  detailThemeTab,
-  setDetailThemeTab,
-  themeColorOverrides,
-  setThemeColorOverrides,
-  themeFonts,
-  setThemeFonts,
-  expandedFontRole,
-  setExpandedFontRole,
-  fontSearch,
-  setFontSearch,
-  themeScheme,
-  setThemeScheme,
-  themeMode,
-  setThemeMode,
-  themeRadius,
-  setThemeRadius,
-  isThemeSchemeOpen,
-  setIsThemeSchemeOpen,
-  handleApplyThemeToSelection,
-  isApplyingTheme,
-  selectedId,
-  setIsStylesOpen,
-}) => {
-  const activeTheme = detailThemeId === 'custom' 
-    ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
-    : detailThemeId ? THEMES.find(t => t.id === detailThemeId) : null;
+  const promptSection = customPrompt && customPrompt !== 'No design prompt specified.' && customPrompt !== 'No design prompt specified for this project.'
+    ? `\n\n## Custom Project Design Requirements\n${customPrompt}`
+    : '';
 
-  if (activeTheme) {
-    const getDynamicDesignMd = () => {
-      const primaryColor = themeColorOverrides['palette-0'] || activeTheme?.colors?.[0] || '#0052FF';
-      const secondaryColor = themeColorOverrides['palette-1'] || activeTheme?.colors?.[1] || '#64748B';
-      const bgColor = themeMode === 'dark' ? '#0F172A' : '#FAF8FF';
-      const onBgColor = themeMode === 'dark' ? '#F8FAFC' : '#131B2E';
-      const headlineFont = themeFonts['Headline'] || 'Hanken Grotesk';
-      const bodyFont = themeFonts['Body'] || 'Inter';
-      const labelFont = themeFonts['Label'] || 'Inter';
-      const radius = themeRadius || 4;
-      
-      return `---
+  return `---
 name: ${activeTheme?.name || 'Standard Clean'}
 colors:
   surface: '${bgColor}'
@@ -252,8 +226,48 @@ Components are designed for high touch-accuracy and visual clarity.
 - **Cards:** Cards should have no background fill (white) and a 1px #E2E8F0 border. Internal padding is strictly 20px.
 - **Chips/Tags:** Small 28px height elements using a light tint of the primary color or neutral grey for categorical data.
 - **Lists:** List items are separated by a 1px hair-line divider (#F1F5F9). Use 16px padding on the Y-axis to ensure comfortable tap targets.
-- **Checkboxes & Radios:** Use the Primary Blue for the active state. The "Off" state is a 1px grey ring to keep the UI quiet when inactive.
-`;
+- **Checkboxes & Radios:** Use the Primary Blue for the active state. The "Off" state is a 1px grey ring to keep the UI quiet when inactive.${promptSection}`;
+};
+
+const FONT_OPTIONS = [
+  'Anton', 'Anybody', 'Archivo Narrow', 'Arimo', 
+  'Atkinson Hyperlegible Next', 'Barlow Condensed', 
+  'Inter', 'Noto Serif', 'Public Sans', 'Roboto', 'Open Sans'
+];
+
+export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
+  detailThemeId,
+  setDetailThemeId,
+  detailThemeTab,
+  setDetailThemeTab,
+  themeColorOverrides,
+  setThemeColorOverrides,
+  themeFonts,
+  setThemeFonts,
+  expandedFontRole,
+  setExpandedFontRole,
+  fontSearch,
+  setFontSearch,
+  themeScheme,
+  setThemeScheme,
+  themeMode,
+  setThemeMode,
+  themeRadius,
+  setThemeRadius,
+  isThemeSchemeOpen,
+  setIsThemeSchemeOpen,
+  handleApplyThemeToSelection,
+  isApplyingTheme,
+  selectedId,
+  setIsStylesOpen,
+}) => {
+  const activeTheme = detailThemeId === 'custom' 
+    ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
+    : detailThemeId ? THEMES.find(t => t.id === detailThemeId) : null;
+
+  if (activeTheme) {
+    const getDynamicDesignMd = () => {
+      return generateDesignMd(activeTheme, themeColorOverrides, themeFonts, themeMode, themeRadius);
     };
 
     return (

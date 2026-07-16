@@ -4,7 +4,6 @@ import {
   fetchUsersApi,
   lockUserApi,
   unlockUserApi,
-  adjustCreditsApi,
   updateRolesApi,
   deactivateUserApi,
   type User,
@@ -27,7 +26,7 @@ const UserManagement: React.FC = () => {
 
   // Drawer States
   const [localRoles, setLocalRoles] = useState<string[]>([]);
-  const [creditsAmount, setCreditsAmount] = useState<string>('');
+
 
   useEffect(() => {
     document.title = 'User Management | Admin Console';
@@ -74,31 +73,13 @@ const UserManagement: React.FC = () => {
     },
     onError: () => message.error('Cannot delete this account'),
   });
-  const creditsMutation = useMutation({
-    mutationFn: ({ id, amount }: { id: string; amount: number }) => adjustCreditsApi(id, amount),
-    onSuccess: (data) => {
-      message.success(`Success! New balance: ${data.credits.toLocaleString()}`);
-      setSelectedUser(prev => prev ? { ...prev, credits: data.credits } : null);
-      invalidate();
-    },
-    onError: () => message.error('Failed to adjust credits'),
-  });
+
 
   // KPI Stats
   const activeCount = useMemo(() => users.filter(u => u.status === 'ACTIVE').length, [users]);
   const lockedCount = useMemo(() => users.filter(u => u.status === 'LOCKED').length, [users]);
 
-  // @ts-ignore
-  const updateRolesMutation = useMutation({
-    mutationFn: (data: { id: string; roles: string[] }) => updateRolesApi(data.id, data.roles),
-    onSuccess: () => {
-      message.success('Cập nhật quyền thành công.');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Lỗi: Không thể cập nhật quyền.');
-    }
-  });
+
 
   // Filtering
   const filtered = useMemo(() => {
@@ -121,7 +102,7 @@ const UserManagement: React.FC = () => {
   const openUserDetail = (user: User) => {
     setSelectedUser(user);
     setLocalRoles([...user.roles]);
-    setCreditsAmount('');
+
     setIsDrawerOpen(true);
   };
 
@@ -138,14 +119,6 @@ const UserManagement: React.FC = () => {
     rolesMutation.mutate({ id: selectedUser.id, roles: newRoles });
   };
 
-  // @ts-ignore
-  const handleSaveCredits = () => {
-    if (!selectedUser) return;
-    const val = parseInt(creditsAmount, 10);
-    if (isNaN(val) || val === 0) return;
-    creditsMutation.mutate({ id: selectedUser.id, amount: val });
-    setCreditsAmount('');
-  };
 
   const handleLockToggle = () => {
     if (!selectedUser) return;
@@ -178,11 +151,6 @@ const UserManagement: React.FC = () => {
     <div className="hub-root select-none">
       <div className="hub-wrapper" style={{ maxWidth: '100%' }}>
         
-        {/* Header */}
-        <div className="hub-header">
-          <h1 className="hub-header-title">User Management</h1>
-          <p className="hub-header-desc">System for authorization, identity and account security.</p>
-        </div>
 
         {/* KPI Stats */}
         <div className="hub-stats mb-8">

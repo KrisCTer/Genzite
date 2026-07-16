@@ -70,7 +70,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
-  const isOwner = !!(user?.id && site?.ownerId && site.ownerId === user.id);
+  const isGenerating = useAiLogStore((state) => state.isGenerating);
+  const isOwner = !!(
+    (user?.id && site?.ownerId && site.ownerId === user.id) ||
+    (user?.id && (!site?.ownerId || siteId?.startsWith('gen-') || siteId?.startsWith('new-') || isGenerating)) ||
+    (!site?.ownerId && (siteId?.startsWith('gen-') || siteId?.startsWith('new-') || isGenerating))
+  );
 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -169,17 +174,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const [isCustomInstOpen, setIsCustomInstOpen] = useState(false);
   
   const [shareAccess, setShareAccess] = useState(site?.settings?.shareAccess || 'Restricted: Only people you specify can access');
-  // @ts-ignore
-  const [defaultFullscreen, setDefaultFullscreen] = useState(site?.settings?.defaultFullscreen || false);
-  // @ts-ignore
-  const [includeChatHistory, setIncludeChatHistory] = useState(site?.settings?.includeChatHistory || false);
   
   // Keep settings synced if they change externally
   useEffect(() => {
     if (site?.settings) {
       if (site.settings.shareAccess !== undefined) setShareAccess(site.settings.shareAccess);
-      if (site.settings.defaultFullscreen !== undefined) setDefaultFullscreen(site.settings.defaultFullscreen);
-      if (site.settings.includeChatHistory !== undefined) setIncludeChatHistory(site.settings.includeChatHistory);
+
     }
   }, [site?.settings]);
 
@@ -207,17 +207,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     updateSetting('sharedEmails', emails);
   };
 
-  // @ts-ignore
-  const handleDefaultFullscreenChange = (val: boolean) => {
-    setDefaultFullscreen(val);
-    updateSetting('defaultFullscreen', val);
-  };
-
-  // @ts-ignore
-  const handleIncludeChatHistoryChange = (val: boolean) => {
-    setIncludeChatHistory(val);
-    updateSetting('includeChatHistory', val);
-  };
 
   const [displayTitle, setDisplayTitle] = useState(site?.name || siteTitle || 'My App');
   const [nameVal, setNameVal] = useState('');
@@ -675,7 +664,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         </div>
 
         <div className="canvas-toolbar-center" style={{ display: 'flex', justifyContent: 'center', flex: 1 }}>
-          {selectedId && (
+          {(isOwner || selectedId || activePageId || siteId) && (
             <div style={{
               background: '#0F172A',
               border: '1px solid #1E293B',
@@ -780,7 +769,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           )}
           <button
             className="canvas-header-btn-icon"
-            title="Gửi lỗi / Báo cáo sự cố (Bug Report)"
+            title="Send bug report"
             onClick={() => setIsBugReportOpen(true)}
           >
             <BugOutlined style={{ fontSize: 16 }} />
@@ -821,8 +810,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 isOpen={isUserMenuOpen}
                 onClose={() => setIsUserMenuOpen(false)}
                 onLogout={handleLogout}
-                user={user as any}
-                menuRef={menuRef as any}
+                user={user}
+                menuRef={menuRef}
                 style={{ top: 56, right: 0 }}
               />
             )}

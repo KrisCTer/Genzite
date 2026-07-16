@@ -7,25 +7,24 @@ import { fetchNotificationsApi } from '../../api/notifications';
 import {
   User as UserIcon,
   Bell,
-
   Layout,
   ChevronRight
 } from 'lucide-react';
-import '../NotificationsStyle.css'; // Kế thừa phong cách Dark Space / Glassmorphism
+import '../NotificationsStyle.css'; // Inherit Dark Space / Glassmorphism style
 
 const MemberDashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [timeStr, setTimeStr] = useState(new Date().toISOString());
 
-  // Lấy dữ liệu thông báo thật (NO MOCK)
+  // Fetch real notification data (NO MOCK)
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetchNotificationsApi(),
     retry: 1,
   });
 
-  // Tối ưu hóa setInterval tránh leak memory
+  // Optimize setInterval to prevent memory leaks
   useEffect(() => {
     let animationFrameId: number;
     let lastUpdate = Date.now();
@@ -61,15 +60,8 @@ const MemberDashboard: React.FC = () => {
       }),
     [timeStr],
   );
-  const welcomeGreeting = useMemo(() => {
-    const hour = new Date(timeStr).getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  }, [timeStr]);
 
   const unreadCount = (notifications ?? []).filter((n) => !n.isRead).length;
-  const displayName = (user?.metadata as any)?.displayName || user?.name || 'you';
   const displayEmail = user?.email || 'N/A';
   const displayRoles = (user?.roles ?? ['VIEWER']).join(' · ');
 
@@ -97,12 +89,6 @@ const MemberDashboard: React.FC = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="hub-header-title truncate" title={`${welcomeGreeting}, ${displayName}!`}>
-              {welcomeGreeting}, {displayName}!
-            </h1>
-            <p className="hub-header-desc">
-              Welcome back to your workspace. This is your personal control center.
-            </p>
           </div>
 
           {/* Date & Time Display without background/icon */}
@@ -189,3 +175,4 @@ const MemberDashboard: React.FC = () => {
 };
 
 export default MemberDashboard;
+

@@ -253,7 +253,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
                                     e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
                                     e.currentTarget.style.transform = 'scale(1)';
                                   }}
-                                  title="Xóa ảnh này"
+                                  title="Delete this image"
                                 >
                                   <X size={13} />
                                 </button>
@@ -364,8 +364,8 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
             <Trash2 size={22} />
           </div>
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Xóa ảnh tải lên</h3>
-            <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Xác nhận xóa ảnh này khỏi hệ thống</p>
+            <h3 style={{ fontSize: 17, fontWeight: 600, color: '#fff', margin: 0, fontFamily: 'var(--font-sans)' }}>Delete Uploaded Image</h3>
+            <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '4px 0 0 0', fontFamily: 'var(--font-sans)' }}>Confirm permanent deletion of this image from the system</p>
           </div>
         </div>
 
@@ -382,13 +382,13 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#CBD5E1' }}>
               <span style={{ color: '#06B6D4' }}>✦</span>
-              <span>Tên file ảnh:</span>
+              <span>File name:</span>
             </div>
             <span style={{ color: '#fff', fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileToDelete?.filename || 'Media Asset'}</span>
           </div>
 
           <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
-            Bạn có chắc chắn muốn xóa &quot;{fileToDelete?.filename}&quot;? Tất cả dữ liệu ảnh trên Media Service sẽ bị xóa vĩnh viễn.
+            Are you sure you want to delete &quot;{fileToDelete?.filename}&quot;? All image data on the Media Service will be permanently deleted.
           </div>
         </div>
 
@@ -409,7 +409,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
               fontFamily: 'var(--font-sans)'
             }}
           >
-            Hủy
+            Cancel
           </button>
           <button
             type="button"
@@ -435,7 +435,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
               fontFamily: 'var(--font-sans)'
             }}
           >
-            Xóa ảnh
+            Delete Image
           </button>
         </div>
       </Modal>

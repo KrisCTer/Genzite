@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { IdentityProducer } from '../events/identity.producer';
 import { NotFoundException } from '@nestjs/common';
 
 describe('UsersService', () => {
@@ -17,6 +18,14 @@ describe('UsersService', () => {
             user: {
               findUnique: jest.fn(),
             },
+          },
+        },
+        {
+          provide: IdentityProducer,
+          useValue: {
+            emitUserCreated: jest.fn(),
+            emitUserUpdated: jest.fn(),
+            emitUserDeleted: jest.fn(),
           },
         },
       ],

@@ -1,0 +1,73 @@
+# ==========================================
+# Stage 1: Build Stage
+# ==========================================
+FROM node:20-alpine AS builder
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+# Copy root workspace configs
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy all packages and apps source code
+COPY packages ./packages
+COPY apps ./apps
+
+# Install ALL dependencies (devDependencies are needed for build)
+RUN pnpm install --frozen-lockfile
+
+# Accept the service name as a build argument
+ARG APP_NAME
+ENV APP_NAME=${APP_NAME}
+
+# If the app has a Prisma schema, generate the client first
+RUN if [ -d "apps/${APP_NAME}/prisma" ]; then \
+      pnpm --filter ${APP_NAME} exec prisma generate; \
+    fi
+
+# Build the specific app (and any local workspace dependencies like @genzite/shared-types)
+RUN pnpm --filter ${APP_NAME}... build
+
+# ==========================================
+# Stage 2: Production Runner
+# ==========================================
+FROM node:20-alpine AS runner
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+ARG APP_NAME
+ENV NODE_ENV=production
+ENV APP_NAME=${APP_NAME}
+ENV PORT=3000
+
+# Copy root workspace configs
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+
+# Copy compiled shared packages
+COPY --from=builder /app/packages ./packages
+
+# Copy the built target app
+COPY --from=builder /app/apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
+COPY --from=builder /app/apps/${APP_NAME}/dist ./apps/${APP_NAME}/dist
+
+# Copy Prisma folder optionally (using wildcard trick so it doesn't fail if missing)
+COPY --from=builder /app/apps/${APP_NAME}/pris[m]a ./apps/${APP_NAME}/prisma
+
+# Install ONLY production dependencies to keep image size small
+RUN pnpm install --prod --frozen-lockfile
+
+# Generate Prisma Client for Production (if prisma exists)
+RUN if [ -d "apps/${APP_NAME}/prisma" ]; then \
+      pnpm --filter ${APP_NAME} exec prisma generate; \
+    fi
+
+EXPOSE ${PORT}
+
+# Start the application using pnpm filter
+CMD ["sh", "-c", "pnpm --filter ${APP_NAME} start:prod"]

@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Palette, MousePointerClick, Link, ExternalLink, Settings, ChevronDown, ChevronRight, Layout, Box, Type, Image as ImageIcon } from 'lucide-react';
-import { Tooltip } from 'antd';
+import { Tooltip, Select } from 'antd';
+import { StopOutlined, FileTextOutlined, GlobalOutlined, AimOutlined, SettingOutlined } from '@ant-design/icons';
 import { DynamicBindingControl } from './components/DynamicBindingControl';
 
 // ─── Color Picker ─────────────────────────────────────────────────────────────
@@ -291,42 +292,6 @@ const QuickColorSwatches: React.FC<{ value: string; onChange: (hex: string) => v
 };
 
 // ─── Wix-Style CMS Fields ─────────────────────────────────────────────────────
-// @ts-ignore
-const CMS_FIELDS: Record<string, Array<{ label: string; value: string; type: 'text' | 'image' | 'link' | 'all' }>> = {
-  products: [
-    { label: '-- Select Product Field --', value: '', type: 'all' },
-    { label: 'Title ({{ product.title }})', value: '{{ product.title }}', type: 'text' },
-    { label: 'Price ({{ product.price }})', value: '{{ product.price }}', type: 'text' },
-    { label: 'Original Price ({{ product.originalPrice }})', value: '{{ product.originalPrice }}', type: 'text' },
-    { label: 'Category ({{ product.category }})', value: '{{ product.category }}', type: 'text' },
-    { label: 'Short Excerpt ({{ product.excerpt }})', value: '{{ product.excerpt }}', type: 'text' },
-    { label: 'Description ({{ product.description }})', value: '{{ product.description }}', type: 'text' },
-    { label: 'SKU Code ({{ product.sku }})', value: '{{ product.sku }}', type: 'text' },
-    { label: 'Main Image ({{ product.image }})', value: '{{ product.image }}', type: 'image' },
-    { label: 'Hover Image ({{ product.hoverImage }})', value: '{{ product.hoverImage }}', type: 'image' },
-    { label: 'Detail Page URL ({{ product.url }})', value: '{{ product.url }}', type: 'link' },
-    { label: 'Add to Cart URL ({{ product.addToCartUrl }})', value: '{{ product.addToCartUrl }}', type: 'link' },
-  ],
-  blogs: [
-    { label: '-- Select Article Field --', value: '', type: 'all' },
-    { label: 'Article Title ({{ blog.title }})', value: '{{ blog.title }}', type: 'text' },
-    { label: 'Short Excerpt ({{ blog.excerpt }})', value: '{{ blog.excerpt }}', type: 'text' },
-    { label: 'Author ({{ blog.author }})', value: '{{ blog.author }}', type: 'text' },
-    { label: 'Published Date ({{ blog.publishedDate }})', value: '{{ blog.publishedDate }}', type: 'text' },
-    { label: 'Category ({{ blog.category }})', value: '{{ blog.category }}', type: 'text' },
-    { label: 'Cover Image ({{ blog.image }})', value: '{{ blog.image }}', type: 'image' },
-    { label: 'Detail Page URL ({{ blog.url }})', value: '{{ blog.url }}', type: 'link' },
-  ],
-  store: [
-    { label: '-- Select Store Field --', value: '', type: 'all' },
-    { label: 'Store Name ({{ store.name }})', value: '{{ store.name }}', type: 'text' },
-    { label: 'Phone Hotline ({{ store.phone }})', value: '{{ store.phone }}', type: 'text' },
-    { label: 'Support Email ({{ store.email }})', value: '{{ store.email }}', type: 'text' },
-    { label: 'Store Address ({{ store.address }})', value: '{{ store.address }}', type: 'text' },
-    { label: 'Working Hours ({{ store.workingHours }})', value: '{{ store.workingHours }}', type: 'text' },
-    { label: 'Store Logo URL ({{ store.logo }})', value: '{{ store.logo }}', type: 'image' },
-  ]
-};
 
 // ─── Props Panel ─────────────────────────────────────────────────────────────
 interface EditRightPanelProps { 
@@ -382,7 +347,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
         }
       } catch (err) {}
 
-      let computed: Record<string, string> = {};
+      const computed: Record<string, string> = {};
       try {
         const el = component.getEl?.();
         if (el) {
@@ -528,7 +493,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
           border: '1px solid rgba(255,255,255,0.05)',
           width: '100%'
         }}>
-          <Tooltip title="Sửa Giao Diện & Style" placement="bottom">
+          <Tooltip title="Edit Appearance & Style" placement="bottom">
             <div 
               onClick={() => setActiveTab('style')}
               style={{
@@ -549,10 +514,10 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
               }}
             >
               <Palette size={15} />
-              <span>Giao Diện</span>
+              <span>Appearance</span>
             </div>
           </Tooltip>
-          <Tooltip title="Sự Kiện Click & Gắn Link Chuyển Trang" placement="bottom">
+          <Tooltip title="Click Events & Navigation Links" placement="bottom">
             <div 
               onClick={() => setActiveTab('content')}
               style={{
@@ -573,7 +538,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
               }}
             >
               <Link size={15} />
-              <span>Sự Kiện & Link</span>
+              <span>Events & Links</span>
             </div>
           </Tooltip>
         </div>
@@ -910,103 +875,138 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
         {tag && activeTab === 'content' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Section 1: Universal Click Action / Navigation Control (Sự Kiện & Gắn Link Chuyển Trang) */}
+            {/* Section 1: Universal Click Action / Navigation Control */}
             <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 10, padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#06B6D4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  <ExternalLink size={14} /> Sự Kiện Click & Chuyển Trang
+                  <ExternalLink size={14} /> Click Events & Navigation
                 </div>
                 <span style={{ fontSize: 9.5, background: 'rgba(6,182,212,0.2)', color: '#06B6D4', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>
                   &lt;{tag}&gt;
                 </span>
               </div>
               <p style={{ fontSize: 11, color: '#94A3B8', margin: '0 0 12px 0', lineHeight: 1.4 }}>
-                Gắn liên kết website hoặc thao tác chuyển trang ngay khi click vào thành phần <b>{tag.toUpperCase()}</b> này.
+                Attach a website link or navigation action when clicking on this <b>{tag.toUpperCase()}</b> element.
               </p>
 
-              <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Loại thao tác (Action Type)</div>
-              <select
-                value={attrs['data-gz-action-type'] || (attrs.href ? 'url' : attrs.onclick?.includes('location.href') ? 'page' : 'none')}
-                onChange={e => {
-                  const type = e.target.value;
+              <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Action Type</div>
+              <Select
+                value={attrs['data-gz-action-type'] || (attrs.onclick ? (attrs.onclick.includes('scrollIntoView') ? 'scroll' : attrs.onclick.includes('location.href') ? (attrs.onclick.includes('http') ? 'url' : 'page') : 'none') : attrs.href ? (attrs.href.startsWith('#') ? 'scroll' : attrs.href.startsWith('http') ? 'url' : 'page') : 'none')}
+                onChange={type => {
+                  const target = attrs['data-gz-href'] || attrs.href || '';
                   if (type === 'none') {
                     updateAttr({
                       'data-gz-action-type': 'none',
-                      href: undefined as unknown as string,
-                      'data-gz-href': undefined as unknown as string,
-                      onclick: undefined as unknown as string,
+                      'data-gz-href': '',
+                      onclick: '',
+                      href: '',
                     });
                   } else if (type === 'page') {
-                    const target = attrs['data-gz-href'] || attrs.href || '/products';
+                    const pageTarget = target || '/products';
                     if (tag === 'a') {
-                      updateAttr({ 'data-gz-action-type': 'page', href: target, 'data-gz-href': target });
+                      updateAttr({ 'data-gz-action-type': 'page', href: pageTarget, 'data-gz-href': pageTarget });
                     } else {
                       updateAttr({
                         'data-gz-action-type': 'page',
-                        'data-gz-href': target,
-                        onclick: `window.location.href='${target}'`,
+                        'data-gz-href': pageTarget,
+                        onclick: `window.location.href='${pageTarget}'`,
                       });
                     }
                   } else if (type === 'url') {
-                    const target = attrs['data-gz-href'] || attrs.href || 'https://';
+                    const urlTarget = target || 'https://';
                     if (tag === 'a') {
-                      updateAttr({ 'data-gz-action-type': 'url', href: target, 'data-gz-href': target });
+                      updateAttr({ 'data-gz-action-type': 'url', href: urlTarget, 'data-gz-href': urlTarget });
                     } else {
                       updateAttr({
                         'data-gz-action-type': 'url',
-                        'data-gz-href': target,
-                        onclick: `window.location.href='${target}'`,
+                        'data-gz-href': urlTarget,
+                        onclick: `window.location.href='${urlTarget}'`,
                       });
                     }
                   } else if (type === 'scroll') {
-                    const target = attrs['data-gz-href'] || attrs.href || '#section-id';
+                    const scrollTarget = target || '#section-id';
                     updateAttr({
                       'data-gz-action-type': 'scroll',
-                      'data-gz-href': target,
-                      onclick: `document.querySelector('${target}')?.scrollIntoView({ behavior: 'smooth' })`,
+                      'data-gz-href': scrollTarget,
+                      onclick: `document.querySelector('${scrollTarget}')?.scrollIntoView({ behavior: 'smooth' })`,
                     });
                   }
                 }}
-                style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer', marginBottom: 12 }}
-              >
-                <option value="none">🚫 Không có thao tác Click (None)</option>
-                <option value="page">📄 Chuyển đến Trang khác (Internal Page Navigation)</option>
-                <option value="url">🌐 Mở liên kết Website (Link URL / Href)</option>
-                <option value="scroll">📜 Cuộn tới khu vực trên trang (Scroll to Section ID)</option>
-              </select>
+                style={{ width: '100%', marginBottom: 12 }}
+                dropdownStyle={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.15)' }}
+                options={[
+                  {
+                    value: 'none',
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#F8FAFC', fontSize: 12 }}>
+                        <StopOutlined style={{ color: '#EF4444', fontSize: 13 }} />
+                        <span>No Click Action (None)</span>
+                      </div>
+                    )
+                  },
+                  {
+                    value: 'page',
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#F8FAFC', fontSize: 12 }}>
+                        <FileTextOutlined style={{ color: '#3B82F6', fontSize: 13 }} />
+                        <span>Internal Page Navigation</span>
+                      </div>
+                    )
+                  },
+                  {
+                    value: 'url',
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#F8FAFC', fontSize: 12 }}>
+                        <GlobalOutlined style={{ color: '#06B6D4', fontSize: 13 }} />
+                        <span>Open Website Link (URL / Href)</span>
+                      </div>
+                    )
+                  },
+                  {
+                    value: 'scroll',
+                    label: (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#F8FAFC', fontSize: 12 }}>
+                        <AimOutlined style={{ color: '#F59E0B', fontSize: 13 }} />
+                        <span>Scroll to Section (Element ID)</span>
+                      </div>
+                    )
+                  }
+                ]}
+              />
 
               {(attrs['data-gz-action-type'] === 'page' || (!attrs['data-gz-action-type'] && attrs.onclick?.includes('location.href'))) && (
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Chọn Trang đích chuyển tới (Target Page Path)</div>
-                  <select
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Select Target Page Path</div>
+                  <Select
                     value={attrs['data-gz-href'] || attrs.href || (attrs.onclick?.match(/href='([^']+)'/)?.[1]) || '/products'}
-                    onChange={e => {
-                      const val = e.target.value;
+                    onChange={val => {
                       if (tag === 'a') {
                         updateAttr({ 'data-gz-action-type': 'page', href: val, 'data-gz-href': val });
                       } else {
                         updateAttr({ 'data-gz-action-type': 'page', 'data-gz-href': val, onclick: `window.location.href='${val}'` });
                       }
                     }}
-                    style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
-                  >
-                    <option value="/">Trang chủ (Home Page - /)</option>
-                    <option value="/products">Trang Sản phẩm (Products - /products)</option>
-                    <option value="/about">Trang Giới thiệu (About - /about)</option>
-                    <option value="/contact">Trang Liên hệ (Contact - /contact)</option>
-                    <option value="/pricing">Trang Bảng giá (Pricing - /pricing)</option>
-                    <option value="/login">Trang Đăng nhập (Login - /login)</option>
-                  </select>
+                    style={{ width: '100%' }}
+                    dropdownStyle={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.15)' }}
+                    options={[
+                      { value: '/', label: <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F8FAFC', fontSize: 12 }}><FileTextOutlined style={{ color: '#3B82F6' }} /><span>Home Page (/)</span></div> },
+                      { value: '/products', label: <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F8FAFC', fontSize: 12 }}><FileTextOutlined style={{ color: '#3B82F6' }} /><span>Products Page (/products)</span></div> },
+                      { value: '/about', label: <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F8FAFC', fontSize: 12 }}><FileTextOutlined style={{ color: '#3B82F6' }} /><span>About Page (/about)</span></div> },
+                      { value: '/contact', label: <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F8FAFC', fontSize: 12 }}><FileTextOutlined style={{ color: '#3B82F6' }} /><span>Contact Page (/contact)</span></div> },
+                      { value: '/pricing', label: <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F8FAFC', fontSize: 12 }}><FileTextOutlined style={{ color: '#3B82F6' }} /><span>Pricing Page (/pricing)</span></div> },
+                      { value: '/login', label: <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F8FAFC', fontSize: 12 }}><FileTextOutlined style={{ color: '#3B82F6' }} /><span>Login Page (/login)</span></div> },
+                    ]}
+                  />
                 </div>
               )}
 
               {(attrs['data-gz-action-type'] === 'url' || attrs['data-gz-action-type'] === 'scroll' || (!attrs['data-gz-action-type'] && attrs.href)) && (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>
-                    {attrs['data-gz-action-type'] === 'scroll' ? 'ID phần tử tới cuộn (vd: #section-id)' : 'Đường dẫn liên kết (Link URL / Href)'}
+                    {attrs['data-gz-action-type'] === 'scroll' ? 'Target Element ID (e.g., #section-id)' : 'Link URL / Href'}
                   </div>
                   <input
-                    placeholder={attrs['data-gz-action-type'] === 'scroll' ? '#section-id' : 'https://... hoặc /path'}
+                    placeholder={attrs['data-gz-action-type'] === 'scroll' ? '#section-id' : 'https://... or /path'}
                     value={attrs['data-gz-href'] || attrs.href || (attrs.onclick?.match(/href='([^']+)'/)?.[1]) || ''}
                     onChange={e => {
                       const val = e.target.value;
@@ -1015,7 +1015,11 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
                       } else if (tag === 'a') {
                         updateAttr({ 'data-gz-action-type': 'url', href: val, 'data-gz-href': val });
                       } else {
-                        updateAttr({ 'data-gz-action-type': 'url', 'data-gz-href': val, onclick: `window.location.href='${val}'` });
+                        updateAttr({
+                          'data-gz-action-type': 'url',
+                          'data-gz-href': val,
+                          onclick: `window.location.href='${val}'`,
+                        });
                       }
                     }}
                     style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
@@ -1025,14 +1029,14 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
               {(attrs['data-gz-action-type'] === 'url' || attrs['data-gz-action-type'] === 'page' || (tag === 'a')) && attrs['data-gz-action-type'] !== 'none' && (
                 <div>
-                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Cửa sổ mở liên kết (Open Target)</div>
+                  <div style={{ fontSize: 10, color: '#CBD5E1', marginBottom: 5, fontWeight: 600 }}>Open Target</div>
                   <select
                     value={attrs.target || '_self'}
                     onChange={e => updateAttr({ target: e.target.value })}
                     style={{ width: '100%', background: '#0B0F19', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6, padding: '8px 10px', color: '#F8FAFC', fontSize: 12, outline: 'none', cursor: 'pointer' }}
                   >
-                    <option value="_self">Mở ngay trong trang hiện tại (_self)</option>
-                    <option value="_blank">Mở ở tab / cửa sổ mới (_blank)</option>
+                    <option value="_self">Open in current tab (_self)</option>
+                    <option value="_blank">Open in new tab / window (_blank)</option>
                   </select>
                 </div>
               )}
@@ -1042,7 +1046,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
             {/* Section 2: Content / Media */}
             <div>
-              <SectionTitle>Nội dung & Hình ảnh (Content)</SectionTitle>
+              <SectionTitle>Content & Media</SectionTitle>
               {tag === 'img' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
@@ -1078,7 +1082,7 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
                 </div>
               ) : (
                 <div>
-                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Văn bản hiển thị (Element Text)</div>
+                  <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Element Text</div>
                   <textarea
                     rows={4}
                     placeholder="Enter text content for this element..."
@@ -1094,8 +1098,8 @@ const EditRightPanel: React.FC<EditRightPanelProps> = ({ isOpen, selectedWidget,
 
             {/* Section 3: Optional Collapsed Dynamic CMS */}
             <details style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: 10 }}>
-              <summary style={{ fontSize: 10.5, fontWeight: 600, color: '#94A3B8', cursor: 'pointer', userSelect: 'none' }}>
-                ⚙️ Dữ liệu CMS động (Nâng cao)
+              <summary style={{ fontSize: 10.5, fontWeight: 600, color: '#94A3B8', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <SettingOutlined /> Dynamic CMS Data (Advanced)
               </summary>
               <div style={{ marginTop: 12 }}>
                 <DynamicBindingControl

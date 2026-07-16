@@ -46,14 +46,15 @@ describe('SitesService', () => {
 
   describe('findAll', () => {
     it('should return all sites for a user', async () => {
-      jest.spyOn(prisma.site, 'findMany').mockResolvedValue([{ id: 'site-1' }] as any);
+      jest.spyOn(prisma.site, 'findMany').mockResolvedValue([{ id: 'site-1', ownerId: 'user-1' }] as any);
 
       const result = await service.findAll('user-1');
 
       expect(prisma.site.findMany).toHaveBeenCalledWith({
-        where: { ownerId: 'user-1' },
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'desc' },
       });
-      expect(result).toEqual([{ id: 'site-1' }]);
+      expect(result).toEqual([{ id: 'site-1', ownerId: 'user-1' }]);
     });
   });
 
@@ -124,14 +125,18 @@ describe('SitesService', () => {
   });
 
   describe('delete', () => {
-    it('should delete site', async () => {
-      jest.spyOn(prisma.site, 'delete').mockResolvedValue({} as any);
+    it('should soft delete site', async () => {
+      jest.spyOn(prisma.site, 'update').mockResolvedValue({} as any);
       jest.spyOn(service, 'findById').mockResolvedValue({ id: 'site-1', ownerId: 'user-1' } as any);
 
       await service.delete('site-1', 'user-1');
 
-      expect(prisma.site.delete).toHaveBeenCalledWith({
+      expect(prisma.site.update).toHaveBeenCalledWith({
         where: { id: 'site-1' },
+        data: {
+          isDeleted: true,
+          deletedAt: expect.any(Date),
+        },
       });
     });
   });
