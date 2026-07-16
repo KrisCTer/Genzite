@@ -292,7 +292,7 @@ const PreviewViewer: React.FC = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 500, margin: '0 0 24px 0', textAlign: 'center' }}>
-            Scan QR Code
+            QR Code
           </h2>
           <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 20 }}>
             <img 
@@ -302,7 +302,7 @@ const PreviewViewer: React.FC = () => {
             />
           </div>
           <div style={{ color: '#A1A1AA', textAlign: 'center', fontSize: 13.5, lineHeight: 1.6, fontWeight: 400 }}>
-            Scan this code with a mobile device to<br/>view the preview.
+            Scan this code with a mobile device to<br/>see a live preview.
           </div>
         </div>
       </Modal>

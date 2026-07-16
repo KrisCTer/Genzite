@@ -3,6 +3,8 @@ import { Layout, Menu, Typography, Badge, List, Popover, Button, Spin, FloatButt
 import {
   DatabaseOutlined,
   RocketOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -204,107 +206,27 @@ const AdminLayout: React.FC = () => {
       style={{ 
         minHeight: '100vh', 
         position: 'relative',
-        backgroundColor: '#07090f',
-        backgroundImage: `
-          radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.1), transparent 25%),
-          radial-gradient(circle at 25% 25%, rgba(0, 229, 255, 0.25), transparent 40%),
-          radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.25), transparent 40%),
-          radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.2), transparent 45%)
-        `
+        backgroundColor: '#09090b', // Clean solid dark background
       }} 
       hasSider
-      onMouseMove={(e) => {
-        const target = e.currentTarget;
-        const rect = target.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        target.style.setProperty('--mouse-x', `${x}px`);
-        target.style.setProperty('--mouse-y', `${y}px`);
-      }}
     >
-      {/* Aurora Background Effect (matching CanvasBuilder) */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-        zIndex: 0,
-        background: `
-          radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.15), transparent 25%),
-          radial-gradient(circle at 30% 25%, rgba(0, 229, 255, 0.35), transparent 35%),
-          radial-gradient(circle at 70% 30%, rgba(139, 92, 246, 0.3), transparent 35%)
-        `,
-        filter: 'blur(60px)',
-        opacity: 1
-      }} />
-
-      {/* Dot Grid Overlay */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-        zIndex: 0,
-        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)',
-        backgroundSize: '16px 16px',
-        backgroundPosition: '0 0',
-        opacity: 0.7
-      }} />
-
-      {/* Glowing Dot Grid Overlay (Mouse Hover) */}
-      <div 
-        className="admin-spotlight"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 0)',
-          backgroundSize: '16px 16px',
-          backgroundPosition: '0 0',
-          WebkitMaskImage: 'radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), black, transparent 40%)',
-          maskImage: 'radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), black, transparent 40%)',
-        }} 
-      />
 
       <Sider
         collapsible
         collapsed={collapsed}
-        onCollapse={(value) => setCollapsed(value)}
+        trigger={null}
         theme="dark"
         width={260}
         collapsedWidth={72}
         style={{
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.85)',
-          backdropFilter: 'blur(24px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+          background: '#09090b', // Solid background instead of glass
+          borderRight: '1px solid #27272a', // Clean flat border separator
           position: 'sticky',
-          top: 16,
-          height: 'calc(100vh - 32px)',
-          margin: '16px',
-          borderRadius: '24px',
-          overflow: 'hidden',
+          top: 0,
+          height: '100vh',
           zIndex: 100,
-          boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            inset 0 -18px 36px rgba(255, 255, 255, 0.018),
-            0 24px 80px rgba(0, 0, 0, 0.42),
-            0 0 60px rgba(59, 130, 246, 0.14)
-          `
         }}
       >
-        {/* Inner Glow matching ai-prompt-bar */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          borderRadius: 'inherit',
-          background: `
-            radial-gradient(circle at 14% 0%, rgba(0, 229, 255, 0.16), transparent 34%),
-            radial-gradient(circle at 86% 100%, rgba(139, 92, 246, 0.13), transparent 36%)
-          `,
-          opacity: 0.84,
-          zIndex: 0
-        }} />
         
         <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{
@@ -352,37 +274,37 @@ const AdminLayout: React.FC = () => {
         <Header
           style={{
             padding: '0 24px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.85)',
-            backdropFilter: 'blur(24px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-            borderRadius: '24px',
-            margin: '16px 16px 0 0',
+            background: 'rgba(9, 9, 11, 0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid #27272a',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             position: 'sticky',
-            top: 16,
+            top: 0,
             zIndex: 90,
             height: 64,
             lineHeight: '64px',
-            boxShadow: `
-              inset 0 1px 0 rgba(255, 255, 255, 0.08),
-              inset 0 -18px 36px rgba(255, 255, 255, 0.018),
-              0 24px 80px rgba(0, 0, 0, 0.42),
-              0 0 60px rgba(59, 130, 246, 0.14)
-            `
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{
+                fontSize: '16px',
+                width: 40,
+                height: 40,
+                color: 'var(--color-text-secondary)',
+              }}
+            />
             <Title level={4} style={{ 
               margin: 0, 
-              fontWeight: 800,
-              background: 'linear-gradient(92deg, rgba(255,255,255,.99) 0%, rgba(184,247,255,.96) 46%, rgba(193,173,255,.94) 100%)',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-              letterSpacing: '-0.02em'
+              fontWeight: 600,
+              color: '#fff',
+              letterSpacing: '-0.01em'
             }}>
               {pageTitle}
             </Title>

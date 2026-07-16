@@ -31,7 +31,6 @@ interface CanvasToolbarProps {
   siteTitle?: string;
   siteId?: string;
   site?: any;
-  selectedId?: string | null;
   activePageId?: string | null;
   canvasDevice?: 'mobile' | 'tablet' | 'desktop' | 'full';
   onDeviceChange?: (device: 'mobile' | 'tablet' | 'desktop' | 'full') => void;
@@ -51,7 +50,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   siteTitle,
   siteId,
   site,
-  selectedId,
   activePageId,
   canvasDevice,
   onDeviceChange,
@@ -444,7 +442,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       label: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 4px', color: '#fff' }}>
           <QrCode size={16} style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Show QR Code</span>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>QR Code</span>
         </div>
       ),
     },
@@ -664,7 +662,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         </div>
 
         <div className="canvas-toolbar-center" style={{ display: 'flex', justifyContent: 'center', flex: 1 }}>
-          {(isOwner || selectedId || activePageId || siteId) && (
+          {activePageId && (
             <div style={{
               background: '#0F172A',
               border: '1px solid #1E293B',
@@ -853,7 +851,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 500, margin: '0 0 24px 0', textAlign: 'center' }}>
-            Quét mã QR
+            QR Code
           </h2>
           <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 20 }}>
             <img 
@@ -863,7 +861,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             />
           </div>
           <div style={{ color: '#A1A1AA', textAlign: 'center', fontSize: 13.5, lineHeight: 1.6, fontWeight: 400 }}>
-            Quét mã này bằng thiết bị di động để<br/>xem bản xem trước.
+            Scan this code with a mobile device to<br/>see a live preview.
           </div>
         </div>
       </Modal>

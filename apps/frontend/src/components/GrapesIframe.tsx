@@ -40,20 +40,47 @@ export function buildGrapesDoc(html: string, css: string, widgetId?: string): st
     // Inject our link-intercept script before </body>
     const interceptScript = `
     <script>
-      document.addEventListener('click', function(e) {
-        var el = e.target.closest('[data-gz-action-type="page"], [data-gz-action-type="url"], a');
-        if (el) {
-          var type = el.getAttribute('data-gz-action-type');
-          if (type === 'page' || type === 'url' || el.tagName.toLowerCase() === 'a') {
-            e.preventDefault();
-            var href = el.getAttribute('data-gz-href') || el.getAttribute('href');
-            if (href && href !== '#' && !href.startsWith('javascript:')) {
-              window.parent.postMessage({ type: 'GRAPES_NAVIGATE', href: href }, '*');
-            }
-          }
+      (function() {
+        function sendNavigate(href) {
+          if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+          window.parent.postMessage({ type: 'GRAPES_NAVIGATE', href: href }, '*');
         }
-      });
-      document.addEventListener('submit', function(e) { e.preventDefault(); });
+        // Hijack window.location
+        try {
+          var locationProxy = new Proxy(window.location, {
+            set: function(t, p, v) { if (p === 'href') { sendNavigate(v); return true; } t[p] = v; return true; },
+            get: function(t, p) {
+              if (p === 'assign') return function(u) { sendNavigate(u); };
+              if (p === 'replace') return function(u) { sendNavigate(u); };
+              var v = t[p]; return typeof v === 'function' ? v.bind(t) : v;
+            }
+          });
+          Object.defineProperty(window, 'location', { get: function() { return locationProxy; }, configurable: true });
+        } catch(e) {
+          try { window.location.assign = function(u) { sendNavigate(u); }; window.location.replace = function(u) { sendNavigate(u); }; } catch(_) {}
+        }
+        // Capture-phase click interceptor
+        document.addEventListener('click', function(e) {
+          var el = e.target;
+          while (el && el !== document.body) {
+            var tag = el.tagName ? el.tagName.toLowerCase() : '';
+            var actionType = el.getAttribute ? el.getAttribute('data-gz-action-type') : null;
+            var gzHref = el.getAttribute ? el.getAttribute('data-gz-href') : null;
+            var href = el.getAttribute ? el.getAttribute('href') : null;
+            var onclick = el.getAttribute ? el.getAttribute('onclick') : null;
+            if (actionType === 'page' || actionType === 'url') { e.preventDefault(); e.stopImmediatePropagation(); sendNavigate(gzHref || href || ''); return; }
+            if (tag === 'a' && href && href !== '#' && !href.startsWith('javascript:')) { e.preventDefault(); e.stopImmediatePropagation(); sendNavigate(href); return; }
+            if (gzHref) { e.preventDefault(); e.stopImmediatePropagation(); sendNavigate(gzHref); return; }
+            if (onclick && (onclick.includes('location.href') || onclick.includes('location.assign') || onclick.includes('location.replace'))) {
+              e.preventDefault(); e.stopImmediatePropagation();
+              var m = onclick.match(/location\\.(?:href|assign|replace)\\s*[=(]\\s*['"]([^'"]+)['"]/);
+              if (m && m[1]) sendNavigate(m[1]); return;
+            }
+            el = el.parentElement;
+          }
+        }, true);
+        document.addEventListener('submit', function(e) { e.preventDefault(); });
+      })();
     <\/script>`;
     return html.replace(/<\/body>/i, interceptScript + '\n</body>');
   }
@@ -167,24 +194,111 @@ export function buildGrapesDoc(html: string, css: string, widgetId?: string): st
   <body>
     ${html}
     <script>
-      // Prevent clicks from navigating the iframe natively to support SPA routing.
-      document.addEventListener('click', function(e) {
-        var el = e.target.closest('[data-gz-action-type="page"], [data-gz-action-type="url"], a');
-        if (el) {
-          var type = el.getAttribute('data-gz-action-type');
-          if (type === 'page' || type === 'url' || el.tagName.toLowerCase() === 'a') {
-            e.preventDefault();
-            var href = el.getAttribute('data-gz-href') || el.getAttribute('href');
-            if (href && href !== '#' && !href.startsWith('javascript:')) {
-              window.parent.postMessage({ type: 'GRAPES_NAVIGATE', href: href }, '*');
-            }
-          }
+      // ── Genzite Navigation Interceptor ─────────────────────────────────
+      // Intercept ALL navigation attempts inside the iframe so they are
+      // routed through postMessage to the parent React app (LiveViewer).
+      // This covers:
+      //   1. <a href="..."> clicks
+      //   2. <button onclick="window.location.href='...'"> clicks
+      //   3. Direct window.location.href = '...' assignments from any script
+      //   4. window.location.assign() / window.location.replace() calls
+
+      (function() {
+        function sendNavigate(href) {
+          if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+          window.parent.postMessage({ type: 'GRAPES_NAVIGATE', href: href }, '*');
         }
-      });
-      // Prevent form submissions from navigating natively.
-      document.addEventListener('submit', function(e) {
-        e.preventDefault();
-      });
+
+        // 1. Hijack window.location.href setter and assign/replace ASAP
+        try {
+          var realLocation = window.location;
+          var locationProxy = new Proxy(realLocation, {
+            set: function(target, prop, value) {
+              if (prop === 'href') {
+                sendNavigate(value);
+                return true; // prevent actual navigation
+              }
+              target[prop] = value;
+              return true;
+            },
+            get: function(target, prop) {
+              if (prop === 'assign') {
+                return function(url) { sendNavigate(url); };
+              }
+              if (prop === 'replace') {
+                return function(url) { sendNavigate(url); };
+              }
+              var val = target[prop];
+              return typeof val === 'function' ? val.bind(target) : val;
+            }
+          });
+          Object.defineProperty(window, 'location', {
+            get: function() { return locationProxy; },
+            configurable: true
+          });
+        } catch(e) {
+          // Proxy fallback: patch individual methods
+          try {
+            var _assign = window.location.assign.bind(window.location);
+            var _replace = window.location.replace.bind(window.location);
+            window.location.assign = function(url) { sendNavigate(url); };
+            window.location.replace = function(url) { sendNavigate(url); };
+          } catch(_) {}
+        }
+
+        // 2. Click interceptor — catches <a> and any element with data-gz-href or onclick nav
+        document.addEventListener('click', function(e) {
+          // Walk up from click target to find any navigable ancestor
+          var el = e.target;
+          while (el && el !== document.body) {
+            var tag = el.tagName ? el.tagName.toLowerCase() : '';
+            var actionType = el.getAttribute ? el.getAttribute('data-gz-action-type') : null;
+            var gzHref = el.getAttribute ? el.getAttribute('data-gz-href') : null;
+            var href = el.getAttribute ? el.getAttribute('href') : null;
+            var onclick = el.getAttribute ? el.getAttribute('onclick') : null;
+
+            // Case A: element has explicit Genzite action type
+            if (actionType === 'page' || actionType === 'url') {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              var target = gzHref || href || '';
+              if (target) sendNavigate(target);
+              return;
+            }
+
+            // Case B: anchor tag
+            if (tag === 'a' && href && href !== '#' && !href.startsWith('javascript:')) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              sendNavigate(href);
+              return;
+            }
+
+            // Case C: any element with data-gz-href
+            if (gzHref) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              sendNavigate(gzHref);
+              return;
+            }
+
+            // Case D: any element with onclick containing location.href navigation
+            if (onclick && (onclick.includes('location.href') || onclick.includes('location.assign') || onclick.includes('location.replace'))) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              // Extract URL from common patterns: location.href='...', location.href="..."
+              var match = onclick.match(/location\.(?:href|assign|replace)\s*[=(]\s*['"]([^'"]+)['"]/);
+              if (match && match[1]) sendNavigate(match[1]);
+              return;
+            }
+
+            el = el.parentElement;
+          }
+        }, true); // capture phase — runs BEFORE onclick handlers
+
+        // 3. Prevent form submissions from navigating
+        document.addEventListener('submit', function(e) { e.preventDefault(); });
+      })();
     <\/script>
     ${heightScript}
   </body>

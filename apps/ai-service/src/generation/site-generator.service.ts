@@ -130,11 +130,18 @@ export class SiteGeneratorService {
     private readonly toolRegistry: ToolRegistry,
   ) { }
 
-  private formatThemeContext(themeStr?: string): string {
-    if (!themeStr || themeStr === 'undefined' || themeStr === 'null' || !themeStr.trim()) return '';
+  private formatThemeContext(themeStr?: string, customInstructions?: string): string {
+    let result = '';
+    if (customInstructions && customInstructions.trim()) {
+      result += `\nCRITICAL DESIGN.MD ENFORCEMENT (Project & Page Design System Rules):\n${customInstructions.trim()}\nYou MUST strictly follow all color palettes, typography, spacing, layout, and aesthetic rules specified above in DESIGN.MD.\n`;
+    }
+    if (!themeStr || themeStr === 'undefined' || themeStr === 'null' || !themeStr.trim()) return result;
     try {
       const parsed = JSON.parse(themeStr);
-      return `\nCRITICAL DESIGN.MD ENFORCEMENT (User Selected Theme & Design Overrides):\n${JSON.stringify(parsed, null, 2)}\nYou MUST strictly follow these exact color palettes, typography rules, layout styles, and aesthetic instructions. Do not use default cyan/dark theme.`;
+      if (parsed.designPrompt && !customInstructions) {
+        result += `\nCRITICAL DESIGN.MD ENFORCEMENT (Project Design System):\n${parsed.designPrompt}\n`;
+      }
+      result += `\nCRITICAL THEME & TOKEN ENFORCEMENT (User Selected Theme & Overrides):\n${JSON.stringify(parsed, null, 2)}\nYou MUST strictly follow these exact color palettes, typography rules, layout styles, and aesthetic instructions. Do not use default cyan/dark theme.`;
     } catch {
       const lower = themeStr.toLowerCase();
       const presets: Record<string, string> = {
@@ -147,8 +154,9 @@ export class SiteGeneratorService {
         'sahara': 'Sahara Warm Classic: Sunset orange (#F97316), Deep bronze (#451A03), Amber (#B45309), warm ivory backgrounds, classic editorial layout.'
       };
       const presetDesc = presets[lower] || `Custom Theme / Design Rule: ${themeStr}`;
-      return `\nCRITICAL DESIGN.MD ENFORCEMENT (User Selected Theme):\n${presetDesc}\nYou MUST strictly adhere to this exact aesthetic, color palette, and vibe in every HTML class and layout decision.`;
+      result += `\nCRITICAL THEME ENFORCEMENT (User Selected Theme):\n${presetDesc}\nYou MUST strictly adhere to this exact aesthetic, color palette, and vibe in every HTML class and layout decision.`;
     }
+    return result;
   }
 
   async generate(
@@ -227,6 +235,13 @@ export class SiteGeneratorService {
         prompt = prompt.replace(/\[PLATFORM:(APP|WEB)\]\s*/i, '').trim();
       }
 
+      let customInstructions: string | undefined;
+      const customInstMatch = prompt.match(/\[CUSTOM_INSTRUCTIONS:\s*([\s\S]*?)\]\n\n/);
+      if (customInstMatch) {
+        customInstructions = customInstMatch[1].trim();
+        prompt = prompt.replace(/\[CUSTOM_INSTRUCTIONS:\s*[\s\S]*?\]\n\n/, '').trim();
+      }
+
       const slugify = (str: string) => str
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -272,11 +287,11 @@ export class SiteGeneratorService {
       this.logger.log(`Current GENERATION_MODE from config: ${this.config.get<string>('GENERATION_MODE')} -> Parsed: ${genMode}`);
 
       if (genMode === 'hybrid') {
-        return await this.generateHybrid(prompt, taskLog, pageTitle, pageSlug, targetPageId, siteId, theme, platform, onProgress, resolvedAttachments as { base64: string; mimeType: string }[]);
+        return await this.generateHybrid(prompt, taskLog, pageTitle, pageSlug, targetPageId, siteId, theme, platform, onProgress, resolvedAttachments as { base64: string; mimeType: string }[], customInstructions);
       }
 
       // --- STITCH MODE (LEGACY) ---
-      const themeContext = this.formatThemeContext(theme);
+      const themeContext = this.formatThemeContext(theme, customInstructions);
       const pmPrompt = `User request: "${prompt}"\n\nReference Structure:\n${goldenTemplate}\n\n${themeContext}\nPlease write a highly detailed design prompt based on this request adhering to the design rules.`;
 
       // STEP 2: PM (Gemini) writes refined prompt
@@ -505,14 +520,15 @@ Provide a concise, high-density actionable summary for the AI Frontend Architect
     theme?: string,
     platform: string = 'WEB',
     onProgress?: (step: string, percent: number) => void,
-    attachments?: { base64: string; mimeType: string }[]
+    attachments?: { base64: string; mimeType: string }[],
+    customInstructions?: string
   ): Promise<GeneratedSite> {
     try {
       this.logger.log('Starting HYBRID parallel generation mode');
       onProgress?.('Planner is analyzing sections...', 20);
 
       // STEP 1: Plan Sections
-      const themeContext = this.formatThemeContext(theme);
+      const themeContext = this.formatThemeContext(theme, customInstructions);
       let plannerSystem = SECTION_PLANNER_SYSTEM + themeContext;
       if (platform === 'APP') {
         plannerSystem += `\nCRITICAL PLATFORM ENFORCEMENT: The user wants a Mobile App. You MUST plan sections suitable for mobile (e.g. BOTTOM_NAV, APP_HEADER, MOBILE_HERO, FEED, SETTINGS) instead of standard desktop web sections. Do not use generic desktop HEADER.`;
