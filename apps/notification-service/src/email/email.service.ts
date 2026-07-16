@@ -7,18 +7,21 @@ export class EmailService implements OnModuleInit {
   private transporter!: nodemailer.Transporter;
 
   async onModuleInit() {
-    // If you have real SMTP credentials in env, use them, otherwise create an Ethereal test account.
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USERNAME;
+    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
+    const smtpHost = process.env.SMTP_HOST || (process.env.EMAIL_USERNAME ? 'smtp.gmail.com' : null);
+
+    if (smtpHost && smtpUser && smtpPass) {
       this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || "587", 10),
-        secure: process.env.SMTP_SECURE === "true",
+        host: smtpHost,
+        port: parseInt(process.env.SMTP_PORT || (smtpHost === 'smtp.gmail.com' ? "465" : "587"), 10),
+        secure: process.env.SMTP_SECURE === "true" || smtpHost === 'smtp.gmail.com',
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
+          user: smtpUser,
+          pass: smtpPass,
         },
       });
-      this.logger.log("Initialized Nodemailer with real SMTP credentials.");
+      this.logger.log(`Initialized Nodemailer with real SMTP credentials (${smtpHost}).`);
     } else {
       this.logger.warn("No SMTP credentials found in env. Creating Ethereal test account...");
       const testAccount = await nodemailer.createTestAccount();
@@ -37,8 +40,9 @@ export class EmailService implements OnModuleInit {
 
   async sendEmail(to: string, subject: string, text: string, html?: string) {
     try {
+      const senderEmail = process.env.SMTP_USER || process.env.EMAIL_USERNAME || 'noreply@genzite.local';
       const info = await this.transporter.sendMail({
-        from: '"Genzite App" <noreply@genzite.local>',
+        from: `"Genzite App" <${senderEmail}>`,
         to,
         subject,
         text,

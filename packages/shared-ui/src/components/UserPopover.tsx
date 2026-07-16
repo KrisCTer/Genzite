@@ -1,11 +1,11 @@
 import React from 'react';
-import { Settings, LayoutDashboard, Palette } from 'lucide-react';
+import { LayoutDashboard, Palette, User } from 'lucide-react';
 // @ts-ignore
 import './UserPopover.css';
 
 export interface UserPopoverProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   onLogout: () => void;
   user?: {
     name?: string | null;
@@ -63,7 +63,7 @@ export const UserPopover: React.FC<UserPopoverProps> = ({
           </button>
         )}
         <button className="user-popover-btn" onClick={() => window.location.href = '/workspace/profile'}>
-          <Settings size={16} /> Profile
+          <User size={16} /> Profile
         </button>
         <button className="user-popover-btn" onClick={onLogout}>
           Sign Out

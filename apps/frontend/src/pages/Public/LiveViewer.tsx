@@ -11,7 +11,7 @@ interface LiveViewerProps {
 
 const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { pageId: paramPageId } = useParams<{ pageId: string }>();
 
   const isUUID = paramPageId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paramPageId);
@@ -109,11 +109,30 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === 'GRAPES_NAVIGATE' && e.data.href) {
-         const targetHref = e.data.href;
+         const targetHref = e.data.href as string;
          if (targetHref.startsWith('http')) {
             window.open(targetHref, '_blank');
          } else {
-            navigate(targetHref.startsWith('/') ? targetHref : `/${targetHref}`);
+            // Internal page navigation: resolve slug against loaded pages
+            const slug = targetHref.startsWith('/') ? targetHref.substring(1) : targetHref;
+            const targetPage = pages.find((p: any) =>
+              p.slug === slug || p.slug === `/${slug}` || p.slug === targetHref
+            );
+            if (targetPage) {
+              // Switch to the found page and update the URL to reflect the new page
+              setResolvedPageId(targetPage.id);
+              setPageNotFound(false);
+              setCurrentPageName(targetPage.name || targetPage.title || '');
+              // Update ?pageId= in the URL so the address bar stays in sync
+              setSearchParams(prev => {
+                const next = new URLSearchParams(prev);
+                next.set('pageId', targetPage.id);
+                return next;
+              }, { replace: true });
+            } else {
+              // Slug not found in current site pages — navigate as fallback
+              navigate(targetHref.startsWith('/') ? targetHref : `/${targetHref}`);
+            }
          }
       } else if (e.data?.type === 'CANVAS_MOUSE_MOVE') {
          window.parent.postMessage({ type: 'CANVAS_MOUSE_MOVE', clientX: e.data.clientX, clientY: e.data.clientY }, '*');
@@ -121,7 +140,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
+  }, [navigate, pages, setSearchParams]);
 
   if (loading) {
     return (

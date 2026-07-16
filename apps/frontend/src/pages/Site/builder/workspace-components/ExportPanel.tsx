@@ -47,9 +47,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
   const getDynamicDescription = () => {
     switch (selectedOption) {
-      case 'zip': return "Tải xuống cấu trúc 1 thư mục gốc chứa các thư mục con cho từng trang đã chọn (gồm file .html và DESIGN.md).";
-      case 'copy': return "Sao chép toàn bộ mã HTML của trang hiện tại vào bảng nhớ tạm.";
-      case 'summarize': return "Tạo tài liệu đặc tả yêu cầu sản phẩm (PRD) cho dự án của bạn.";
+      case 'zip': return "Download a structure with 1 root folder containing sub-folders for each selected page (including .html and DESIGN.md files).";
+      case 'copy': return "Copy the full HTML code of the current page to clipboard.";
+      case 'summarize': return "Generate a Product Requirements Document (PRD) for your project.";
       default: return "";
     }
   };
@@ -70,9 +70,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
   const getButtonText = () => {
     switch (selectedOption) {
-      case 'zip': return "Tải về (.zip)";
-      case 'copy': return "Sao chép mã";
-      case 'summarize': return "Tóm tắt dự án";
+      case 'zip': return "Download (.zip)";
+      case 'copy': return "Copy Code";
+      case 'summarize': return "Project Summary";
       default: return "";
     }
   };
@@ -101,7 +101,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       }}
     >
       <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>Xuất dự án</span>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>Export Project</span>
         <button
           onClick={onClose}
           style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -115,9 +115,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
           {[
-            { id: 'zip', label: 'Tải về gói dự án (.zip)' },
-            { id: 'copy', label: 'Sao chép mã HTML trang hiện tại' },
-            { id: 'summarize', label: 'Tóm tắt dự án' }
+            { id: 'zip', label: 'Download Project Package (.zip)' },
+            { id: 'copy', label: 'Copy HTML of Current Page' },
+            { id: 'summarize', label: 'Project Summary' }
           ].map((opt) => (
             <label 
               key={opt.id} 
@@ -148,12 +148,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         {selectedOption === 'zip' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8' }}>Tên file ZIP & Thư mục gốc:</label>
+              <label style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8' }}>ZIP File Name & Root Folder:</label>
               <input
                 type="text"
                 value={rootFolderName}
                 onChange={e => setRootFolderName(e.target.value)}
-                placeholder="Tên dự án..."
+                placeholder="Project Name..."
                 style={{
                   background: 'rgba(0, 0, 0, 0.3)',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -171,7 +171,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8' }}>
-                  Chọn trang tải về ({selectedPageIds.length}/{pages.length}):
+                  Select pages to download ({selectedPageIds.length}/{pages.length}):
                 </label>
                 <button
                   type="button"
@@ -184,7 +184,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   }}
                   style={{ background: 'transparent', border: 'none', color: '#60A5FA', fontSize: 11, cursor: 'pointer', padding: 0 }}
                 >
-                  {selectedPageIds.length === pages.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                  {selectedPageIds.length === pages.length ? 'Deselect all' : 'Select all'}
                 </button>
               </div>
 
@@ -207,13 +207,13 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                           style={{ cursor: 'pointer', width: 14, height: 14, accentColor: '#3B82F6' }}
                         />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {page.title || page.slug || 'Trang không có tiêu đề'}
+                          {page.title || page.slug || 'Untitled Page'}
                         </span>
                       </label>
                     );
                   })
                 ) : (
-                  <span style={{ fontSize: 12, color: '#64748B' }}>Không tìm thấy trang nào</span>
+                  <span style={{ fontSize: 12, color: '#64748B' }}>No pages found</span>
                 )}
               </div>
             </div>

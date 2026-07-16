@@ -22,13 +22,12 @@ interface AIPromptBarProps {
   onRemovePage?: (pageId: string) => void;
   onClearSelection?: () => void;
   themeOverrides?: any;
-  onCreateNewTheme?: () => void;
   onSelectTheme?: (themeId: string) => void;
   customInstructions?: string;
   chatModel?: string;
 }
 
-const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, onPlatformChange, initialPlatform, compact = false, siteId, selectedPage, selectedPages, onRemovePage, onClearSelection, themeOverrides, onCreateNewTheme, onSelectTheme, customInstructions, chatModel }) => {
+const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, onPlatformChange, initialPlatform, compact = false, siteId, selectedPage, selectedPages, onRemovePage, onClearSelection, themeOverrides, onSelectTheme, customInstructions, chatModel }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [prompt, setPrompt] = useState('');
   const [isImproving, setIsImproving] = useState(false);
@@ -441,10 +440,6 @@ const AIPromptBar: React.FC<AIPromptBarProps> = ({ onGenerated, onStarted, onPla
                       setShowThemeMenu(false); 
                       onSelectTheme?.(id);
                     }} 
-                    onCreateNewTheme={() => {
-                      setShowThemeMenu(false);
-                      onCreateNewTheme?.();
-                    }}
                   />
                 )}
               </div>

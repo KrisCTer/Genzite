@@ -219,6 +219,8 @@ const EditViewer: React.FC = () => {
     onSuccess: () => {
       message.success('Changes saved successfully!');
       queryClient.invalidateQueries({ queryKey: ['widgets', activePage?.id] });
+      // Clear GrapesJS dirty flag so browser won't show "Changes may not be saved" on exit
+      window.dispatchEvent(new CustomEvent('genzite:grapes:clearDirty'));
     },
     onError: () => {
       message.error('Error saving changes!');
