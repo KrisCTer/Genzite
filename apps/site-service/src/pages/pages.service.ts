@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
@@ -13,7 +14,27 @@ export class PagesService {
   constructor(
     private prisma: PrismaService,
     private readonly siteProducer: SiteProducer,
-  ) {}
+  ) { }
+
+  async findBySiteId(siteId: string, userId: string, userEmail?: string) {
+    try {
+      const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
+
+      return await this.prisma.page.findMany({
+        where: {
+          siteId: site.id,
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new BadRequestException("Site not found (Bypassing CloudFront 404)");
+      }
+      throw error;
+    }
+  }
 
   private async verifySiteOwnership(siteIdOrSubdomain: string, userId: string, allowPublicRead: boolean = false, userEmail?: string) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(siteIdOrSubdomain);
@@ -61,22 +82,11 @@ export class PagesService {
     return page;
   }
 
-  async findBySiteId(siteId: string, userId: string, userEmail?: string) {
-    const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
-    
-    return this.prisma.page.findMany({
-      where: {
-        siteId: site.id,
-      },
-      orderBy: {
-        sortOrder: "asc",
-      },
-    });
-  }
+
 
   async findById(id: string, siteId: string, userId: string, userEmail?: string) {
     const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
-    
+
     return this.prisma.page.findFirst({
       where: {
         id,
@@ -87,7 +97,7 @@ export class PagesService {
 
   async findBySlug(siteId: string, slug: string, userId: string, userEmail?: string) {
     const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
-    
+
     return this.prisma.page.findFirst({
       where: {
         siteId: site.id,
