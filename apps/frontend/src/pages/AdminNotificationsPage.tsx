@@ -56,6 +56,7 @@ export const AdminNotificationsPage: React.FC = () => {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetchNotificationsApi(),
+    select: (data) => Array.isArray(data) ? data : [],
   });
 
   const markReadMutation = useMutation({

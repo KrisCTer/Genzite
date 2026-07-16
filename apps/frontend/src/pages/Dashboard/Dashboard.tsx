@@ -182,9 +182,9 @@ export const Dashboard: React.FC = () => {
                   </div>
 
                   <div className="hub-card-right opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
-                    <button className="hub-card-mark-btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div className="hub-card-mark-btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <ChevronRight size={18} className="text-white" />
-                    </button>
+                    </div>
                   </div>
                 </button>
               ))}

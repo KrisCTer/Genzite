@@ -101,7 +101,7 @@ const AdminLayout: React.FC = () => {
     retry: 1,
   });
 
-  const displayNotifications = notifications || [];
+  const displayNotifications = Array.isArray(notifications) ? notifications : [];
 
   const markReadMutation = useMutation({
     mutationFn: markNotificationAsReadApi,
