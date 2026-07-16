@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Rnd } from 'react-rnd';
 import { Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -53,6 +53,7 @@ const WIDGET_DEFAULTS: Record<string, { w: number; h: number }> = {
   GRAPESJS: { w: 1440, h: 1000 },
 };
 
+
 interface CanvasPageFrameProps {
   pageId: string;
   pageTitle: string;
@@ -66,6 +67,68 @@ interface CanvasPageFrameProps {
   onToggleStar?: () => void;
   onEditPageSettings?: () => void;
 }
+
+/**
+ * Overlay div for each widget — handles pointer and wheel events.
+ * Uses native addEventListener with { passive: false } so that
+ * preventDefault() works correctly for forwarding scroll to iframes.
+ */
+const WidgetOverlay: React.FC<{
+  activeTool?: string;
+  isEditMode: boolean;
+  widget: CanvasWidget;
+  pageId: string;
+  onSelectWidget: (id: string | null) => void;
+  onUpdateWidget?: (widget: CanvasWidget | null) => void;
+  onToggleStar?: () => void;
+}> = ({ activeTool, isEditMode, widget, pageId, onSelectWidget, onUpdateWidget, onToggleStar }) => {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const iframe = el.parentElement?.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.scrollBy({ top: e.deltaY, behavior: 'auto' });
+      }
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button === 0 && activeTool === 'star') {
+      e.stopPropagation();
+      onToggleStar?.();
+      return;
+    }
+    if (e.button === 0 && activeTool === 'select') {
+      if (isEditMode) {
+        e.stopPropagation();
+        onSelectWidget(widget._id);
+        onUpdateWidget?.(widget);
+      } else {
+        onSelectWidget(pageId);
+      }
+    }
+  }, [activeTool, isEditMode, widget, pageId, onSelectWidget, onUpdateWidget, onToggleStar]);
+
+  return (
+    <div
+      ref={overlayRef}
+      style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
+        cursor: activeTool === 'pan' ? 'grab'
+          : (activeTool === 'frame' || activeTool === 'draw') ? 'crosshair'
+          : activeTool === 'star' ? 'cell'
+          : (isEditMode ? 'move' : 'pointer'),
+      }}
+      onPointerDown={handlePointerDown}
+    />
+  );
+};
 
 const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   pageId,
@@ -365,31 +428,15 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
                 style={{ position: 'relative', width: '100%', height: isGrapesItem ? deviceHeight : '100%' }}
               >
                 <div style={{ width: '100%', height: '100%', overflow: isGrapesItem ? 'hidden' : 'hidden', position: 'relative' }}>
-                  <div 
-                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, cursor: activeTool === 'pan' ? 'grab' : (activeTool === 'frame' || activeTool === 'draw') ? 'crosshair' : activeTool === 'star' ? 'cell' : (isEditMode ? 'move' : 'pointer') }}
-                    onPointerDown={(e) => {
-                      if (e.button === 0 && activeTool === 'star') {
-                        e.stopPropagation();
-                        onToggleStar?.();
-                        return;
-                      }
-                      if (e.button === 0 && activeTool === 'select') {
-                        if (isEditMode) {
-                          e.stopPropagation();
-                          onSelectWidget(widget._id); 
-                          onUpdateWidget?.(widget);
-                        } else {
-                          onSelectWidget(pageId);
-                        }
-                      }
-                    }}
-                    onWheel={(e) => {
-                      e.preventDefault();
-                      const iframe = e.currentTarget.parentElement?.querySelector('iframe');
-                      if (iframe && iframe.contentWindow) {
-                        iframe.contentWindow.scrollBy({ top: e.deltaY, behavior: 'auto' });
-                      }
-                    }}
+                  {/* Overlay div — wheel event handled natively via ref to avoid passive listener issue */}
+                  <WidgetOverlay
+                    activeTool={activeTool}
+                    isEditMode={isEditMode}
+                    widget={widget}
+                    pageId={pageId}
+                    onSelectWidget={onSelectWidget}
+                    onUpdateWidget={onUpdateWidget}
+                    onToggleStar={onToggleStar}
                   />
 
                   {isGrapesItem ? (

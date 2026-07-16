@@ -16,21 +16,36 @@ const PageBuilder: React.FC = () => {
   const queryClient = useQueryClient();
   const isGenerating = useAiLogStore(state => state.isGenerating);
 
-  const { data: pages, isLoading, isFetching: isFetchingPages, isError } = useQuery({
+  const { data: rawPages, isLoading, isFetching: isFetchingPages, isError, error: pagesError } = useQuery({
     queryKey: ['site-pages', siteId],
     queryFn: () => fetchPagesApi(siteId!),
     enabled: !!siteId,
-    retry: 5,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 403 (Forbidden) — user simply doesn't have access
+      if (error?.response?.status === 403) return false;
+      return failureCount < 5;
+    },
     retryDelay: 1000,
   });
 
-  const { data: site, isFetching: isFetchingSite } = useQuery({
+  // Defensive: ensure pages is always an array (protects against CloudFront returning HTML)
+  const pages = Array.isArray(rawPages) ? rawPages : undefined;
+
+  const { data: site, isFetching: isFetchingSite, error: siteError } = useQuery({
     queryKey: ['site', siteId],
     queryFn: () => fetchSiteByIdApi(siteId!),
     enabled: !!siteId,
-    retry: 5,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 403) return false;
+      return failureCount < 5;
+    },
     retryDelay: 1000,
   });
+
+  // Determine if it's an access denied error (403)
+  const isForbidden =
+    (pagesError as any)?.response?.status === 403 ||
+    (siteError as any)?.response?.status === 403;
 
   const isWelcomeMode = !siteId;
 
@@ -96,6 +111,82 @@ const PageBuilder: React.FC = () => {
   if ((isLoading || isFetchingPages || isFetchingSite) && !isGenerating && !pages) {
     return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
   }
+
+  // Access Denied — show a dedicated 403 page
+  if (isForbidden) {
+    return (
+      <div 
+        className="canvas-builder" 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#09090b',
+          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      >
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: 16,
+          padding: '64px 48px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          maxWidth: 480,
+          textAlign: 'center'
+        }}>
+          <div style={{
+            fontSize: 56,
+            marginBottom: 16,
+          }}>
+            🔒
+          </div>
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: 700,
+            color: '#e2e8f0',
+            margin: 0,
+            lineHeight: 1.2
+          }}>
+            Access Denied
+          </h1>
+          <p style={{
+            fontSize: 16,
+            fontWeight: 400,
+            color: '#94a3b8',
+            marginTop: 16,
+            marginBottom: 32,
+            lineHeight: 1.6
+          }}>
+            You don't have permission to view this project.<br />
+            Ask the owner to share it with you.
+          </p>
+          <button 
+            onClick={() => navigate('/project')}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 24,
+              padding: '12px 24px',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+          >
+            Back to My Projects
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isError && !isGenerating && !isFetchingPages) {
     return (
       <div 

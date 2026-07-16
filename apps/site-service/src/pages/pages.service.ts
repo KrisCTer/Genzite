@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
@@ -62,16 +63,23 @@ export class PagesService {
   }
 
   async findBySiteId(siteId: string, userId: string, userEmail?: string) {
-    const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
-    
-    return this.prisma.page.findMany({
-      where: {
-        siteId: site.id,
-      },
-      orderBy: {
-        sortOrder: "asc",
-      },
-    });
+    try {
+      const site = await this.verifySiteOwnership(siteId, userId, true, userEmail);
+      
+      return await this.prisma.page.findMany({
+        where: {
+          siteId: site.id,
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new BadRequestException("Site not found (Bypassing CloudFront 404)");
+      }
+      throw error;
+    }
   }
 
   async findById(id: string, siteId: string, userId: string, userEmail?: string) {
