@@ -157,9 +157,9 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
           onClose={() => setIsPopoverOpen(false)}
           onLogout={() => { setIsPopoverOpen(false); handleLogout(); }}
           user={{
-            name: (user?.metadata as any)?.displayName || user?.name || 'User',
-            email: user?.email,
-            avatarUrl: user?.avatarUrl
+            name: ((user?.metadata as any)?.displayName || user?.name || 'User') as string,
+            email: user?.email ?? undefined,
+            avatarUrl: user?.avatarUrl ?? undefined
           }}
           style={{
             position: 'fixed',

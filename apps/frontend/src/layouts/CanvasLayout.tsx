@@ -88,8 +88,8 @@ const CanvasLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
                   isOpen={isUserMenuOpen}
                   onClose={() => setIsUserMenuOpen(false)}
                   onLogout={handleLogout}
-                  user={user}
-                  menuRef={menuRef}
+                  user={user as any}
+                  menuRef={menuRef as any}
                 />
               )}
             </div>

@@ -810,8 +810,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 isOpen={isUserMenuOpen}
                 onClose={() => setIsUserMenuOpen(false)}
                 onLogout={handleLogout}
-                user={user}
-                menuRef={menuRef}
+                user={user as any}
+                menuRef={menuRef as any}
                 style={{ top: 56, right: 0 }}
               />
             )}
