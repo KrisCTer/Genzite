@@ -1,31 +1,20 @@
 import { forwardRef } from 'react';
-import { Palette, Plus, Check } from 'lucide-react';
+import { Palette, Check } from 'lucide-react';
 import { THEME_OPTIONS } from './constants';
 
 interface ThemeMenuProps {
   theme?: string;
   onSelectTheme: (themeId: string) => void;
-  onCreateNewTheme?: () => void;
 }
 
-const ThemeMenu = forwardRef<HTMLDivElement, ThemeMenuProps>(({ theme, onSelectTheme, onCreateNewTheme }, ref) => {
+const ThemeMenu = forwardRef<HTMLDivElement, ThemeMenuProps>(({ theme, onSelectTheme }, ref) => {
   return (
     <div className="ai-theme-menu" ref={ref}>
       <div className="ai-theme-header">
         <Palette size={16} className="ai-theme-header-icon" />
         <span>DESIGN.md</span>
       </div>
-      <div style={{ maxHeight: 360, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 4 }} className="custom-scrollbar">
-        <button
-          onClick={() => onCreateNewTheme?.()}
-          style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}
-        >
-          <Plus size={16} style={{ opacity: 0.7 }} /> Create New
-        </button>
-
-        <div style={{ marginTop: 16, marginBottom: 8, fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>
-          Genzite Presets
-        </div>
+      <div style={{ maxHeight: 300, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 4 }} className="custom-scrollbar">
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {THEME_OPTIONS.map(themeOpt => (

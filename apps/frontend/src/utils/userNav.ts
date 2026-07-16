@@ -54,7 +54,8 @@ export function getHomePath(roles: string[] | undefined): string {
   return hasStaffAccess(roles) ? ADMIN_BASE : WORKSPACE_BASE;
 }
 
-export function getPostLoginPath(_roles: string[] | undefined): string {
+export function getPostLoginPath(roles: string[] | undefined): string {
+  if (hasStaffAccess(roles)) return ADMIN_BASE;
   return '/';
 }
 

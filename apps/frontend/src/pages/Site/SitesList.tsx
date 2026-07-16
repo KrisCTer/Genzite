@@ -149,11 +149,11 @@ const SitesList: React.FC = () => {
                 variant="outlined"
                 styles={{ body: { padding: 24, display: 'flex', flexDirection: 'column', height: '100%' } }}
                 style={{
-                  borderRadius: 16,
-                  borderColor: 'var(--color-border)',
-                  background: 'linear-gradient(145deg, rgba(20, 30, 48, 0.6) 0%, rgba(10, 15, 28, 0.8) 100%)',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-                  transition: 'all 0.3s ease',
+                  borderRadius: 12,
+                  borderColor: '#27272a',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                  transition: 'all 0.2s ease',
                   overflow: 'hidden'
                 }}
               >

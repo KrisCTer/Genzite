@@ -1174,7 +1174,38 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       if (onSaveRef.current) {
         onSaveRef.current(editor.getHtml(), editor.getCss() || '');
       }
+      // Reset GrapesJS internal dirty/changed counter so it never triggers
+      // the native browser "Changes may not be saved" beforeunload dialog.
+      try {
+        const model = editor.getModel?.();
+        if (model) {
+          model.set('changed', 0);
+          model.set('changesCount', 0);
+        }
+      } catch (_) {}
     });
+
+    // Suppress the native browser "Changes you made may not be saved" dialog.
+    // We auto-save on every change via the 'update' event, so there are never
+    // truly unsaved changes when the user leaves the page.
+    const beforeUnloadGuard = (e: BeforeUnloadEvent) => {
+      e.stopImmediatePropagation();
+      delete e.returnValue;
+      return undefined;
+    };
+    window.addEventListener('beforeunload', beforeUnloadGuard, { capture: true });
+
+    // Allow parent components to manually clear dirty state after an explicit save
+    const clearDirtyHandler = () => {
+      try {
+        const model = editor.getModel?.();
+        if (model) {
+          model.set('changed', 0);
+          model.set('changesCount', 0);
+        }
+      } catch (_) {}
+    };
+    window.addEventListener('genzite:grapes:clearDirty', clearDirtyHandler);
 
     return () => {
       window.removeEventListener('genzite:grapes:setstyle', styleHandler);
@@ -1186,6 +1217,8 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       window.removeEventListener('genzite:grapes:pan:toggle', panToggleHandler);
       window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('beforeunload', beforeUnloadGuard, { capture: true });
+      window.removeEventListener('genzite:grapes:clearDirty', clearDirtyHandler);
 
       toolbarObserver?.disconnect();
       document.getElementById('gz-toolbar-override')?.remove();

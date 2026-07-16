@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
 
-
   React.useEffect(() => {
     document.title = "Forgot Password | Genzite Identity";
     let metaDescription = document.querySelector('meta[name="description"]');

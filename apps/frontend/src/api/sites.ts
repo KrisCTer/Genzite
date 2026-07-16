@@ -98,8 +98,8 @@ export const checkSubdomainAvailabilityApi = async (subdomain: string, excludeSi
   return response.data;
 };
 
-export const submitFeedbackApi = async (siteId: string, email: string, bugReportText: string) => {
-  const response = await apiClient.post(`/sites/${siteId}/feedback`, { email, bugReportText });
+export const submitFeedbackApi = async (siteId: string, _email: string, bugReportText: string) => {
+  const response = await apiClient.post(`/sites/feedback`, { siteId, text: bugReportText });
   return response.data;
 };
 
