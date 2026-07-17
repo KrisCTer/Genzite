@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, App } from 'antd';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { loginApi, registerApi } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import { getPostLoginPath, normalizeRoles } from '../../utils/userNav';
@@ -52,6 +52,7 @@ const GithubIcon: React.FC = () => (
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const setAuth = useAuthStore((state) => state.setAuth);
 
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
@@ -67,9 +68,10 @@ const Login: React.FC = () => {
     if (!token) return;
     const roles = resolveUserRoles(user?.roles, token);
     if (roles.length) {
-      navigate(getPostLoginPath(roles), { replace: true });
+      const from = location.state?.from;
+      navigate(from || getPostLoginPath(roles), { replace: true });
     }
-  }, [token, user, navigate]);
+  }, [token, user, navigate, location]);
 
   useEffect(() => {
     const onResize = (): void => setIsDesktop(window.innerWidth >= 768);
@@ -147,7 +149,8 @@ const Login: React.FC = () => {
         createdAt: data.user.createdAt ?? new Date().toISOString(),
       };
       setAuth(data.accessToken, normalizedUser, data.refreshToken);
-      navigate(getPostLoginPath(roles), { replace: true });
+      const from = location.state?.from;
+      navigate(from || getPostLoginPath(roles), { replace: true });
     },
     onError: (err: any) => {
       console.error('Login error', err);
