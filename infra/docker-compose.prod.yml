@@ -143,6 +143,8 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
       KAFKA_BROKERS: kafka:9092
+      EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
@@ -261,6 +263,8 @@ services:
       REDIS_PORT: 6379
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: notification-service-group
+      EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
