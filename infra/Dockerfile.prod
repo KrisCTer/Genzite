@@ -48,6 +48,13 @@ RUN if [ -d "apps/${APP_NAME}/node_modules/.prisma" ]; then \
       cp -r apps/${APP_NAME}/node_modules/.prisma/* /app/out/node_modules/.prisma/ || true; \
     fi
 
+# Copy prisma CLI to avoid npx downloading it
+RUN if [ -d "node_modules/prisma" ]; then \
+      cp -r node_modules/prisma /app/out/node_modules/ || true; \
+      mkdir -p /app/out/node_modules/.bin && \
+      cp node_modules/.bin/prisma /app/out/node_modules/.bin/ || true; \
+    fi
+
 # ==========================================
 # Stage 2: Production Runner
 # ==========================================
@@ -67,4 +74,4 @@ COPY --from=builder /app/out ./
 EXPOSE ${PORT}
 
 # Start the application dynamically based on whether it's a backend (NestJS) or frontend (Vite static files)
-CMD ["sh", "-c", "if [ -d prisma ]; then npx --yes prisma migrate deploy; fi; if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
+CMD ["sh", "-c", "if [ -d prisma ] && [ -f node_modules/.bin/prisma ]; then node_modules/.bin/prisma migrate deploy; elif [ -d prisma ]; then npx --yes prisma migrate deploy; fi; if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
