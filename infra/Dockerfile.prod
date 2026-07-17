@@ -35,6 +35,9 @@ RUN pnpm --filter ${APP_NAME}... build
 # Deploy the app to an isolated directory containing ONLY production dependencies and built files
 RUN pnpm --filter ${APP_NAME} deploy --prod /app/out
 
+# pnpm deploy ignores dist/ because of .gitignore, so we manually copy it
+RUN cp -r apps/${APP_NAME}/dist /app/out/dist || true
+
 # ==========================================
 # Stage 2: Production Runner
 # ==========================================
