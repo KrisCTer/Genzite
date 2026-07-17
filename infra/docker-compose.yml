@@ -200,6 +200,8 @@ services:
       DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=media"
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-genzite-media-dev}
       AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       KAFKA_BROKERS: kafka:9092
     depends_on:
       db:

@@ -370,7 +370,7 @@
 
 .hero-cta,
 .LandingPageHeroButton {
-  border-radius: 999px;
+  border-radius: 999px !important;
   padding: 0 34px;
   min-height: 58px;
   font-weight: 700;
