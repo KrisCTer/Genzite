@@ -1175,14 +1175,14 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       setTimeout(clampToolbarPosition, 10);
     });
 
-    const isDirtyRef = useRef(false);
+    let isDirty = false;
 
     editor.on('update', () => {
       if (onSaveRef.current) {
         onSaveRef.current(editor.getHtml(), editor.getCss() || '');
       }
-      if (!isDirtyRef.current) {
-        isDirtyRef.current = true;
+      if (!isDirty) {
+        isDirty = true;
         window.dispatchEvent(new CustomEvent('genzite:builder:dirtyStatus', { detail: { isDirty: true } }));
       }
       // Reset GrapesJS internal dirty/changed counter so it never triggers
