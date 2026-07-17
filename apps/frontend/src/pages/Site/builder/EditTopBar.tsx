@@ -28,6 +28,7 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
   const [justSaved, setJustSaved] = React.useState(false);
   const [zoom, setZoom] = React.useState(100);
   const [isPanActive, setIsPanActive] = React.useState(false);
+  const [isDirty, setIsDirty] = React.useState(false);
 
   React.useEffect(() => {
     const handleSaved = () => {
@@ -45,12 +46,20 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
       }
     };
     
+    const handleDirtyStatus = (e: any) => {
+      if (e.detail && typeof e.detail.isDirty === 'boolean') {
+        setIsDirty(e.detail.isDirty);
+      }
+    };
+    
     window.addEventListener('genzite:builder:saved', handleSaved);
+    window.addEventListener('genzite:builder:dirtyStatus', handleDirtyStatus);
     window.addEventListener('genzite:grapes:zoom:update', handleZoomChanged);
     window.addEventListener('genzite:grapes:pan:update', handlePanChanged);
     
     return () => {
       window.removeEventListener('genzite:builder:saved', handleSaved);
+      window.removeEventListener('genzite:builder:dirtyStatus', handleDirtyStatus);
       window.removeEventListener('genzite:grapes:zoom:update', handleZoomChanged);
       window.removeEventListener('genzite:grapes:pan:update', handlePanChanged);
     };
@@ -77,7 +86,12 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
       <div className="canvas-toolbar-left">
         <div 
           style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} 
-          onClick={() => window.location.href = `/project/${siteId || ''}`}
+          onClick={() => {
+            if (isDirty && !window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+              return;
+            }
+            window.location.href = `/project/${siteId || ''}`;
+          }}
         >
           <span style={{ color: '#fff' }}>Genzite</span>
           <span style={{ fontSize: 10, padding: '2px 6px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, verticalAlign: 'middle', fontWeight: 600, color: '#a1a1aa' }}>EDIT</span>
@@ -240,7 +254,12 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
         <Space size={10}>
           <Button 
             icon={<ArrowLeft size={16} />} 
-            onClick={() => window.location.href = `/project/${siteId || ''}`}
+            onClick={() => {
+              if (isDirty && !window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                return;
+              }
+              window.location.href = `/project/${siteId || ''}`;
+            }}
             style={{ 
               background: 'rgba(255,255,255,0.06)', 
               color: '#e2e8f0', 

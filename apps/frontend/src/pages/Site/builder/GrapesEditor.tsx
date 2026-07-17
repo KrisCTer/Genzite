@@ -52,6 +52,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
 
   const containerRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const [isEditorReady, setIsEditorReady] = React.useState(false);
   const [contextMenuState, setContextMenuState] = React.useState<{
     open: boolean;
     x: number;
@@ -205,6 +206,10 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     });
     editor.on('component:deselected', () => {
       window.dispatchEvent(new CustomEvent('genzite:grapes:select', { detail: { component: null } }));
+    });
+
+    editor.on('load', () => {
+      setIsEditorReady(true);
     });
 
     // Listen for style changes coming from EditRightPanel
@@ -1170,9 +1175,15 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
       setTimeout(clampToolbarPosition, 10);
     });
 
+    const isDirtyRef = useRef(false);
+
     editor.on('update', () => {
       if (onSaveRef.current) {
         onSaveRef.current(editor.getHtml(), editor.getCss() || '');
+      }
+      if (!isDirtyRef.current) {
+        isDirtyRef.current = true;
+        window.dispatchEvent(new CustomEvent('genzite:builder:dirtyStatus', { detail: { isDirty: true } }));
       }
       // Reset GrapesJS internal dirty/changed counter so it never triggers
       // the native browser "Changes may not be saved" beforeunload dialog.
@@ -1189,14 +1200,17 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     // We auto-save on every change via the 'update' event, so there are never
     // truly unsaved changes when the user leaves the page.
     const beforeUnloadGuard = (e: BeforeUnloadEvent) => {
-      e.stopImmediatePropagation();
-      delete e.returnValue;
-      return undefined;
+      if (isDirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for some browsers to show dialog
+      }
     };
-    window.addEventListener('beforeunload', beforeUnloadGuard, { capture: true });
+    window.addEventListener('beforeunload', beforeUnloadGuard);
 
     // Allow parent components to manually clear dirty state after an explicit save
     const clearDirtyHandler = () => {
+      isDirtyRef.current = false;
+      window.dispatchEvent(new CustomEvent('genzite:builder:dirtyStatus', { detail: { isDirty: false } }));
       try {
         const model = editor.getModel?.();
         if (model) {
@@ -1541,7 +1555,22 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
         </div>
       )}
 
-      <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }} />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {!isEditorReady && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#ffffff',
+            zIndex: 10
+          }}>
+            <Spin size="large" />
+          </div>
+        )}
+        <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }} />
+      </div>
 
       <CanvaContextMenu
         open={contextMenuState.open}
