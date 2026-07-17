@@ -17,14 +17,14 @@ export class WidgetsController {
   async findWidgets(
     @Param("pageId") pageId: string,
     @Headers("x-user-id") userId: string,
+    @Headers("x-user-email") userEmail?: string,
   ) {
-    return this.widgetsService.findByPageId(pageId, userId);
+    return this.widgetsService.findByPageId(pageId, userId, userEmail);
   }
+  
   @Put()
   async updateWidgets(
     @Param("pageId") pageId: string,
-
-    // Body contains the list of new widgets
     @Body(new WidgetValidationPipe())
     body: {
       widgets: Array<{
@@ -33,11 +33,9 @@ export class WidgetsController {
         sortOrder: number;
       }>;
     },
-
-    // Header identifies current user
-    @Headers("x-user-id")
-    userId: string,
+    @Headers("x-user-id") userId: string,
+    @Headers("x-user-email") userEmail?: string,
   ) {
-    return this.widgetsService.replaceWidgets(pageId, body.widgets, userId);
+    return this.widgetsService.replaceWidgets(pageId, body.widgets, userId, userEmail);
   }
 }

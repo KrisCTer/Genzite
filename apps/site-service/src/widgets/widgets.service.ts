@@ -15,7 +15,7 @@ export class WidgetsService {
   ) {}
 
   // Step 1: Check if page exists and user has permission
-  private async verifyPageOwnership(pageId: string, userId: string) {
+  private async verifyPageOwnership(pageId: string, userId: string, userEmail?: string) {
     const page = await this.prisma.page.findUnique({
       where: {
         id: pageId,
@@ -29,8 +29,14 @@ export class WidgetsService {
       throw new NotFoundException("Page not found");
     }
 
-    if (page.site.ownerId !== userId) {
-      throw new ForbiddenException("You do not own this page");
+    // Check shared access permissions (mirroring pages.service.ts)
+    const isPublic = (page.site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
+    const isRestricted = (page.site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
+    const sharedEmails = (page.site.settings as any)?.sharedEmails || [];
+    const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+
+    if (page.site.ownerId !== userId && !isPublic && !isSharedWithUser) {
+      throw new ForbiddenException("You do not own this page and it is not shared with you");
     }
 
     return page;
@@ -44,9 +50,10 @@ export class WidgetsService {
       sortOrder: number;
     }>,
     userId: string,
+    userEmail?: string,
   ) {
     // Step 2: Check permissions
-    const page = await this.verifyPageOwnership(pageId, userId);
+    const page = await this.verifyPageOwnership(pageId, userId, userEmail);
 
     // Step 3: Delete old widgets, create new widgets, and create outbox event in a single transaction
     await this.prisma.$transaction([
@@ -85,8 +92,8 @@ export class WidgetsService {
     });
   }
 
-  async findByPageId(pageId: string, userId: string) {
-    await this.verifyPageOwnership(pageId, userId);
+  async findByPageId(pageId: string, userId: string, userEmail?: string) {
+    await this.verifyPageOwnership(pageId, userId, userEmail);
 
     return this.prisma.widget.findMany({
       where: {
