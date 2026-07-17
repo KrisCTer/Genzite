@@ -30,6 +30,9 @@ export class PagesService {
       });
     } catch (error) {
       if (error instanceof NotFoundException) {
+        if (siteId && (siteId.startsWith('gen-') || siteId.startsWith('new-'))) {
+          return [];
+        }
         throw new BadRequestException("Site not found (Bypassing CloudFront 404)");
       }
       throw error;
