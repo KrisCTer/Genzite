@@ -38,7 +38,15 @@ const isAuthEndpoint = (url?: string) =>
   );
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Auto-unwrap backend responses: { data: [...], meta: {} } → [...]
+    // This handles cases where NestJS returns a paginated/wrapped response
+    const d = response.data;
+    if (d && typeof d === 'object' && !Array.isArray(d) && 'data' in d && Array.isArray(d.data)) {
+      response.data = d.data;
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean; _retryCount?: number };
 
