@@ -118,7 +118,7 @@ const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       : 'user-account-menu__trigger';
 
   return (
-    <div className="user-account-menu-wrapper" style={{ position: 'relative' }}>
+    <div className="user-account-menu-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
       {isLoggingOut && createPortal(
         <div style={{
           position: 'fixed',

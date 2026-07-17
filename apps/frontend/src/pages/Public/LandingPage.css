@@ -10,7 +10,7 @@
 }
 
 .site-canvas,
-.site-canvas > div {
+.site-canvas>div {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -20,25 +20,21 @@
   z-index: -1;
   overflow: hidden;
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       #04060F 0%,
       #07101E 30%,
       #050816 60%,
-      #020409 100%
-    );
+      #020409 100%);
 }
 
 .canvas-base {
   background:
     radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.08), transparent 34%),
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       #04060F 0%,
       #07101E 30%,
       #050816 60%,
-      #020409 100%
-    );
+      #020409 100%);
 }
 
 .canvas-glows {
@@ -95,9 +91,9 @@
   transform: translate3d(calc(var(--pointer-x) * -12px), calc(var(--pointer-y) * -10px), 0);
   animation: particle-float 26s ease-in-out infinite alternate;
   background-image:
-    radial-gradient(circle, rgba(255,255,255,0.95) 0 1px, transparent 2px),
-    radial-gradient(circle, rgba(34,211,238,0.9) 0 1px, transparent 2px),
-    radial-gradient(circle, rgba(167,139,250,0.85) 0 1.5px, transparent 3px);
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(34, 211, 238, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(167, 139, 250, 0.85) 0 1.5px, transparent 3px);
   background-position: 3% 12%, 18% 68%, 76% 28%;
   background-size: 96px 144px, 148px 190px, 220px 260px;
 }
@@ -106,8 +102,8 @@
   opacity: 0.03;
   mask-image: radial-gradient(ellipse at center, black 0%, black 42%, transparent 82%);
   background-image:
-    linear-gradient(rgba(255,255,255,0.85) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.85) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.85) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.85) 1px, transparent 1px);
   background-size: 72px 72px;
 }
 
@@ -148,7 +144,7 @@
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 1px 24px rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 24px rgba(255, 255, 255, 0.05);
   filter: blur(1px);
   backdrop-filter: blur(18px);
   animation: orb-drift 22s ease-in-out infinite alternate;
@@ -329,7 +325,7 @@
   display: inline-flex;
   padding: 10px 18px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   color: #A5B4FC;
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -370,32 +366,32 @@
 
 .hero-cta,
 .LandingPageHeroButton {
-  border-radius: 999px;
+  border-radius: 999px !important;
   padding: 0 34px;
   min-height: 58px;
   font-weight: 700;
-  box-shadow: 0 22px 60px rgba(59,130,246,0.28);
+  box-shadow: 0 22px 60px rgba(59, 130, 246, 0.28);
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 
 .hero-cta:hover,
 .LandingPageHeroButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 28px 70px rgba(59,130,246,0.34);
+  box-shadow: 0 28px 70px rgba(59, 130, 246, 0.34);
 }
 
 .hero-secondary {
   border-radius: 999px;
   padding: 0 32px;
   min-height: 58px;
-  border: 1px solid rgba(255,255,255,0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #E2E8F0;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   transition: background 200ms ease, transform 200ms ease;
 }
 
 .hero-secondary:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   transform: translateY(-2px);
 }
 
@@ -442,7 +438,7 @@
 
 .glass-card {
   border-radius: 28px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(8, 14, 30, 0.58);
   backdrop-filter: blur(18px);
   box-shadow: 0 20px 60px rgba(4, 12, 34, 0.22);
@@ -452,7 +448,7 @@
 .hover-glow:hover {
   transform: translateY(-4px);
   border-color: rgba(96, 165, 250, 0.35);
-  box-shadow: 0 26px 80px rgba(59,130,246,0.18);
+  box-shadow: 0 26px 80px rgba(59, 130, 246, 0.18);
 }
 
 .feature-icon {
@@ -496,7 +492,7 @@
 
 .feature-card p {
   margin: 0;
-  color: rgba(226,232,240,0.7);
+  color: rgba(226, 232, 240, 0.7);
   line-height: 1.75;
 }
 
@@ -511,8 +507,8 @@
 .logo-chip {
   padding: 12px 20px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  color: rgba(226,232,240,0.76);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.76);
   font-size: 0.95rem;
   min-width: 120px;
   text-align: center;
@@ -534,7 +530,7 @@
 .workflow-copy .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: rgba(59,130,246,0.76);
+  color: rgba(59, 130, 246, 0.76);
   font-size: 0.75rem;
   margin-bottom: 18px;
 }
@@ -547,7 +543,7 @@
 }
 
 .workflow-section p {
-  color: rgba(226,232,240,0.72);
+  color: rgba(226, 232, 240, 0.72);
   line-height: 1.85;
 }
 
@@ -567,7 +563,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(59,130,246,0.14);
+  background: rgba(59, 130, 246, 0.14);
   color: #60A5FA;
   font-weight: 700;
   margin-bottom: 20px;
@@ -580,7 +576,7 @@
 
 .workflow-card p {
   margin: 0;
-  color: rgba(226,232,240,0.7);
+  color: rgba(226, 232, 240, 0.7);
   line-height: 1.75;
 }
 
@@ -606,7 +602,7 @@
 
 .stat-block p {
   margin: 0;
-  color: rgba(226,232,240,0.72);
+  color: rgba(226, 232, 240, 0.72);
   line-height: 1.7;
 }
 
@@ -633,7 +629,7 @@
 
 .testimonial-card p {
   margin: 0 0 20px;
-  color: rgba(226,232,240,0.82);
+  color: rgba(226, 232, 240, 0.82);
   line-height: 1.9;
 }
 
@@ -667,7 +663,7 @@
   margin-bottom: 18px;
   padding: 10px 16px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: #E2E8F0;
   font-size: 0.9rem;
 }
@@ -680,13 +676,13 @@
 
 .pricing-card p {
   margin: 0;
-  color: rgba(226,232,240,0.7);
+  color: rgba(226, 232, 240, 0.7);
   line-height: 1.75;
 }
 
 .pricing-card.featured {
-  border: 1px solid rgba(139,92,246,0.3);
-  box-shadow: 0 24px 80px rgba(139,92,246,0.14);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 24px 80px rgba(139, 92, 246, 0.14);
 }
 
 .cta-banner {
@@ -706,7 +702,7 @@
 .cta-banner .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: rgba(59,130,246,0.76);
+  color: rgba(59, 130, 246, 0.76);
   font-size: 0.75rem;
   margin-bottom: 12px;
 }
@@ -720,7 +716,7 @@
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  color: rgba(226,232,240,0.7);
+  color: rgba(226, 232, 240, 0.7);
 }
 
 .footer-logo {
@@ -741,7 +737,7 @@
   background: transparent;
   border: none;
   padding: 0;
-  color: rgba(226,232,240,0.7);
+  color: rgba(226, 232, 240, 0.7);
   font-weight: 600;
   cursor: pointer;
   transition: color 180ms ease;
@@ -757,7 +753,7 @@
 }
 
 .footer-copy {
-  color: rgba(226,232,240,0.58);
+  color: rgba(226, 232, 240, 0.58);
 }
 
 @keyframes aurora-flow {
@@ -765,10 +761,12 @@
     opacity: 0.16;
     transform: translate3d(-3%, -2%, 0) rotate(-13deg) scale(1);
   }
+
   50% {
     opacity: 0.24;
     transform: translate3d(3%, 4%, 0) rotate(-8deg) scale(1.05);
   }
+
   100% {
     opacity: 0.18;
     transform: translate3d(7%, -1%, 0) rotate(-16deg) scale(1.02);
@@ -779,6 +777,7 @@
   0% {
     transform: translate3d(calc(var(--pointer-x) * 18px - 3%), calc(var(--pointer-y) * 16px), 0) scale(1);
   }
+
   100% {
     transform: translate3d(calc(var(--pointer-x) * 18px + 3%), calc(var(--pointer-y) * 16px + 2%), 0) scale(1.04);
   }
@@ -788,6 +787,7 @@
   0% {
     background-position: 3% 12%, 18% 68%, 76% 28%;
   }
+
   100% {
     background-position: 8% 18%, 14% 60%, 82% 34%;
   }
@@ -797,12 +797,14 @@
   0% {
     transform: translate3d(calc(var(--pointer-x) * 12px), calc(var(--pointer-y) * 10px), 0);
   }
+
   100% {
     transform: translate3d(calc(var(--pointer-x) * 12px + 28px), calc(var(--pointer-y) * 10px - 34px), 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .canvas-aurora,
   .canvas-mesh,
   .canvas-particles,
@@ -820,6 +822,7 @@
 }
 
 @media (max-width: 1280px) {
+
   .LandingPageHeaderInner,
   .LandingPageContainer,
   .footer-inner {
@@ -828,6 +831,7 @@
 }
 
 @media (max-width: 1040px) {
+
   .feature-grid,
   .workflow-section,
   .stats-section,
@@ -847,6 +851,7 @@
 }
 
 @media (max-width: 760px) {
+
   .LandingPageHeaderInner,
   .LandingPageContainer,
   .footer-inner {

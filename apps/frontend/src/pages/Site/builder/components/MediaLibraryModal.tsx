@@ -60,7 +60,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
         setUploadProgress(percentCompleted);
       }),
     onSuccess: (uploadedMedia) => {
-      message.success('Image uploaded to Media Service (port 3004)');
+      message.success('Image uploaded successfully!');
       setUploadProgress(0);
       queryClient.invalidateQueries({ queryKey: ['media'] });
       if (onSelectCallback && uploadedMedia?.url) {
@@ -140,10 +140,10 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({ globalList
       styles={{
         mask: { backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.75)' },
         header: { background: 'transparent', borderBottom: 'none', paddingBottom: 0, marginBottom: 4 },
-        content: { 
-          background: '#0F172A', 
-          border: '1px solid rgba(255,255,255,0.12)', 
-          borderRadius: 14, 
+        content: {
+          background: '#0F172A',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 14,
           padding: '16px 20px',
           maxHeight: 'calc(100vh - 60px)',
           overflow: 'hidden',
