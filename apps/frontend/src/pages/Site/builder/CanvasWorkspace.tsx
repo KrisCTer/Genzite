@@ -273,7 +273,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [themeRadius, setThemeRadius] = useState<number>(4);
   const [isThemeSchemeOpen, setIsThemeSchemeOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
-  const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('full');
+  const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('desktop');
   const isSidebarExpandedRef = useRef(true);
 
   // Keep a ref in sync so panToCenterDevice can read it without being re-created
