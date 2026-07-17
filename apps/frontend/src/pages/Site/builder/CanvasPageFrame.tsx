@@ -325,7 +325,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         height: deviceHeight,
         minHeight: isFullUnrollMode ? Math.max(computedHeight, 800) : deviceHeight,
         background: '#ffffff', 
-        border: (!isEditMode && (globalSelectedId === pageId || globalSelectedId?.includes(pageId) || (globalSelectedId && widgets.some(w => w._id === globalSelectedId)))) ? '6px solid #8b5cf6' : '6px solid rgba(148, 163, 184, 0.4)',
+        border: (!isEditMode && (globalSelectedId === pageId || globalSelectedId?.includes(pageId) || (globalSelectedId && safeWidgets.some(w => w._id === globalSelectedId)))) ? '6px solid #8b5cf6' : '6px solid rgba(148, 163, 184, 0.4)',
         borderRadius: 24, 
         overflow: 'hidden',
         position: 'relative',
@@ -335,10 +335,10 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
 
         {/* If GRAPESJS widget exists, only show the latest one (contains full page HTML) */}
         {(() => {
-          const grapesWidgets = widgets.filter(w => w.type === 'GRAPESJS');
+          const grapesWidgets = safeWidgets.filter(w => w.type === 'GRAPESJS');
           const widgetsToRender = grapesWidgets.length > 0
             ? [grapesWidgets[grapesWidgets.length - 1]]
-            : widgets;
+            : safeWidgets;
           return widgetsToRender;
         })().map((widget) => {
           const isGrapesItem = widget.type === 'GRAPESJS';
