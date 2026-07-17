@@ -68,15 +68,17 @@ export const AdminNotificationsPage: React.FC = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
   });
 
-  // Calculate KPI
-  const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
-  const totalCount = notifications.length;
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  
+  const unreadCount = useMemo(() => safeNotifications.filter((n: any) => !n.isRead).length, [safeNotifications]);
+  const totalCount = safeNotifications.length;
 
   // Filter data
   const filteredList = useMemo(() => {
-    let list = [...notifications];
-    if (filter === 'read') list = list.filter(n => n.isRead);
-    if (filter === 'unread') list = list.filter(n => !n.isRead);
+    let list = [...safeNotifications];
+    
+    if (filter === 'read') list = list.filter((n: any) => n.isRead);
+    if (filter === 'unread') list = list.filter((n: any) => !n.isRead);
 
     list.sort((a, b) => {
       const timeA = new Date(a.createdAt).getTime();

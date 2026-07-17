@@ -39,9 +39,17 @@ const isAuthEndpoint = (url?: string) =>
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Auto-unwrap backend responses when they wrap arrays in a named field
-    // Handles: { data: [] }, { items: [] }, { pages: [] }, { sites: [] }, { widgets: [] }, etc.
     const d = response.data;
+    
+    // Guard against APIs returning HTML (e.g. 502 Bad Gateway disguised as 200 OK by proxies/CloudFront)
+    if (typeof d === 'string') {
+      const lowerD = d.trim().toLowerCase();
+      if (lowerD.startsWith('<html') || lowerD.startsWith('<!doctype') || lowerD.includes('502 bad gateway') || lowerD.includes('504 gateway')) {
+        return Promise.reject(new Error('API returned HTML/Error instead of JSON'));
+      }
+    }
+
+    // Auto-unwrap backend responses when they wrap arrays in a named field
     if (d && typeof d === 'object' && !Array.isArray(d)) {
       const ARRAY_KEYS = ['data', 'items', 'pages', 'sites', 'widgets', 'users', 'notifications', 'results', 'records'];
       for (const key of ARRAY_KEYS) {

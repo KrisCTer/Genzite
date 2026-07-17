@@ -61,7 +61,8 @@ const MemberDashboard: React.FC = () => {
     [timeStr],
   );
 
-  const unreadCount = (notifications ?? []).filter((n) => !n.isRead).length;
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  const unreadCount = safeNotifications.filter((n: any) => !n.isRead).length;
   const displayEmail = user?.email || 'N/A';
   const displayRoles = (user?.roles ?? ['VIEWER']).join(' · ');
 
