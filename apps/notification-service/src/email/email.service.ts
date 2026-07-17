@@ -61,7 +61,8 @@ export class EmailService implements OnModuleInit {
   }
 
   async sendSiteInviteEmail(payload: { siteId: string; siteName: string; inviterEmail: string; invitedEmail: string }) {
-    const inviteLink = `https://codespheree.id.vn/project/${payload.siteId}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const inviteLink = `${frontendUrl}/project/${payload.siteId}`;
     const subject = `${payload.inviterEmail} has invited you to join their project ${payload.siteName}`;
 
     // We parse the exact Postman HTML provided by the user, dynamically substituting our variables.

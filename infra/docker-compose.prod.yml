@@ -267,6 +267,7 @@ services:
       KAFKA_CONSUMER_GROUP: notification-service-group
       EMAIL_USERNAME: ${EMAIL_USERNAME:-}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://codespheree.id.vn}
     depends_on:
       db:
         condition: service_healthy
