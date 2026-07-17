@@ -67,4 +67,4 @@ COPY --from=builder /app/out ./
 EXPOSE ${PORT}
 
 # Start the application dynamically based on whether it's a backend (NestJS) or frontend (Vite static files)
-CMD ["sh", "-c", "if [ -d prisma ]; then npx prisma migrate deploy; fi; if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
+CMD ["sh", "-c", "if [ -d prisma ]; then npx --yes prisma migrate deploy; fi; if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
