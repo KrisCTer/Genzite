@@ -21,7 +21,7 @@ export class UsersService {
       },
     });
 
-    if (!user) {
+    if (!user && email) {
       // Check if user already exists by email (e.g. created locally before Cognito)
       const existingUser = await this.prisma.user.findUnique({
         where: { email },
@@ -38,6 +38,30 @@ export class UsersService {
         // Re-fetch the user record with the new ID
         user = await this.prisma.user.findUnique({
           where: { id },
+          include: {
+            roles: {
+              include: {
+                role: true,
+              },
+            },
+          },
+        });
+      }
+    }
+
+    if (user) {
+      // If the existing user was created via an access_token that lacked email/name,
+      // update it now that we have the id_token payload
+      const needsUpdate = (email && email !== user.email && (user.email === '' || user.email.startsWith('cognito-'))) || 
+                          (name && name !== user.name && user.name === 'Cognito User');
+                          
+      if (needsUpdate) {
+        user = await this.prisma.user.update({
+          where: { id },
+          data: { 
+            email: email || user.email, 
+            name: name || user.name 
+          },
           include: {
             roles: {
               include: {
