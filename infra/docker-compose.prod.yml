@@ -115,9 +115,6 @@ services:
       - media
       - notification
       - ai
-    volumes:
-      - ../apps/gateway:/app
-      - /app/node_modules
 
   identity:
     healthcheck:
@@ -153,9 +150,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/identity-service:/app
-      - /app/node_modules
 
   site:
     healthcheck:
@@ -185,9 +179,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/site-service:/app
-      - /app/node_modules
 
   data:
     healthcheck:
@@ -216,9 +207,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/data-service:/app
-      - /app/node_modules
 
   media:
     healthcheck:
@@ -247,9 +235,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/media-service:/app
-      - /app/node_modules
 
   notification:
     healthcheck:
@@ -282,9 +267,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/notification-service:/app
-      - /app/node_modules
 
   ai:
     healthcheck:
@@ -322,9 +304,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/ai-service:/app
-      - /app/node_modules
 
   # ======================== FRONTEND ========================
   frontend:
@@ -348,9 +327,6 @@ services:
       VITE_API_BASE_URL: /api/v1
     depends_on:
       - gateway
-    volumes:
-      - ../apps/frontend:/app
-      - /app/node_modules
 
   # ======================== NGINX ========================
   nginx:
