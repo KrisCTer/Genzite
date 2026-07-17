@@ -518,7 +518,8 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8', fontSize: 12 }}>
                 DESIGN.md ⓘ
               </div>
@@ -526,42 +527,43 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
                 {getDynamicDesignMd()}
               </pre>
             </div>
+            
+            <button
+              onClick={handleApplyThemeToSelection}
+              disabled={isApplyingTheme || !selectedId || selectedId.length === 0}
+              style={{
+                marginTop: 16,
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 24,
+                padding: '10px 16px',
+                color: '#e2e8f0',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: (isApplyingTheme || !selectedId || selectedId.length === 0) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                opacity: (isApplyingTheme || !selectedId || selectedId.length === 0) ? 0.5 : 1,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!isApplyingTheme && selectedId && selectedId.length > 0) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isApplyingTheme && selectedId && selectedId.length > 0) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                }
+              }}
+            >
+              {isApplyingTheme && <Spin size="small" />}
+              Apply to Selection
+            </button>
+          </>
           )}
-
-          <button
-            onClick={handleApplyThemeToSelection}
-            disabled={isApplyingTheme || !selectedId || selectedId.length === 0}
-            style={{
-              marginTop: 16,
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 24,
-              padding: '10px 16px',
-              color: '#e2e8f0',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: (isApplyingTheme || !selectedId || selectedId.length === 0) ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: (isApplyingTheme || !selectedId || selectedId.length === 0) ? 0.5 : 1,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (!isApplyingTheme && selectedId && selectedId.length > 0) {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isApplyingTheme && selectedId && selectedId.length > 0) {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-              }
-            }}
-          >
-            {isApplyingTheme && <Spin size="small" />}
-            Apply to Selection
-          </button>
         </div>
       </div>
     );
