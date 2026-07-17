@@ -60,7 +60,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 # Install simple http server for serving static frontend and prisma CLI for migrations
-RUN npm install -g serve prisma
+RUN npm install -g serve prisma@6
 
 # Copy the isolated app directly (it already contains dist, package.json, and prod node_modules with Prisma client)
 COPY --from=builder /app/out ./
