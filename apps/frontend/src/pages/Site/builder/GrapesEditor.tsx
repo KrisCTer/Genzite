@@ -1200,7 +1200,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
     // We auto-save on every change via the 'update' event, so there are never
     // truly unsaved changes when the user leaves the page.
     const beforeUnloadGuard = (e: BeforeUnloadEvent) => {
-      if (isDirtyRef.current) {
+      if (isDirty) {
         e.preventDefault();
         e.returnValue = ''; // Required for some browsers to show dialog
       }
@@ -1209,7 +1209,7 @@ const GrapesEditor = React.forwardRef<GrapesEditorRef, GrapesEditorProps>(({ htm
 
     // Allow parent components to manually clear dirty state after an explicit save
     const clearDirtyHandler = () => {
-      isDirtyRef.current = false;
+      isDirty = false;
       window.dispatchEvent(new CustomEvent('genzite:builder:dirtyStatus', { detail: { isDirty: false } }));
       try {
         const model = editor.getModel?.();
