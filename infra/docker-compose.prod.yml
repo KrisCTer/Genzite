@@ -1,0 +1,372 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ======================== DATA LAYER ========================
+  db:
+    image: postgres:15-alpine
+    container_name: genzite-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-genzite_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-genzite_password}
+      POSTGRES_DB: ${POSTGRES_DB:-genzite_dev}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-genzite_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    container_name: genzite-cache
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: genzite-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_4LW_COMMANDS_WHITELIST: "ruok,stat"
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc localhost 2181 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: genzite-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ======================== MICROSERVICES ========================
+  gateway:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {if(r.statusCode!==200)process.exit(1)}).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: gateway
+    container_name: genzite-gateway
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      PORT: 3000
+      AUTH_BYPASS: "${AUTH_BYPASS:-false}"
+      JWT_SECRET: ${JWT_SECRET:-}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+      IDENTITY_SERVICE_URL: http://identity:3001
+      SITE_SERVICE_URL: http://site:3002
+      DATA_SERVICE_URL: http://data:3003
+      MEDIA_SERVICE_URL: http://media:3004
+      NOTIFICATION_SERVICE_URL: http://notification:3005
+      AI_SERVICE_URL: http://ai:3006
+    depends_on:
+      - site
+      - data
+      - media
+      - notification
+      - ai
+    volumes:
+      - ../apps/gateway:/app
+      - /app/node_modules
+
+  identity:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: identity-service
+    container_name: genzite-identity
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      SERVICE_NAME: identity-service
+      DATABASE_URL: "${SUPABASE_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=identity"
+      DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=identity"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../apps/identity-service:/app
+      - /app/node_modules
+
+  site:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: site-service
+    container_name: genzite-site
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      SERVICE_NAME: site-service
+      DATABASE_URL: "${SUPABASE_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=site"
+      DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=site"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../apps/site-service:/app
+      - /app/node_modules
+
+  data:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: data-service
+    container_name: genzite-data
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DATABASE_URL: "${SUPABASE_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=data"
+      DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=data"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../apps/data-service:/app
+      - /app/node_modules
+
+  media:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: media-service
+    container_name: genzite-media
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      DATABASE_URL: "${SUPABASE_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=media"
+      DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=media"
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-genzite-media-dev}
+      AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../apps/media-service:/app
+      - /app/node_modules
+
+  notification:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: notification-service
+    container_name: genzite-notification
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      SERVICE_NAME: notification-service
+      DATABASE_URL: "${SUPABASE_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=notification"
+      DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=notification"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: notification-service-group
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../apps/notification-service:/app
+      - /app/node_modules
+
+  ai:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: ai-service
+    container_name: genzite-ai
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      DATABASE_URL: "${SUPABASE_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=ai"
+      DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=ai"
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-gemini}
+      MCP_SERVERS: ${MCP_SERVERS:-}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: ai-service-group
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../apps/ai-service:/app
+      - /app/node_modules
+
+  # ======================== FRONTEND ========================
+  frontend:
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5173/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+      args:
+        APP_NAME: frontend
+        VITE_API_URL: /api/v1
+    container_name: genzite-frontend
+    restart: unless-stopped
+    expose:
+      - "5173"
+    environment:
+      PORT: 5173
+      VITE_API_BASE_URL: /api/v1
+    depends_on:
+      - gateway
+    volumes:
+      - ../apps/frontend:/app
+      - /app/node_modules
+
+  # ======================== NGINX ========================
+  nginx:
+    image: nginx:alpine
+    container_name: genzite-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - gateway
+      - frontend
+
+volumes:
+  postgres_data:
+  redis_data:
+  zookeeper_data:
+  kafka_data:

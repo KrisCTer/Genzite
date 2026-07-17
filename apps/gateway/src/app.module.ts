@@ -3,6 +3,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthMiddleware } from './auth/auth.middleware.js';
 import { ProxyController } from './proxy/proxy.controller.js';
+import { AppController } from './app.controller.js';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { ProxyController } from './proxy/proxy.controller.js';
       limit: 100, // 100 requests per minute
     }]),
   ],
-  controllers: [ProxyController],
+  controllers: [AppController, ProxyController],
   providers: [
     {
       provide: APP_GUARD,
