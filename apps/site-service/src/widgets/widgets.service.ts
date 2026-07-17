@@ -14,8 +14,7 @@ export class WidgetsService {
     private readonly siteProducer: SiteProducer,
   ) {}
 
-  // Step 1: Check if page exists and user has permission
-  private async verifyPageOwnership(pageId: string, userId: string, userEmail?: string) {
+  private async verifyPageOwnership(pageId: string, userId: string, userEmail?: string, action: 'read' | 'write' = 'read') {
     const page = await this.prisma.page.findUnique({
       where: {
         id: pageId,
@@ -35,8 +34,15 @@ export class WidgetsService {
     const sharedEmails = (page.site.settings as any)?.sharedEmails || [];
     const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
 
-    if (page.site.ownerId !== userId && !isPublic && !isSharedWithUser) {
-      throw new ForbiddenException("You do not own this page and it is not shared with you");
+    if (page.site.ownerId !== userId && !isSharedWithUser) {
+      // If it's a write action, public viewers are NEVER allowed
+      if (action === 'write') {
+        throw new ForbiddenException("You do not own this page and you are not a collaborator");
+      }
+      // If it's a read action, public viewers are allowed
+      if (!isPublic) {
+        throw new ForbiddenException("You do not own this page and it is not shared with you");
+      }
     }
 
     return page;
@@ -53,7 +59,7 @@ export class WidgetsService {
     userEmail?: string,
   ) {
     // Step 2: Check permissions
-    const page = await this.verifyPageOwnership(pageId, userId, userEmail);
+    const page = await this.verifyPageOwnership(pageId, userId, userEmail, 'write');
 
     // Step 3: Delete old widgets, create new widgets, and create outbox event in a single transaction
     await this.prisma.$transaction([

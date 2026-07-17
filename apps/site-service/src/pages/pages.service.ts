@@ -49,25 +49,25 @@ export class PagesService {
       throw new NotFoundException("Site not found");
     }
 
-    if (allowPublicRead) {
-      const isPublic = (site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
-      const isRestricted = (site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
-      const sharedEmails = (site.settings as any)?.sharedEmails || [];
-      const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+    const isPublic = (site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
+    const isRestricted = (site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
+    const sharedEmails = (site.settings as any)?.sharedEmails || [];
+    const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
 
+    if (allowPublicRead) {
       if (site.ownerId !== userId && !isPublic && !isSharedWithUser) {
         throw new ForbiddenException("You do not own this site and it is not shared with you");
       }
     } else {
-      if (site.ownerId !== userId) {
-        throw new ForbiddenException("You do not own this site");
+      if (site.ownerId !== userId && !isSharedWithUser) {
+        throw new ForbiddenException("You do not own this site and you are not a collaborator");
       }
     }
 
     return site;
   }
 
-  private async verifyPageOwnership(pageId: string, userId: string) {
+  private async verifyPageOwnership(pageId: string, userId: string, userEmail?: string) {
     const page = await this.prisma.page.findUnique({
       where: {
         id: pageId,
@@ -79,8 +79,13 @@ export class PagesService {
     if (!page) {
       throw new NotFoundException("Page not found");
     }
-    if (page.site.ownerId !== userId) {
-      throw new ForbiddenException("You do not own this page");
+
+    const isRestricted = (page.site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
+    const sharedEmails = (page.site.settings as any)?.sharedEmails || [];
+    const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+
+    if (page.site.ownerId !== userId && !isSharedWithUser) {
+      throw new ForbiddenException("You do not own this page and you are not a collaborator");
     }
     return page;
   }
