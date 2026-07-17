@@ -45,7 +45,11 @@ apiClient.interceptors.response.use(
     if (typeof d === 'string') {
       const lowerD = d.trim().toLowerCase();
       if (lowerD.startsWith('<html') || lowerD.startsWith('<!doctype') || lowerD.includes('502 bad gateway') || lowerD.includes('504 gateway')) {
-        return Promise.reject(new Error('API returned HTML/Error instead of JSON'));
+        console.error('\n\n🚨 [API] SERVER RETURNED HTML INSTEAD OF JSON 🚨');
+        console.error('URL:', response.config.url);
+        console.error('HTTP Status:', response.status);
+        console.error('HTML Content (First 1000 chars):\n', d.substring(0, 1000));
+        return Promise.reject(new Error(`API returned HTML instead of JSON! Status: ${response.status}. See console for HTML.`));
       }
     }
 
