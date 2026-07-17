@@ -45,7 +45,13 @@ const NotificationBell: React.FC = () => {
     retry: 1,
   });
 
-  const displayNotifications = notifications || [];
+  const displayNotifications: AppNotification[] = Array.isArray(notifications) 
+    ? notifications 
+    : Array.isArray((notifications as any)?.data) 
+      ? (notifications as any).data 
+      : Array.isArray((notifications as any)?.notifications)
+        ? (notifications as any).notifications
+        : [];
   const unreadCount = displayNotifications.filter(n => !n.isRead).length;
 
   const markReadMutation = useMutation({
