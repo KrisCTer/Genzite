@@ -71,7 +71,7 @@ interface CanvasWorkspaceProps {
 }
 
 const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
-  pages,
+  pages: rawPages,
   siteId,
   site,
   onAIGenerated,
@@ -82,6 +82,8 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   onDeletePage,
   onDuplicateProject,
 }) => {
+  // Normalize pages to always be an array (guards against wrapped API responses)
+  const pages: any[] = Array.isArray(rawPages) ? rawPages : (rawPages as any)?.data ?? (rawPages as any)?.pages ?? [];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
