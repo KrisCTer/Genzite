@@ -195,11 +195,8 @@ const App: React.FC = () => {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/features" element={<LandingPage />} />
                 <Route path="/contact" element={<LandingPage />} />
-                <Route path="/live/:pageId" element={
-                  <ProtectedRoute>
-                    <LiveViewer />
-                  </ProtectedRoute>
-                } />
+                <Route path="/live/:pageId" element={<LiveViewer />} />
+                <Route path="/live/:siteId/:pageId" element={<LiveViewer />} />
                 <Route path="/preview/:siteId" element={<PreviewViewer />} />
                 <Route path="/edit/:siteId" element={<EditViewer />} />
                 <Route path="/login" element={<Login />} />
