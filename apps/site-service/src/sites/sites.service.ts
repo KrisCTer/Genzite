@@ -65,7 +65,7 @@ export class SitesService {
     const isPublic = (site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
     const isRestricted = (site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
     const sharedEmails = (site.settings as any)?.sharedEmails || [];
-    const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+    const isSharedWithUser = userEmail && sharedEmails.includes(userEmail);
 
     if (site.ownerId !== userId && !isPublic && !isSharedWithUser) {
       throw new ForbiddenException("You do not own this site and it is not shared with you");
@@ -96,7 +96,7 @@ export class SitesService {
     const isPublic = (site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
     const isRestricted = (site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
     const sharedEmails = (site.settings as any)?.sharedEmails || [];
-    const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+    const isSharedWithUser = userEmail && sharedEmails.includes(userEmail);
 
     if (site.ownerId !== userId && !isPublic && !isSharedWithUser) {
       throw new ForbiddenException("You do not own this site and it is not shared with you");

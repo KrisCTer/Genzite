@@ -32,7 +32,7 @@ export class WidgetsService {
     const isPublic = (page.site.settings as any)?.shareAccess === 'Public: Anyone with the link can view';
     const isRestricted = (page.site.settings as any)?.shareAccess === 'Restricted: Only people you specify can access';
     const sharedEmails = (page.site.settings as any)?.sharedEmails || [];
-    const isSharedWithUser = isRestricted && userEmail && sharedEmails.includes(userEmail);
+    const isSharedWithUser = userEmail && sharedEmails.includes(userEmail);
 
     if (page.site.ownerId !== userId && !isSharedWithUser) {
       // If it's a write action, public viewers are NEVER allowed
