@@ -222,8 +222,15 @@ const EditViewer: React.FC = () => {
       // Clear GrapesJS dirty flag so browser won't show "Changes may not be saved" on exit
       window.dispatchEvent(new CustomEvent('genzite:grapes:clearDirty'));
     },
-    onError: () => {
-      message.error('Error saving changes!');
+    onError: (error: any) => {
+      console.error('[EditViewer] Error saving changes - Full error object:', error);
+      if (error.response) {
+        console.error('[EditViewer] Error Response Data:', error.response.data);
+        console.error('[EditViewer] Error Response Status:', error.response.status);
+        message.error(`Save failed: ${error.response.data?.message || error.message}`);
+      } else {
+        message.error(`Error saving changes: ${error.message}`);
+      }
     }
   });
 
