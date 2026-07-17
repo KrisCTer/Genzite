@@ -29,7 +29,6 @@ export class PagesService {
         },
       });
     } catch (error) {
-      if (error instanceof NotFoundException) {
         if (siteId && (siteId.startsWith('gen-') || siteId.startsWith('new-'))) {
           return [];
         }

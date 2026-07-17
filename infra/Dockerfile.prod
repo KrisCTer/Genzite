@@ -48,7 +48,6 @@ RUN if [ -d "apps/${APP_NAME}/node_modules/.prisma" ]; then \
       cp -r apps/${APP_NAME}/node_modules/.prisma/* /app/out/node_modules/.prisma/ || true; \
     fi
 
-
 # ==========================================
 # Stage 2: Production Runner
 # ==========================================
