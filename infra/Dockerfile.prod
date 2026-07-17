@@ -38,6 +38,16 @@ RUN pnpm --filter ${APP_NAME} deploy --prod /app/out
 # pnpm deploy ignores dist/ because of .gitignore, so we manually copy it
 RUN cp -r apps/${APP_NAME}/dist /app/out/dist || true
 
+# pnpm deploy ignores node_modules/@prisma because it's locally generated
+RUN if [ -d "apps/${APP_NAME}/node_modules/@prisma" ]; then \
+      mkdir -p /app/out/node_modules/@prisma && \
+      cp -r apps/${APP_NAME}/node_modules/@prisma/* /app/out/node_modules/@prisma/ || true; \
+    fi
+RUN if [ -d "apps/${APP_NAME}/node_modules/.prisma" ]; then \
+      mkdir -p /app/out/node_modules/.prisma && \
+      cp -r apps/${APP_NAME}/node_modules/.prisma/* /app/out/node_modules/.prisma/ || true; \
+    fi
+
 # ==========================================
 # Stage 2: Production Runner
 # ==========================================
@@ -57,4 +67,4 @@ COPY --from=builder /app/out ./
 EXPOSE ${PORT}
 
 # Start the application dynamically based on whether it's a backend (NestJS) or frontend (Vite static files)
-CMD ["sh", "-c", "if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
+CMD ["sh", "-c", "if [ -d prisma ]; then npx prisma migrate deploy; fi; if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
