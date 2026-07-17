@@ -189,7 +189,7 @@ const EditViewer: React.FC = () => {
   }, [device]);
 
   // Fetch site info
-  const { data: site, isError: isSiteError, error: siteError } = useQuery({
+  const { data: site, isError: isSiteError } = useQuery({
     queryKey: ['site', siteId],
     queryFn: () => fetchSiteByIdApi(siteId!),
     enabled: !!siteId,

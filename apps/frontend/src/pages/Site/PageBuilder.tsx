@@ -95,6 +95,7 @@ const PageBuilder: React.FC = () => {
 
   if ((isLoading || isFetchingPages || isFetchingSite) && !isGenerating && !pages) {
     return <div className="canvas-builder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin size="large" /></div>;
+  }
   if (isError && !isGenerating && !isFetchingPages && !site) {
     return (
       <div 
