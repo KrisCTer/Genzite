@@ -9,7 +9,7 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 WORKDIR /app
 
 # Copy root workspace configs
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 
 # Copy all packages and apps source code
 COPY packages ./packages
@@ -18,9 +18,11 @@ COPY apps ./apps
 # Install ALL dependencies (devDependencies are needed for build)
 RUN pnpm install --frozen-lockfile
 
-# Accept the service name as a build argument
+# Accept the service name and Vite API URL as build arguments
 ARG APP_NAME
+ARG VITE_API_URL
 ENV APP_NAME=${APP_NAME}
+ENV VITE_API_URL=${VITE_API_URL}
 
 # If the app has a Prisma schema, generate the client first
 RUN if [ -d "apps/${APP_NAME}/prisma" ]; then \
@@ -30,44 +32,26 @@ RUN if [ -d "apps/${APP_NAME}/prisma" ]; then \
 # Build the specific app (and any local workspace dependencies like @genzite/shared-types)
 RUN pnpm --filter ${APP_NAME}... build
 
+# Deploy the app to an isolated directory containing ONLY production dependencies and built files
+RUN pnpm --filter ${APP_NAME} deploy --prod /app/out
+
 # ==========================================
 # Stage 2: Production Runner
 # ==========================================
 FROM node:20-alpine AS runner
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
 WORKDIR /app
 
-ARG APP_NAME
 ENV NODE_ENV=production
-ENV APP_NAME=${APP_NAME}
 ENV PORT=3000
 
-# Copy root workspace configs
-COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/pnpm-lock.yaml ./
+# Install 'serve' globally for the frontend (which is a static SPA)
+RUN npm install -g serve
 
-# Copy compiled shared packages
-COPY --from=builder /app/packages ./packages
-
-# Copy the built target app
-COPY --from=builder /app/apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
-COPY --from=builder /app/apps/${APP_NAME}/dist ./apps/${APP_NAME}/dist
-
-# Copy Prisma folder optionally (using wildcard trick so it doesn't fail if missing)
-COPY --from=builder /app/apps/${APP_NAME}/pris[m]a ./apps/${APP_NAME}/prisma
-
-# Install ONLY production dependencies to keep image size small
-RUN pnpm install --prod --frozen-lockfile
-
-# Generate Prisma Client for Production (if prisma exists)
-RUN if [ -d "apps/${APP_NAME}/prisma" ]; then \
-      pnpm --filter ${APP_NAME} exec prisma generate; \
-    fi
+# Copy the isolated app directly (it already contains dist, package.json, and prod node_modules with Prisma client)
+COPY --from=builder /app/out ./
 
 EXPOSE ${PORT}
 
-# Start the application using pnpm filter
-CMD ["sh", "-c", "pnpm --filter ${APP_NAME} start:prod"]
+# Start the application dynamically based on whether it's a backend (NestJS) or frontend (Vite static files)
+CMD ["sh", "-c", "if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
