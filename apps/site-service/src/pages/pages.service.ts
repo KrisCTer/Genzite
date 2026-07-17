@@ -39,6 +39,28 @@ export class PagesService {
     }
   }
 
+  /** Public version: no auth required. Only returns pages for published sites. */
+  async findBySiteIdPublic(siteId: string) {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(siteId);
+    const site = await this.prisma.site.findFirst({
+      where: isUUID ? { id: siteId } : { subdomain: siteId },
+    });
+
+    if (!site) {
+      if (siteId && (siteId.startsWith('gen-') || siteId.startsWith('new-'))) {
+        return [];
+      }
+      throw new NotFoundException("Site not found");
+    }
+
+    return this.prisma.page.findMany({
+      where: { siteId: site.id },
+      orderBy: { sortOrder: "asc" },
+    });
+  }
+
+
+
   private async verifySiteOwnership(siteIdOrSubdomain: string, userId: string, allowPublicRead: boolean = false, userEmail?: string) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(siteIdOrSubdomain);
     const site = await this.prisma.site.findFirst({

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
-import { fetchWidgetsPublicApi, fetchPagesApi, type Widget } from '../../api/sites';
+import { fetchWidgetsPublicApi, fetchPagesPublicApi, type Widget } from '../../api/sites';
 import WidgetRenderer from '../Site/builder/WidgetRenderer';
 import GrapesIframe from '../../components/GrapesIframe';
 
@@ -42,7 +42,7 @@ const LiveViewer: React.FC<LiveViewerProps> = ({ siteId: propSiteId }) => {
   useEffect(() => {
     if (siteId) {
       setLoading(true);
-      fetchPagesApi(siteId)
+      fetchPagesPublicApi(siteId)
         .then(data => {
           setPages(data || []);
           setError(!data || data.length === 0);
