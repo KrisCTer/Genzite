@@ -329,7 +329,7 @@ services:
       dockerfile: infra/Dockerfile.prod
       args:
         APP_NAME: frontend
-        VITE_API_URL: /api/v1
+        VITE_API_URL: ${VITE_API_URL:-https://codespheree.id.vn/api/v1}
     container_name: genzite-frontend
     restart: unless-stopped
     expose:
