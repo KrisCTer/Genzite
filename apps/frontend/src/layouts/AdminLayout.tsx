@@ -101,7 +101,13 @@ const AdminLayout: React.FC = () => {
     retry: 1,
   });
 
-  const displayNotifications = notifications || [];
+  const displayNotifications = Array.isArray(notifications)
+    ? notifications
+    : Array.isArray((notifications as any)?.data)
+      ? (notifications as any).data
+      : Array.isArray((notifications as any)?.notifications)
+        ? (notifications as any).notifications
+        : [];
 
   const markReadMutation = useMutation({
     mutationFn: markNotificationAsReadApi,
@@ -113,7 +119,7 @@ const AdminLayout: React.FC = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
-  const unreadCount = displayNotifications.filter(n => !n.isRead).length;
+  const unreadCount = displayNotifications.filter((n: any) => !n.isRead).length;
 
   const notificationContent = (
     <div style={{ width: 340, padding: '4px' }} className="gz-notif-popover">
@@ -157,7 +163,7 @@ const AdminLayout: React.FC = () => {
           <List
             itemLayout="horizontal"
             dataSource={displayNotifications.slice(0, 5)}
-            renderItem={(item) => (
+            renderItem={(item: any) => (
               <div
                 style={{
                   background: item.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.05)',

@@ -32,12 +32,20 @@ const UserManagement: React.FC = () => {
     document.title = 'User Management | Admin Console';
   }, []);
 
-  const { data: users = [], isLoading, isError } = useQuery({
+  const { data: rawUsers = [], isLoading, isError } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsersApi,
     retry: 1,
     staleTime: 30_000,
   });
+  
+  const users = Array.isArray(rawUsers) 
+    ? rawUsers 
+    : Array.isArray((rawUsers as any)?.data) 
+      ? (rawUsers as any).data 
+      : Array.isArray((rawUsers as any)?.items)
+        ? (rawUsers as any).items
+        : [];
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] });
 
@@ -76,15 +84,15 @@ const UserManagement: React.FC = () => {
 
 
   // KPI Stats
-  const activeCount = useMemo(() => users.filter(u => u.status === 'ACTIVE').length, [users]);
-  const lockedCount = useMemo(() => users.filter(u => u.status === 'LOCKED').length, [users]);
+  const activeCount = useMemo(() => users.filter((u: any) => u.status === 'ACTIVE').length, [users]);
+  const lockedCount = useMemo(() => users.filter((u: any) => u.status === 'LOCKED').length, [users]);
 
 
 
   // Filtering
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return users.filter(u => {
+    return users.filter((u: any) => {
       if (q && !u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q) && !u.id.includes(q)) return false;
       if (roleFilter !== 'ALL' && !u.roles.includes(roleFilter)) return false;
       if (statusFilter !== 'ALL' && u.status !== statusFilter) return false;
@@ -237,7 +245,7 @@ const UserManagement: React.FC = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                  {paginatedUsers.map(user => {
+                  {paginatedUsers.map((user: any) => {
                     const isLocked = user.status === 'LOCKED';
                     const mainRole = user.roles[0] || 'VIEWER';
                     return (
