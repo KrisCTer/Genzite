@@ -39,11 +39,21 @@ const isAuthEndpoint = (url?: string) =>
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Auto-unwrap backend responses: { data: [...], meta: {} } → [...]
-    // This handles cases where NestJS returns a paginated/wrapped response
+    // Auto-unwrap backend responses when they wrap arrays in a named field
+    // Handles: { data: [] }, { items: [] }, { pages: [] }, { sites: [] }, { widgets: [] }, etc.
     const d = response.data;
-    if (d && typeof d === 'object' && !Array.isArray(d) && 'data' in d && Array.isArray(d.data)) {
-      response.data = d.data;
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      const ARRAY_KEYS = ['data', 'items', 'pages', 'sites', 'widgets', 'users', 'notifications', 'results', 'records'];
+      for (const key of ARRAY_KEYS) {
+        if (key in d && Array.isArray(d[key])) {
+          // Only unwrap if this is clearly a list-wrapper (has exactly 1-3 keys with meta)
+          const keys = Object.keys(d);
+          if (keys.length <= 4) {
+            response.data = d[key];
+            break;
+          }
+        }
+      }
     }
     return response;
   },
