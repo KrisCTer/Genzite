@@ -37,6 +37,17 @@ const isAuthEndpoint = (url?: string) =>
     url.includes('/auth/reset-password')
   );
 
+const isPublicSubdomain = () => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return (
+    (hostname.includes('codespheree.id.vn') || hostname.includes('genzite.studio')) &&
+    !hostname.startsWith('www.') &&
+    !hostname.startsWith('app.') &&
+    hostname !== 'codespheree.id.vn'
+  );
+};
+
 apiClient.interceptors.response.use(
   (response) => {
     const d = response.data;
@@ -98,7 +109,7 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('gz_refresh_token');
       if (!refreshToken) {
         useAuthStore.getState().logout();
-        if (window.location.pathname !== '/login') {
+        if (window.location.pathname !== '/login' && !isPublicSubdomain()) {
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -139,7 +150,7 @@ apiClient.interceptors.response.use(
       } catch {
         processQueue(null);
         useAuthStore.getState().logout();
-        if (window.location.pathname !== '/login') {
+        if (window.location.pathname !== '/login' && !isPublicSubdomain()) {
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -154,7 +165,7 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/login' && !isPublicSubdomain()) {
         window.location.href = '/login';
       }
     }

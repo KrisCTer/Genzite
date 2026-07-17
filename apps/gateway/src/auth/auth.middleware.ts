@@ -45,6 +45,12 @@ export class AuthMiddleware implements NestMiddleware {
     'GET /api/v1/settings/public',
   ];
 
+  // Routes matched by URL suffix (endsWith) — for parameterized public endpoints
+  private readonly publicSuffixRoutes = [
+    'GET /pages/public',          // GET /sites/:siteId/pages/public
+    'GET /widgets/public',        // GET /sites/pages/:pageId/widgets/public
+  ];
+
   constructor() {
     this.isAuthBypassed = process.env.AUTH_BYPASS === 'true' || !process.env.JWT_SECRET;
 
@@ -73,12 +79,22 @@ export class AuthMiddleware implements NestMiddleware {
     delete req.headers['x-user-email'];
     delete req.headers['x-user-roles'];
 
-    // Public routes always pass through
+    // Public routes always pass through (exact prefix match)
     if (
       this.publicRoutes.some(
         (r) =>
           (req.originalUrl || req.url || req.path || '').split('?')[0].startsWith(r.split(' ')[1]) &&
           req.method === r.split(' ')[0],
+      )
+    ) {
+      return next();
+    }
+
+    // Public suffix routes — match parameterized public endpoints (e.g. /sites/:id/pages/public)
+    const rawUrl = (req.originalUrl || req.url || req.path || '').split('?')[0];
+    if (
+      this.publicSuffixRoutes.some(
+        (r) => rawUrl.endsWith(r.split(' ')[1]) && req.method === r.split(' ')[0],
       )
     ) {
       return next();
