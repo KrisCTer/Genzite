@@ -90,6 +90,7 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
             if (isDirty && !window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
               return;
             }
+            window.dispatchEvent(new CustomEvent('genzite:grapes:clearDirty'));
             window.location.href = `/project/${siteId || ''}`;
           }}
         >
@@ -258,6 +259,7 @@ const EditTopBar: React.FC<EditTopBarProps> = ({
               if (isDirty && !window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
                 return;
               }
+              window.dispatchEvent(new CustomEvent('genzite:grapes:clearDirty'));
               window.location.href = `/project/${siteId || ''}`;
             }}
             style={{ 
