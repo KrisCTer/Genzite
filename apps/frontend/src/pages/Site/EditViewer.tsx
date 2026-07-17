@@ -189,10 +189,11 @@ const EditViewer: React.FC = () => {
   }, [device]);
 
   // Fetch site info
-  const { data: site } = useQuery({
+  const { data: site, isError: isSiteError, error: siteError } = useQuery({
     queryKey: ['site', siteId],
     queryFn: () => fetchSiteByIdApi(siteId!),
-    enabled: !!siteId
+    enabled: !!siteId,
+    retry: false // Don't retry on 403 or 404
   });
 
   // Fetch pages to get the first page or active page
@@ -352,6 +353,16 @@ const EditViewer: React.FC = () => {
       case 'full': return 'auto';
     }
   };
+
+  if (isSiteError) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#fff' }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Access Denied</h1>
+        <p style={{ color: '#94a3b8' }}>You do not have permission to view or edit this project.</p>
+        <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.5rem' }}>If you believe this is a mistake, please contact the project owner.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="canvas-builder" style={{
