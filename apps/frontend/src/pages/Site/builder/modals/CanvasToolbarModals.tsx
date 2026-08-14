@@ -84,6 +84,18 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
   const [publishStepIndex, setPublishStepIndex] = useState(0);
   const [isSubdomainAvailable, setIsSubdomainAvailable] = useState<boolean | null>(null);
   const [isCheckingSubdomain, setIsCheckingSubdomain] = useState(false);
+  
+  const getBaseDomain = () => {
+    if (typeof window === 'undefined') return 'genzite.studio';
+    const host = window.location.hostname;
+    if (host.includes('localhost')) return 'localhost';
+    if (host.includes('codespheree.id.vn')) return 'codespheree.id.vn';
+    if (host.includes('genzite.com')) return 'genzite.com';
+    if (host.includes('genzite.ai')) return 'genzite.ai';
+    return 'genzite.studio';
+  };
+  const baseDomain = getBaseDomain();
+  
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const modelBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -176,7 +188,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
         centered
         styles={{
           content: {
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(17, 24, 39, 0.6)',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)), rgba(11, 15, 25, 0.95)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: 24,
             padding: '24px 28px',
@@ -959,7 +971,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
                   borderLeft: 'none',
                   transition: 'border-color 0.2s'
                 }}>
-                  .genzite.studio
+                  .{baseDomain}
                 </div>
               </div>
               <div style={{ 
@@ -1137,7 +1149,7 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
             {/* Buttons Row */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
               <button
-                onClick={() => window.open(`https://${publishUrl}.genzite.studio`, '_blank')}
+                onClick={() => window.open(`https://${publishUrl}.${baseDomain}`, '_blank')}
                 style={{
                   flex: 1,
                   background: '#3F3F46',
@@ -1206,13 +1218,13 @@ export const CanvasToolbarModals: React.FC<CanvasToolbarModalsProps> = ({
               <div>
                 <div style={{ color: '#94A3B8', fontSize: 13, marginBottom: 8 }}>App URL</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <a href={`https://${publishUrl}.genzite.studio`} target="_blank" rel="noreferrer" style={{ color: '#60A5FA', fontSize: 14, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    https://{publishUrl}.genzite.studio
+                  <a href={`https://${publishUrl}.${baseDomain}`} target="_blank" rel="noreferrer" style={{ color: '#60A5FA', fontSize: 14, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    https://{publishUrl}.{baseDomain}
                   </a>
                   <CopyOutlined 
                     style={{ color: '#94A3B8', cursor: 'pointer' }} 
                     onClick={() => {
-                      navigator.clipboard.writeText(`https://${publishUrl}.genzite.studio`);
+                      navigator.clipboard.writeText(`https://${publishUrl}.${baseDomain}`);
                       message.success('URL copied');
                     }} 
                   />

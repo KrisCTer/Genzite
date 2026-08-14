@@ -5,7 +5,7 @@ import { DatabaseOutlined } from '@ant-design/icons';
 import { Sparkles, Info, Shield, DollarSign, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi } from '../api/notifications';
+import { fetchNotificationsApi, markNotificationAsReadApi, markAllNotificationsAsReadApi, type AppNotification } from '../api/notifications';
 import { useAuthStore } from '../store/auth';
 import { resolveUserRoles } from '../utils/jwt';
 import { getNotificationsPath } from '../utils/userNav';
@@ -45,7 +45,13 @@ const NotificationBell: React.FC = () => {
     retry: 1,
   });
 
-  const displayNotifications = notifications || [];
+  const displayNotifications: AppNotification[] = Array.isArray(notifications) 
+    ? notifications 
+    : Array.isArray((notifications as any)?.data) 
+      ? (notifications as any).data 
+      : Array.isArray((notifications as any)?.notifications)
+        ? (notifications as any).notifications
+        : [];
   const unreadCount = displayNotifications.filter(n => !n.isRead).length;
 
   const markReadMutation = useMutation({

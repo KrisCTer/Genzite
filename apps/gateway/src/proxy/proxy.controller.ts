@@ -50,6 +50,13 @@ export class ProxyController {
             delete proxyRes.headers['access-control-allow-credentials'];
             delete proxyRes.headers['access-control-allow-methods'];
             delete proxyRes.headers['access-control-allow-headers'];
+            
+            // Prevent browsers and CDNs from caching API responses (unless explicitly overridden by the microservice)
+            if (!proxyRes.headers['cache-control']) {
+              proxyRes.headers['cache-control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+              proxyRes.headers['expires'] = '0';
+              proxyRes.headers['surrogate-control'] = 'no-store';
+            }
           },
         },
       });

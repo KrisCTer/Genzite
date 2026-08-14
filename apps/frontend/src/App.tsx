@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { ConfigProvider, App as AntdApp } from 'antd';
 import { genziteDarkTheme } from './styles/theme';
 import { useAuthStore } from './store/auth';
@@ -68,6 +68,7 @@ const ProtectedRoute = ({
   const user = useAuthStore((state) => state.user);
   const setAuth = useAuthStore((state) => state.setAuth);
   const refreshToken = useAuthStore((state) => state.refreshToken);
+  const location = useLocation();
 
   useEffect(() => {
     if (token && !user) {
@@ -78,7 +79,7 @@ const ProtectedRoute = ({
   }, [token, user, setAuth, refreshToken]);
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   const effectiveRoles = normalizeRoles(resolveUserRoles(user?.roles, token));
@@ -195,6 +196,7 @@ const App: React.FC = () => {
                 <Route path="/features" element={<LandingPage />} />
                 <Route path="/contact" element={<LandingPage />} />
                 <Route path="/live/:pageId" element={<LiveViewer />} />
+                <Route path="/live/:siteId/:pageId" element={<LiveViewer />} />
                 <Route path="/preview/:siteId" element={<PreviewViewer />} />
                 <Route path="/edit/:siteId" element={<EditViewer />} />
                 <Route path="/login" element={<Login />} />

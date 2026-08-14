@@ -46,8 +46,8 @@ export const UserPopover: React.FC<UserPopoverProps> = ({
           )}
         </div>
         <div className="user-popover-details">
-          <div className="user-popover-name">{user?.name || 'Jane Doe'}</div>
-          <div className="user-popover-email">{user?.email || 'jane.doe@example.com'}</div>
+          <div className="user-popover-name">{user?.name || 'Guest'}</div>
+          <div className="user-popover-email">{user?.email || 'guest@example.com'}</div>
         </div>
       </div>
 

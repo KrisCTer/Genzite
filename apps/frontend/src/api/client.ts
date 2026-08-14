@@ -37,8 +37,49 @@ const isAuthEndpoint = (url?: string) =>
     url.includes('/auth/reset-password')
   );
 
+const isPublicSubdomain = () => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return (
+    (hostname.includes('codespheree.id.vn') || hostname.includes('genzite.studio')) &&
+    !hostname.startsWith('www.') &&
+    !hostname.startsWith('app.') &&
+    hostname !== 'codespheree.id.vn'
+  );
+};
+
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const d = response.data;
+    
+    // Guard against APIs returning HTML (e.g. 502 Bad Gateway disguised as 200 OK by proxies/CloudFront)
+    if (typeof d === 'string') {
+      const lowerD = d.trim().toLowerCase();
+      if (lowerD.startsWith('<html') || lowerD.startsWith('<!doctype') || lowerD.includes('502 bad gateway') || lowerD.includes('504 gateway')) {
+        console.error('\n\n🚨 [API] SERVER RETURNED HTML INSTEAD OF JSON 🚨');
+        console.error('URL:', response.config.url);
+        console.error('HTTP Status:', response.status);
+        console.error('HTML Content (First 1000 chars):\n', d.substring(0, 1000));
+        return Promise.reject(new Error(`API returned HTML instead of JSON! Status: ${response.status}. See console for HTML.`));
+      }
+    }
+
+    // Auto-unwrap backend responses when they wrap arrays in a named field
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      const ARRAY_KEYS = ['data', 'items', 'pages', 'sites', 'widgets', 'users', 'notifications', 'results', 'records'];
+      for (const key of ARRAY_KEYS) {
+        if (key in d && Array.isArray(d[key])) {
+          // Only unwrap if this is clearly a list-wrapper (has exactly 1-3 keys with meta)
+          const keys = Object.keys(d);
+          if (keys.length <= 4) {
+            response.data = d[key];
+            break;
+          }
+        }
+      }
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean; _retryCount?: number };
 
@@ -68,7 +109,7 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('gz_refresh_token');
       if (!refreshToken) {
         useAuthStore.getState().logout();
-        if (window.location.pathname !== '/login') {
+        if (window.location.pathname !== '/login' && !isPublicSubdomain()) {
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -109,7 +150,7 @@ apiClient.interceptors.response.use(
       } catch {
         processQueue(null);
         useAuthStore.getState().logout();
-        if (window.location.pathname !== '/login') {
+        if (window.location.pathname !== '/login' && !isPublicSubdomain()) {
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -124,7 +165,7 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/login' && !isPublicSubdomain()) {
         window.location.href = '/login';
       }
     }

@@ -19,8 +19,14 @@ const ProjectSidebar: React.FC = () => {
     enabled: !!token,
   });
 
-  const sites = apiSites;
-  const filteredSites = sites.filter(s => {
+  const sites = Array.isArray(apiSites) 
+    ? apiSites 
+    : Array.isArray((apiSites as any)?.data) 
+      ? (apiSites as any).data 
+      : Array.isArray((apiSites as any)?.items)
+        ? (apiSites as any).items
+        : [];
+  const filteredSites = sites.filter((s: any) => {
     const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
@@ -35,7 +41,7 @@ const ProjectSidebar: React.FC = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const grouped = filteredSites.reduce((acc, site) => {
+  const grouped = filteredSites.reduce((acc: any, site: any) => {
     const created = new Date(site.createdAt);
     let group = 'Older';
     if (created >= today) {

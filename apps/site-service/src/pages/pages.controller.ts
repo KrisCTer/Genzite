@@ -14,6 +14,12 @@ import { PagesService } from "./pages.service.js";
 export class PagesController {
   constructor(private readonly pagesService: PagesService) {}
 
+  /** Public: No auth required. Returns pages for sites with isPublished=true. */
+  @Get('public')
+  async findAllPublic(@Param('siteId') siteId: string) {
+    return this.pagesService.findBySiteIdPublic(siteId);
+  }
+
   @Get()
   async findAll(
     @Param("siteId") siteId: string,
@@ -22,6 +28,7 @@ export class PagesController {
   ) {
     return this.pagesService.findBySiteId(siteId, userId, userEmail);
   }
+
 
   @Post()
   async create(

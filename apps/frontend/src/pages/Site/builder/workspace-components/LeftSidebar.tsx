@@ -38,9 +38,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         height: isSidebarExpanded ? 'auto' : '100%',
         width: isSidebarExpanded ? 'auto' : '100%',
         background: isSidebarExpanded ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
-        backgroundImage: isSidebarExpanded ? 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)' : 'none',
-        backgroundSize: '16px 16px',
-        backgroundPosition: '0 0',
         borderBottom: isSidebarExpanded ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
         flexShrink: 0
       }}>

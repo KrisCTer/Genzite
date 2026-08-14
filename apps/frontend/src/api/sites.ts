@@ -60,6 +60,12 @@ export const fetchPagesApi = async (siteId: string) => {
   return response.data;
 };
 
+/** Public version — no auth token required. Used by the LiveViewer for anonymous access to published sites. */
+export const fetchPagesPublicApi = async (siteId: string) => {
+  const response = await apiClient.get<Page[]>(`/sites/${siteId}/pages/public`);
+  return response.data;
+};
+
 export const createPageApi = async (siteId: string, data: { title: string; slug: string }) => {
   const response = await apiClient.post<Page>(`/sites/${siteId}/pages`, data);
   return response.data;

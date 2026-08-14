@@ -137,7 +137,7 @@ const SitesList: React.FC = () => {
       )}
 
       <Row gutter={[24, 24]}>
-        {(sites || []).map((site: Site) => {
+        {(Array.isArray(sites) ? sites : []).map((site: Site) => {
           const { platform, customInstructions, cleanText } = parseDescription(site.description);
           const publicUrl = getPublicSiteUrl(site.subdomain);
           const cleanDomain = publicUrl.replace(/^https?:\/\//, '');

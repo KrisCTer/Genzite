@@ -71,7 +71,7 @@ interface CanvasWorkspaceProps {
 }
 
 const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
-  pages,
+  pages: rawPages,
   siteId,
   site,
   onAIGenerated,
@@ -82,6 +82,8 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   onDeletePage,
   onDuplicateProject,
 }) => {
+  // Normalize pages to always be an array (guards against wrapped API responses)
+  const pages: any[] = Array.isArray(rawPages) ? rawPages : (rawPages as any)?.data ?? (rawPages as any)?.pages ?? [];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -271,7 +273,7 @@ const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [themeRadius, setThemeRadius] = useState<number>(4);
   const [isThemeSchemeOpen, setIsThemeSchemeOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
-  const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('full');
+  const [canvasDevice, setCanvasDevice] = useState<'mobile' | 'tablet' | 'desktop' | 'full'>('desktop');
   const isSidebarExpandedRef = useRef(true);
 
   // Keep a ref in sync so panToCenterDevice can read it without being re-created

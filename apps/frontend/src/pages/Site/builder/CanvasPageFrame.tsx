@@ -104,7 +104,8 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
 
   useEffect(() => {
     if (dbWidgets) {
-      const sorted = [...dbWidgets].sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+      const widgetList = Array.isArray(dbWidgets) ? dbWidgets : (dbWidgets as any)?.data ?? [];
+      const sorted = [...widgetList].sort((a: any, b: any) => a.sortOrder - b.sortOrder);
       let yOffset = 0;
       const mapped: CanvasWidget[] = sorted.map((w: any, i: number) => {
         const defaults = WIDGET_DEFAULTS[w.type?.toUpperCase()] || { w: 1440, h: 500 };
@@ -194,13 +195,14 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
   };
 
   const isEditMode = window.location.pathname.includes('/edit/');
-  const computedHeight = Math.max(800, widgets.reduce((max, w) => Math.max(max, (w.y || 0) + (w.height || 400)), 800));
+  const safeWidgets = Array.isArray(widgets) ? widgets : [];
+  const computedHeight = Math.max(800, safeWidgets.reduce((max, w) => Math.max(max, (w.y || 0) + (w.height || 400)), 800));
 
-  const hasGrapes = widgets.some(w => w.type === 'GRAPESJS');
+  const hasGrapes = safeWidgets.some(w => w.type === 'GRAPESJS');
   const deviceWidth = canvasDevice === 'mobile' ? 390 : canvasDevice === 'tablet' ? 768 : canvasDevice === 'desktop' ? 1440 : 1440;
   const fixedViewportHeight = canvasDevice === 'mobile' ? 844 : canvasDevice === 'tablet' ? 1024 : 900;
   const isFullUnrollMode = canvasDevice === 'full';
-  const grapesWidget = widgets.filter(w => w.type === 'GRAPESJS').slice(-1)[0];
+  const grapesWidget = safeWidgets.filter(w => w.type === 'GRAPESJS').slice(-1)[0];
   const measuredHeight = grapesWidget ? (iframeHeights[grapesWidget.id || grapesWidget._id] || 0) : 0;
   const fullGrapesHeight = measuredHeight > 0 ? measuredHeight : fixedViewportHeight;
   const deviceHeight = isFullUnrollMode
@@ -323,7 +325,7 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
         height: deviceHeight,
         minHeight: isFullUnrollMode ? Math.max(computedHeight, 800) : deviceHeight,
         background: '#ffffff', 
-        border: (!isEditMode && (globalSelectedId === pageId || globalSelectedId?.includes(pageId) || (globalSelectedId && widgets.some(w => w._id === globalSelectedId)))) ? '6px solid #8b5cf6' : '6px solid rgba(148, 163, 184, 0.4)',
+        border: (!isEditMode && (globalSelectedId === pageId || globalSelectedId?.includes(pageId) || (globalSelectedId && safeWidgets.some(w => w._id === globalSelectedId)))) ? '6px solid #8b5cf6' : '6px solid rgba(148, 163, 184, 0.4)',
         borderRadius: 24, 
         overflow: 'hidden',
         position: 'relative',
@@ -333,10 +335,10 @@ const CanvasPageFrame: React.FC<CanvasPageFrameProps> = ({
 
         {/* If GRAPESJS widget exists, only show the latest one (contains full page HTML) */}
         {(() => {
-          const grapesWidgets = widgets.filter(w => w.type === 'GRAPESJS');
+          const grapesWidgets = safeWidgets.filter(w => w.type === 'GRAPESJS');
           const widgetsToRender = grapesWidgets.length > 0
             ? [grapesWidgets[grapesWidgets.length - 1]]
-            : widgets;
+            : safeWidgets;
           return widgetsToRender;
         })().map((widget) => {
           const isGrapesItem = widget.type === 'GRAPESJS';

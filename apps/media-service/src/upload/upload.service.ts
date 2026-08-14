@@ -8,15 +8,17 @@ import { MediaProducer } from "../events/media.producer.js";
 @Injectable()
 export class UploadService {
   constructor(
-    // Prisma is used to manage media metadata.
     private readonly prisma: PrismaService,
-
-    // Publish media events to Kafka.
     private readonly mediaProducer: MediaProducer,
   ) {}
+
   private readonly s3 = new S3Client({
-    // AWS region used to access S3.
     region: process.env.AWS_REGION,
+    // Disable automatic checksum calculation.
+    // AWS SDK v3 adds CRC32 checksums by default which causes SignatureDoesNotMatch
+    // errors when the browser performs a direct PUT upload using a presigned URL.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   });
 
   private getPublicUrl(s3Key: string): string {
@@ -29,7 +31,7 @@ export class UploadService {
     if (endpoint) {
       return `${endpoint.replace(/\/$/, "")}/${bucket}/${s3Key}`;
     }
-    const region = process.env.AWS_REGION || "ap-southeast-1";
+    const region = process.env.AWS_REGION || "us-east-1";
     return `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
   }
 
@@ -58,7 +60,6 @@ export class UploadService {
 
   async confirmUpload(
     ownerId: string,
-
     dto: {
       s3Key: string;
       filename: string;
@@ -70,19 +71,14 @@ export class UploadService {
       throw new ForbiddenException("You can only confirm media files uploaded to your own directory prefix");
     }
 
-    // Check file confirmed or not by s3Key
     const existing = await this.prisma.mediaFile.findUnique({
-      where: {
-        s3Key: dto.s3Key,
-      },
+      where: { s3Key: dto.s3Key },
     });
 
-    // confirm upload file, if existing => throw ConflictException
     if (existing) {
       throw new ConflictException("Media already confirmed");
     }
 
-    // Save media file to database
     const media = await this.prisma.mediaFile.create({
       data: {
         filename: dto.filename,
@@ -92,7 +88,7 @@ export class UploadService {
         ownerId,
       },
     });
-    // Notify other services that a media file has been uploaded.
+
     await this.mediaProducer.emitMediaUploaded({
       mediaId: media.id,
       s3Key: media.s3Key,
@@ -100,6 +96,7 @@ export class UploadService {
       mimeType: media.mimeType,
       ownerId: media.ownerId,
     });
+
     return {
       ...media,
       url: this.getPublicUrl(media.s3Key),
@@ -107,7 +104,6 @@ export class UploadService {
   }
 
   async deleteByS3Key(s3Key: string) {
-    // 1. Delete from S3
     await this.s3.send(
       new DeleteObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET,
@@ -115,17 +111,15 @@ export class UploadService {
       }),
     );
 
-    // 2. Delete from Postgres if exists
     const existing = await this.prisma.mediaFile.findUnique({
       where: { s3Key },
     });
-    
+
     if (existing) {
       await this.prisma.mediaFile.delete({
         where: { id: existing.id },
       });
 
-      // Notify other services
       await this.mediaProducer.emitMediaDeleted({
         mediaId: existing.id,
         s3Key: existing.s3Key,

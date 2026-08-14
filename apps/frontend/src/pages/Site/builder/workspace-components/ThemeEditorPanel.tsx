@@ -265,7 +265,9 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
     ? { id: 'custom', name: 'Tùy chỉnh', font: 'Aa', colors: ['#1976D2', '#E65100'], buttonBg: '#1976D2', buttonColor: '#FFFFFF' }
     : detailThemeId ? THEMES.find(t => t.id === detailThemeId) : null;
 
-  if (activeTheme) {
+  const [isDetailOpen, setIsDetailOpen] = React.useState(false);
+
+  if (activeTheme && isDetailOpen) {
     const getDynamicDesignMd = () => {
       return generateDesignMd(activeTheme, themeColorOverrides, themeFonts, themeMode, themeRadius);
     };
@@ -291,7 +293,7 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
       }}>
         <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <button 
-            onClick={() => { setDetailThemeId(null); setThemeColorOverrides({}); }}
+            onClick={() => { setIsDetailOpen(false); setThemeColorOverrides({}); }}
             style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: 0 }}
           >
             <ChevronRight style={{ transform: 'rotate(180deg)' }} size={16} /> {activeTheme.name}
@@ -518,7 +520,8 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8', fontSize: 12 }}>
                 DESIGN.md ⓘ
               </div>
@@ -526,42 +529,8 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
                 {getDynamicDesignMd()}
               </pre>
             </div>
+          </>
           )}
-
-          <button
-            onClick={handleApplyThemeToSelection}
-            disabled={isApplyingTheme || !selectedId || selectedId.length === 0}
-            style={{
-              marginTop: 16,
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 24,
-              padding: '10px 16px',
-              color: '#e2e8f0',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: (isApplyingTheme || !selectedId || selectedId.length === 0) ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: (isApplyingTheme || !selectedId || selectedId.length === 0) ? 0.5 : 1,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (!isApplyingTheme && selectedId && selectedId.length > 0) {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isApplyingTheme && selectedId && selectedId.length > 0) {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-              }
-            }}
-          >
-            {isApplyingTheme && <Spin size="small" />}
-            Apply to Selection
-          </button>
         </div>
       </div>
     );
@@ -602,8 +571,10 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
       
       <div style={{ padding: '0 20px 20px', overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
         <button 
-          onClick={() => setDetailThemeId('custom')}
-          style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 0', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12 }}
+          onClick={() => { setDetailThemeId('custom'); setIsDetailOpen(true); }}
+          style={{ width: '100%', background: 'transparent', border: 'none', color: '#E2E8F0', padding: '10px 12px', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 500, fontSize: 13, gap: 12, borderRadius: 8, transition: 'background 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           <Plus size={16} style={{ opacity: 0.7 }} /> Tạo mới
         </button>
@@ -612,8 +583,9 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
           {THEMES.map((theme, i) => (
             <div 
               key={i} 
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 12px', cursor: 'pointer', background: detailThemeId === theme.id ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: 8, transition: 'background 0.2s' }}
               onClick={() => setDetailThemeId(theme.id)}
+              onDoubleClick={() => { setDetailThemeId(theme.id); setIsDetailOpen(true); }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#F8FAFC' }}>{theme.name}</span>
@@ -638,6 +610,42 @@ export const ThemeEditorPanel: React.FC<ThemeEditorPanelProps> = ({
             </div>
           ))}
         </div>
+
+        <button
+          onClick={handleApplyThemeToSelection}
+          disabled={isApplyingTheme || !selectedId || selectedId.length === 0 || !detailThemeId}
+          style={{
+            marginTop: 24,
+            width: '100%',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 24,
+            padding: '10px 16px',
+            color: '#e2e8f0',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: (isApplyingTheme || !selectedId || selectedId.length === 0 || !detailThemeId) ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            opacity: (isApplyingTheme || !selectedId || selectedId.length === 0 || !detailThemeId) ? 0.5 : 1,
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (!isApplyingTheme && selectedId && selectedId.length > 0 && detailThemeId) {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isApplyingTheme && selectedId && selectedId.length > 0 && detailThemeId) {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+            }
+          }}
+        >
+          {isApplyingTheme && <Spin size="small" />}
+          Apply to Selection
+        </button>
       </div>
     </div>
   );

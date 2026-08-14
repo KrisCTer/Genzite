@@ -35,6 +35,19 @@ RUN pnpm --filter ${APP_NAME}... build
 # Deploy the app to an isolated directory containing ONLY production dependencies and built files
 RUN pnpm --filter ${APP_NAME} deploy --prod /app/out
 
+# pnpm deploy ignores dist/ because of .gitignore, so we manually copy it
+RUN cp -r apps/${APP_NAME}/dist /app/out/dist || true
+
+# pnpm deploy ignores node_modules/@prisma because it's locally generated
+RUN if [ -d "apps/${APP_NAME}/node_modules/@prisma" ]; then \
+      mkdir -p /app/out/node_modules/@prisma && \
+      cp -r apps/${APP_NAME}/node_modules/@prisma/* /app/out/node_modules/@prisma/ || true; \
+    fi
+RUN if [ -d "apps/${APP_NAME}/node_modules/.prisma" ]; then \
+      mkdir -p /app/out/node_modules/.prisma && \
+      cp -r apps/${APP_NAME}/node_modules/.prisma/* /app/out/node_modules/.prisma/ || true; \
+    fi
+
 # ==========================================
 # Stage 2: Production Runner
 # ==========================================
@@ -45,8 +58,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Install 'serve' globally for the frontend (which is a static SPA)
-RUN npm install -g serve
+# Install simple http server for serving static frontend and prisma CLI for migrations
+RUN npm install -g serve prisma@6
 
 # Copy the isolated app directly (it already contains dist, package.json, and prod node_modules with Prisma client)
 COPY --from=builder /app/out ./
@@ -54,4 +67,4 @@ COPY --from=builder /app/out ./
 EXPOSE ${PORT}
 
 # Start the application dynamically based on whether it's a backend (NestJS) or frontend (Vite static files)
-CMD ["sh", "-c", "if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]
+CMD ["sh", "-c", "if [ -d prisma ]; then prisma migrate deploy; fi; if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else serve -s dist -l tcp://0.0.0.0:${PORT}; fi"]

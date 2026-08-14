@@ -115,9 +115,6 @@ services:
       - media
       - notification
       - ai
-    volumes:
-      - ../apps/gateway:/app
-      - /app/node_modules
 
   identity:
     healthcheck:
@@ -146,6 +143,8 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
       KAFKA_BROKERS: kafka:9092
+      EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
@@ -153,9 +152,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/identity-service:/app
-      - /app/node_modules
 
   site:
     healthcheck:
@@ -180,14 +176,12 @@ services:
       REDIS_HOST: cache
       REDIS_PORT: 6379
       KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: site-service-group
     depends_on:
       db:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/site-service:/app
-      - /app/node_modules
 
   data:
     healthcheck:
@@ -216,9 +210,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/data-service:/app
-      - /app/node_modules
 
   media:
     healthcheck:
@@ -241,15 +232,14 @@ services:
       DIRECT_URL: "${SUPABASE_DIRECT_URL:-postgresql://${POSTGRES_USER:-genzite_user}:${POSTGRES_PASSWORD:-genzite_password}@db:5432/${POSTGRES_DB:-genzite_dev}}?schema=media"
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-genzite-media-dev}
       AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       KAFKA_BROKERS: kafka:9092
     depends_on:
       db:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/media-service:/app
-      - /app/node_modules
 
   notification:
     healthcheck:
@@ -275,6 +265,9 @@ services:
       REDIS_PORT: 6379
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: notification-service-group
+      EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://codespheree.id.vn}
     depends_on:
       db:
         condition: service_healthy
@@ -282,9 +275,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/notification-service:/app
-      - /app/node_modules
 
   ai:
     healthcheck:
@@ -311,6 +301,10 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GENERATION_MODE: ${GENERATION_MODE:-hybrid}
+      STITCH_API_KEY: ${STITCH_API_KEY:-}
       AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-gemini}
       MCP_SERVERS: ${MCP_SERVERS:-}
       KAFKA_BROKERS: kafka:9092
@@ -322,14 +316,11 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    volumes:
-      - ../apps/ai-service:/app
-      - /app/node_modules
 
   # ======================== FRONTEND ========================
   frontend:
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5173/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => process.exit(0)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -338,19 +329,15 @@ services:
       dockerfile: infra/Dockerfile.prod
       args:
         APP_NAME: frontend
-        VITE_API_URL: /api/v1
+        VITE_API_URL: ${VITE_API_URL:-https://codespheree.id.vn/api/v1}
     container_name: genzite-frontend
     restart: unless-stopped
     expose:
-      - "5173"
+      - "3000"
     environment:
-      PORT: 5173
-      VITE_API_BASE_URL: /api/v1
+      PORT: 3000
     depends_on:
       - gateway
-    volumes:
-      - ../apps/frontend:/app
-      - /app/node_modules
 
   # ======================== NGINX ========================
   nginx:
